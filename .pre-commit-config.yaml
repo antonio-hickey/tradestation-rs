@@ -1,0 +1,21 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+    -   id: check-case-conflict
+    -   id: check-docstring-first
+    -   id: check-json
+    -   id: check-merge-conflict
+    -   id: debug-statements
+    -   id: check-ast
+-   repo: https://github.com/antonio-hickey/rusted-pre-commits
+    rev: v1.0.0
+    hooks:
+    -   id: fmt
+    -   id: cargo-check
+    -   id: clippy
+    -   id: build
+    -   id: test

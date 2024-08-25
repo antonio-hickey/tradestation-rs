@@ -1,0 +1,16 @@
+[package]
+name = "tradestation-rs"
+version = "0.1.0"
+authors = ["Antonio Hickey <contact@antoniohickey.com>"]
+description = "An ergonomic Rust client for the TradeStation API."
+documentation = "https://github.com/antonio-hickey/tradestation-rs"
+homepage = "https://github.com/antonio-hickey/tradestation-rs"
+repository = "https://github.com/antonio-hickey/tradestation-rs"
+keywords = ["tradestation", "finance", "quant", "trading"]
+license = "MIT"
+exclude = ["/.github/"]
+edition = "2021"
+
+[dependencies]
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
