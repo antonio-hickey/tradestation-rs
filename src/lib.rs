@@ -1,6 +1,7 @@
-mod error;
+pub mod client;
+pub mod error;
+pub mod token;
 
-/// TradeStation API Client
-pub struct Client {
-    _http_client: reqwest::Client,
-}
+pub use client::{Client, ClientBuilder};
+pub use error::Error;
+pub use token::Token;
