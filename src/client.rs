@@ -1,13 +1,114 @@
 use crate::{Error, Token};
+use reqwest::{header, Response};
+use serde::Serialize;
 use std::collections::HashMap;
 
 /// TradeStation API Client
+#[derive(Clone, Debug)]
 pub struct Client {
-    _http_client: reqwest::Client,
-    _client_id: String,
-    _client_secret: String,
-    /// Bearer Token for the TradeStation API
+    http_client: reqwest::Client,
+    client_id: String,
+    client_secret: String,
+    /// Bearer Token for TradeStation's API
     pub token: Token,
+}
+impl Client {
+    /// Send an HTTP request to TradeStation's API, with automatic
+    /// token refreshing near, at, or after auth token expiration.
+    ///
+    /// NOTE: You should use `Client::post()` or `Client::get()` in favor of this method.
+    pub async fn send_request<F, T>(&mut self, request_fn: F) -> Result<Response, Error>
+    where
+        F: Fn(&Token) -> T,
+        T: std::future::Future<Output = Result<Response, reqwest::Error>>,
+    {
+        match request_fn(&self.token).await {
+            Ok(resp) => {
+                // Check if the client gets a 401 unauthorized to try and re auth the client
+                // this happens when auth token expires.
+                if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
+                    // Refresh the clients token
+                    self.refresh_token().await?;
+
+                    // Retry sending the request to TradeStation's API
+                    let retry_response = request_fn(&self.token).await?;
+                    Ok(retry_response)
+                } else {
+                    Ok(resp)
+                }
+            }
+            Err(e) => Err(Error::Request(e)),
+        }
+    }
+
+    /// Send a POST request from your `Client` to TradeStation's API
+    pub async fn post<T: Serialize>(
+        &mut self,
+        endpoint: &str,
+        payload: &T,
+    ) -> Result<Response, Error> {
+        let resp = self
+            .clone()
+            .send_request(|token| {
+                self.http_client
+                    .post(endpoint)
+                    .header("Content-Type", "application/json")
+                    .header(
+                        header::AUTHORIZATION,
+                        format!("Bearer {}", token.access_token),
+                    )
+                    .json(payload)
+                    .send()
+            })
+            .await?;
+
+        Ok(resp)
+    }
+
+    /// Send a GET request from your `Client` to TradeStation's API
+    pub async fn get(&mut self, endpoint: &str) -> Result<Response, Error> {
+        let resp = self
+            .clone()
+            .send_request(|token| {
+                self.http_client
+                    .get(endpoint)
+                    .header(
+                        header::AUTHORIZATION,
+                        format!("Bearer {}", token.access_token),
+                    )
+                    .send()
+            })
+            .await?;
+
+        Ok(resp)
+    }
+
+    /// Refresh your clients bearer token used for authentication
+    /// with TradeStation's API.
+    pub async fn refresh_token(&mut self) -> Result<(), Error> {
+        let form_data: HashMap<String, String> = HashMap::from([
+            ("grant_type".into(), "refresh_token".into()),
+            ("client_id".into(), self.client_id.clone()),
+            ("client_secret".into(), self.client_secret.clone()),
+            ("refresh_token".into(), self.token.refresh_token.clone()),
+            ("redirect_uri".into(), "http://localhost:8080/".into()),
+        ]);
+
+        let new_token = self
+            .http_client
+            .post("https://signin.tradestation.com/oauth/token")
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .form(&form_data)
+            .send()
+            .await?
+            .json::<Token>()
+            .await?;
+
+        // Update the clients token
+        self.token = new_token;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Default)]
@@ -99,15 +200,15 @@ impl ClientBuilderStep<Step2> {
 }
 impl ClientBuilderStep<Step3> {
     pub async fn build(self) -> Result<Client, Error> {
-        let _http_client = self.http_client.unwrap();
-        let _client_id = self.client_id.unwrap();
-        let _client_secret = self.client_secret.unwrap();
+        let http_client = self.http_client.unwrap();
+        let client_id = self.client_id.unwrap();
+        let client_secret = self.client_secret.unwrap();
         let token = self.token.unwrap();
 
         Ok(Client {
-            _http_client,
-            _client_id,
-            _client_secret,
+            http_client,
+            client_id,
+            client_secret,
             token,
         })
     }
