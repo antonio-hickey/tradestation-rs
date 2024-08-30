@@ -47,11 +47,12 @@ impl Client {
         endpoint: &str,
         payload: &T,
     ) -> Result<Response, Error> {
+        let url = format!("https://api.tradestation.com/v3/{endpoint}");
         let resp = self
             .clone()
             .send_request(|token| {
                 self.http_client
-                    .post(endpoint)
+                    .post(&url)
                     .header("Content-Type", "application/json")
                     .header(
                         header::AUTHORIZATION,
@@ -67,11 +68,12 @@ impl Client {
 
     /// Send a GET request from your `Client` to TradeStation's API
     pub async fn get(&mut self, endpoint: &str) -> Result<Response, Error> {
+        let url = format!("https://api.tradestation.com/v3/{endpoint}");
         let resp = self
             .clone()
             .send_request(|token| {
                 self.http_client
-                    .get(endpoint)
+                    .get(&url)
                     .header(
                         header::AUTHORIZATION,
                         format!("Bearer {}", token.access_token),
