@@ -1,4 +1,4 @@
-use crate::account::{Account, BODBalance, Balance, Order};
+use crate::account::{Account, BODBalance, Balance, Order, Position};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -31,4 +31,12 @@ pub struct GetBODBalanceResp {
 // TODO: This also gives a `nextToken`, look into using this.
 pub struct GetOrdersResp {
     pub orders: Vec<Order>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The TradeStation API Response for getting account's balance.
+// TODO: This also gives a key for errors, look into using these.
+pub struct GetPositionsResp {
+    pub positions: Vec<Position>,
 }

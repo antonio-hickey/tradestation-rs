@@ -142,7 +142,7 @@ impl Account {
     /// NOTE: Excludes open `Order`(s).
     ///
     /// NOTE: Sorted in descending order of time closed.
-    pub async fn get_historic_orders_by_id(
+    pub async fn get_historic_orders_by_ids(
         client: &mut Client,
         account_ids: Vec<&str>,
     ) -> Result<Vec<Order>, Error> {
@@ -158,6 +158,92 @@ impl Account {
             .await?;
 
         Ok(resp.orders)
+    }
+
+    /// Fetches positions for the given `Account`.
+    pub async fn get_positions(&self, client: &mut Client) -> Result<Vec<Position>, Error> {
+        let endpoint = format!("brokerage/accounts/{}/positions", self.account_id);
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        Ok(resp.positions)
+    }
+
+    /// Fetches positions for the given `Account`.
+    ///
+    /// NOTE: symbol should be a str of valid symbols in comma separated format;
+    /// for example: `"MSFT,MSFT *,AAPL"`.
+    ///
+    /// NOTE: You can use an * as wildcard to make more complex filters.
+    pub async fn get_positions_in_symbols(
+        &self,
+        symbol: &str,
+        client: &mut Client,
+    ) -> Result<Vec<Position>, Error> {
+        let endpoint = format!(
+            "brokerage/accounts/{}/positions?symbol={}",
+            self.account_id, symbol
+        );
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        Ok(resp.positions)
+    }
+
+    /// Fetches positions for the given `Account`.
+    ///
+    /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_positions()`
+    /// this method should only be used if you ONLY have account id's.
+    pub async fn get_positions_by_ids(
+        client: &mut Client,
+        account_ids: Vec<&str>,
+    ) -> Result<Vec<Position>, Error> {
+        let endpoint = format!("brokerage/accounts/{}/positions", account_ids.join(","));
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        Ok(resp.positions)
+    }
+
+    /// Fetches positions for the given `Account`.
+    ///
+    /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_positions_in_symbols()`
+    /// this method should only be used if you ONLY have account id's.
+    ///
+    /// NOTE: symbol should be a str of valid symbols in comma separated format;
+    /// for example: `"MSFT,MSFT *,AAPL"`.
+    ///
+    /// NOTE: You can use an * as wildcard to make more complex filters.
+    pub async fn get_positions_in_symbols_by_ids(
+        client: &mut Client,
+        symbols: &str,
+        account_ids: Vec<&str>,
+    ) -> Result<Vec<Position>, Error> {
+        let endpoint = format!(
+            "brokerage/accounts/{}/positions?symbol={}",
+            account_ids.join(","),
+            symbols
+        );
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        Ok(resp.positions)
     }
 }
 
@@ -191,6 +277,26 @@ pub trait MultipleAccounts {
         &'a self,
         client: &'a mut Client,
     ) -> Self::GetHistoricOrdersFuture<'a>;
+
+    type GetPositionsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
+        + Send
+        + 'a
+    where
+        Self: 'a;
+    /// Get the `Position`(s) for multiple `Account`(s)
+    fn get_positions<'a>(&'a self, client: &'a mut Client) -> Self::GetPositionsFuture<'a>;
+
+    type GetPositionsInSymbolsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
+        + Send
+        + 'a
+    where
+        Self: 'a;
+    /// Get the `Position`(s) in specific symbols for multiple `Account`(s)
+    fn get_positions_in_symbols<'a>(
+        &'a self,
+        symbols: &'a str,
+        client: &'a mut Client,
+    ) -> Self::GetPositionsFuture<'a>;
 }
 impl MultipleAccounts for Vec<Account> {
     fn find_by_id(&self, id: &str) -> Option<Account> {
@@ -259,8 +365,51 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(async move {
-            let balances = Account::get_historic_orders_by_id(client, account_ids).await?;
+            let balances = Account::get_historic_orders_by_ids(client, account_ids).await?;
             Ok(balances)
+        })
+    }
+
+    type GetPositionsFuture<'a> = Pin<
+        Box<
+            dyn Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
+                + Send
+                + 'a,
+        >,
+    >;
+    fn get_positions<'a>(&'a self, client: &'a mut Client) -> Self::GetPositionsFuture<'a> {
+        let account_ids: Vec<&str> = self
+            .iter()
+            .map(|account| account.account_id.as_str())
+            .collect();
+
+        Box::pin(async move {
+            let positions = Account::get_positions_by_ids(client, account_ids).await?;
+            Ok(positions)
+        })
+    }
+
+    type GetPositionsInSymbolsFuture<'a> = Pin<
+        Box<
+            dyn Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
+                + Send
+                + 'a,
+        >,
+    >;
+    fn get_positions_in_symbols<'a>(
+        &'a self,
+        symbols: &'a str,
+        client: &'a mut Client,
+    ) -> Self::GetPositionsFuture<'a> {
+        let account_ids: Vec<&str> = self
+            .iter()
+            .map(|account| account.account_id.as_str())
+            .collect();
+
+        Box::pin(async move {
+            let positions =
+                Account::get_positions_in_symbols_by_ids(client, symbols, account_ids).await?;
+            Ok(positions)
         })
     }
 }
@@ -779,6 +928,93 @@ pub enum OrderRelationship {
     OSP,
     OSO,
     OCO,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Position {
+    #[serde(rename = "AccountID")]
+    /// The `Account` id the `Position` belongs to.
+    account_id: String,
+    /// Indicates the asset type of the position.
+    // NOTE: use enum
+    asset_type: String,
+    /// The average price of the position currently held.
+    average_price: String,
+    /// The highest price a prospective buyer is prepared to pay at
+    /// a particular time for a trading unit of a given symbol.
+    bid: String,
+    /// The price at which a security, futures contract, or other
+    /// financial instrument is offered for sale.
+    ask: String,
+    /// The currency conversion rate that is used in order to convert
+    /// from the currency of the symbol to the currency of the account.
+    conversion_rate: String,
+    /// DayTradeMargin used on open positions.
+    ///
+    /// NOTE: Currently only calculated for futures positions.
+    /// Other asset classes will have a 0 for this value.
+    day_tarde_requirements: String,
+    /// The UTC formatted expiration date of the future or option symbol,
+    /// in the country the contract is traded in.
+    ///
+    /// NOTE: The time portion of the value should be ignored.
+    expiration_date: String,
+    /// The margin account balance denominated in the symbol currency required
+    /// for entering a position on margin.
+    ///
+    /// NOTE: Only applies to future and option positions.
+    initial_requirement: String,
+    /// The last price at which the symbol traded.
+    last: String,
+    /// Specifies if the position is Long or Short.
+    long_short: PositionType,
+    /// The MarkToMarketPrice value is the weighted average of the previous close
+    /// price for the position quantity held overnight and the purchase price of the
+    /// position quantity opened during the current market session.
+    ///
+    /// NOTE: This value is used to calculate TodaysProfitLoss.
+    ///
+    /// NOTE: Only applies to equity and option positions.
+    mark_to_market_price: String,
+    /// The actual market value denominated in the symbol currency of the open position.
+    ///
+    /// NOTE: This value is updated in real-time.
+    market_value: String,
+    /// A unique identifier for the position.
+    position_id: String,
+    /// The number of shares or contracts for a particular position.
+    ///
+    /// NOTE: This value is negative for short positions.
+    quantity: String,
+    /// Symbol of the position.
+    symbol: String,
+    /// Time the position was entered.
+    timestamp: String,
+    /// The unrealized profit or loss denominated in the account currency on the position
+    /// held, calculated using the MarkToMarketPrice.
+    ///
+    /// NOTE: Only applies to equity and option positions.
+    todays_pnl: String,
+    /// The total cost denominated in the account currency of the open position.
+    total_cost: String,
+    /// The unrealized profit or loss denominated in the symbol currency on the position
+    /// held, calculated based on the average price of the position.
+    unrealized_pnl: String,
+    /// The unrealized profit or loss on the position expressed as a percentage of the
+    /// initial value of the position.
+    unrealized_pnl_percent: String,
+    /// The unrealized profit or loss denominated in the account currency divided by the
+    /// number of shares, contracts or units held.
+    unrealized_pnl_qty: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// A position type can either be short or long
+pub enum PositionType {
+    /// Long a share, or futures/options contract
+    Long,
+    /// Short a share, or futures/options contract
+    Short,
 }
 
 impl Client {
