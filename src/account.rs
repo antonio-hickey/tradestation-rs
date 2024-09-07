@@ -120,13 +120,21 @@ impl Account {
         Ok(resp.balances)
     }
 
-    /// Fetches Historical `Order`(s) for the given `Account`.
+    /// Fetches Historical `Order`(s) since a specific date for the given `Account`.
     ///
-    /// NOTE: Excludes open `Order`(s).
+    /// NOTE: Date format is {YEAR-MONTH-DAY} ex: `"2024-07-09"`, and is limited to 90
+    /// days prior to the current date.
     ///
-    /// NOTE: Sorted in descending order of time closed.
-    pub async fn get_historic_orders(&self, client: &mut Client) -> Result<Vec<Order>, Error> {
-        let endpoint = format!("brokerage/accounts/{}/historicalorders", self.account_id);
+    /// NOTE: Excludes open `Order`(s) and is sorted in descending order of time closed.
+    pub async fn get_historic_orders(
+        &self,
+        client: &mut Client,
+        since_date: &str,
+    ) -> Result<Vec<Order>, Error> {
+        let endpoint = format!(
+            "brokerage/accounts/{}/historicalorders?since={}",
+            self.account_id, since_date
+        );
 
         let resp = client
             .get(&endpoint)
@@ -139,16 +147,19 @@ impl Account {
 
     /// Fetches Historical `Order`(s) for the given `Account`(s) by id.
     ///
-    /// NOTE: Excludes open `Order`(s).
+    /// NOTE: Date format is {YEAR-MONTH-DAY} ex: `"2024-07-09"`, and is limited to 90
+    /// days prior to the current date.
     ///
-    /// NOTE: Sorted in descending order of time closed.
+    /// NOTE: Excludes open `Order`(s) and is sorted in descending order of time closed.
     pub async fn get_historic_orders_by_ids(
         client: &mut Client,
         account_ids: Vec<&str>,
+        since_date: &str,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!(
-            "brokerage/accounts/{}/historicalorders",
-            account_ids.join(",")
+            "brokerage/accounts/{}/historicalorders?since={}",
+            account_ids.join(","),
+            since_date
         );
 
         let resp = client
@@ -273,9 +284,15 @@ pub trait MultipleAccounts {
     where
         Self: 'a;
     /// Get the historical `Order`(s) for multiple `Account`(s)
+    ///
+    /// NOTE: Date format is {YEAR-MONTH-DAY} ex: `"2024-07-09"`, and is limited to 90
+    /// days prior to the current date.
+    ///
+    /// NOTE: Excludes open `Order`(s) and is sorted in descending order of time closed.
     fn get_historic_orders<'a>(
         &'a self,
         client: &'a mut Client,
+        since_date: &'a str,
     ) -> Self::GetHistoricOrdersFuture<'a>;
 
     type GetPositionsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -358,6 +375,7 @@ impl MultipleAccounts for Vec<Account> {
     fn get_historic_orders<'a>(
         &'a self,
         client: &'a mut Client,
+        since_date: &'a str,
     ) -> Self::GetHistoricOrdersFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
@@ -365,7 +383,8 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(async move {
-            let balances = Account::get_historic_orders_by_ids(client, account_ids).await?;
+            let balances =
+                Account::get_historic_orders_by_ids(client, account_ids, since_date).await?;
             Ok(balances)
         })
     }
