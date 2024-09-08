@@ -694,16 +694,18 @@ pub struct Order {
     /// The expiration date-time for the `Order`
     ///
     /// NOTE: The time portion, if "T:00:00:00Z", should be ignored.
-    pub good_till_date: String,
+    pub good_till_date: Option<String>,
     /// An identifier for `Order`(s) that are part of the same bracket.
     pub group_name: Option<String>,
     /// Legs (multi step/part trade) associated with this `Order`
     pub legs: Vec<OrderLeg>,
     /// Allows you to specify when an order will be placed based on
     /// the price action of one or more symbols.
+    // TODO: Should I convert None to empty vector ?
     pub market_activation_rules: Option<Vec<MarketActivationRule>>,
     /// Allows you to specify a time that an `Order` will be placed.
-    pub time_activation_rules: Vec<TimeActivationRule>,
+    // TODO: Should I convert None to empty vector ?
+    pub time_activation_rules: Option<Vec<TimeActivationRule>>,
     /// The limit price for Limit and Stop Limit `Order`(s).
     pub limit_price: Option<String>,
     /// Time the `Order` was placed.
@@ -858,11 +860,11 @@ pub struct OrderLeg {
     /// Number of shares or contracts that have been executed.
     pub exec_quantity: String,
     /// The price at which `Order` execution occurred.
-    pub execution_price: String,
+    pub execution_price: Option<String>,
     /// The expiration date of the future or option contract.
-    pub expiration_date: String,
+    pub expiration_date: Option<String>,
     /// The stage of the `Order` , is it opening or closing?
-    pub open_or_close: OrderStage,
+    pub open_or_close: Option<OrderStage>,
     /// The type of option
     pub option_type: Option<String>,
     /// Number of shares or contracts being purchased or sold.
@@ -956,9 +958,9 @@ pub struct Position {
     account_id: String,
     /// Indicates the asset type of the position.
     // NOTE: use enum
-    asset_type: String,
+    asset_type: Option<String>,
     /// The average price of the position currently held.
-    average_price: String,
+    average_price: Option<String>,
     /// The highest price a prospective buyer is prepared to pay at
     /// a particular time for a trading unit of a given symbol.
     bid: String,
