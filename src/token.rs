@@ -14,7 +14,27 @@ pub struct Token {
     pub id_token: String,
     /// Token type
     /// NOTE: Always "Bearer"
-    token_type: String,
+    pub token_type: String,
+    /// Scopes associated with the `Token`
+    /// TODO: Make types for scopes
+    pub scope: String,
+    /// How many seconds until the `Token` expires
+    pub expires_in: u64,
+}
+
+/// Refreshed TradeStation API Bearer Token
+///
+/// NOTE: There is no refresh token because you should reuse
+/// the refresh token on your current `Token` for security.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct RefreshedToken {
+    /// Access token used to authenticate API requests
+    pub access_token: String,
+    /// ID token used for identity verification
+    pub id_token: String,
+    /// Token type
+    /// NOTE: Always "Bearer"
+    pub token_type: String,
     /// Scopes associated with the `Token`
     /// TODO: Make types for scopes
     pub scope: String,

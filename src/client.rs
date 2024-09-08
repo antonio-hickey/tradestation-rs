@@ -1,3 +1,4 @@
+use crate::token::RefreshedToken;
 use crate::{Error, Token};
 use reqwest::{header, Response};
 use serde::Serialize;
@@ -103,11 +104,18 @@ impl Client {
             .form(&form_data)
             .send()
             .await?
-            .json::<Token>()
+            .json::<RefreshedToken>()
             .await?;
 
         // Update the clients token
-        self.token = new_token;
+        self.token = Token {
+            refresh_token: self.token.refresh_token.clone(),
+            access_token: new_token.access_token,
+            id_token: new_token.id_token,
+            scope: new_token.scope,
+            token_type: new_token.token_type,
+            expires_in: new_token.expires_in,
+        };
 
         Ok(())
     }
