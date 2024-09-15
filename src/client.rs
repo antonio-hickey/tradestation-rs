@@ -207,6 +207,17 @@ impl ClientBuilderStep<Step2> {
             token: Some(token),
         })
     }
+
+    /// Set the current `Token` for the `Client` to use
+    pub fn set_token(self, token: Token) -> Result<ClientBuilderStep<Step3>, Error> {
+        Ok(ClientBuilderStep {
+            _current_step: Step3,
+            http_client: self.http_client,
+            client_id: self.client_id,
+            client_secret: self.client_secret,
+            token: Some(token),
+        })
+    }
 }
 impl ClientBuilderStep<Step3> {
     pub async fn build(self) -> Result<Client, Error> {

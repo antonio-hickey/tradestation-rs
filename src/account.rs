@@ -66,7 +66,7 @@ impl Account {
 
     /// Get the current balance of all `Account`(s) by account ids
     ///
-    /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_bod_balances()`
+    /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_balances()`
     /// this method should only be used in cases where you ONLY have account id's.
     pub async fn get_balances_by_ids(
         client: &mut Client,
@@ -92,7 +92,7 @@ impl Account {
             .await?
             .json::<responses::GetBODBalanceResp>()
             .await?
-            .balances
+            .bod_balances
             .pop()
         {
             Ok(balance)
@@ -117,7 +117,7 @@ impl Account {
             .json::<responses::GetBODBalanceResp>()
             .await?;
 
-        Ok(resp.balances)
+        Ok(resp.bod_balances)
     }
 
     /// Fetches Historical `Order`(s) since a specific date for the given `Account`.
@@ -159,7 +159,7 @@ impl Account {
         let endpoint = format!(
             "brokerage/accounts/{}/historicalorders?since={}",
             account_ids.join(","),
-            since_date
+            since_date,
         );
 
         let resp = client
@@ -628,7 +628,83 @@ pub struct BODBalance {
     /// The type of account, examples: "Cash" or "Margin"
     pub account_type: String,
     /// Deeper details on the `Balance` of an `Account`
-    pub balance_detail: BalanceDetail,
+    pub balance_detail: BODBalanceDetail,
+    /// Deeper details on the `Currency` local of an `Account`
+    ///
+    /// NOTE: Only applies to futures
+    pub currency_details: Option<Vec<BODCurrencyDetails>>,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct BODBalanceDetail {
+    /// The amount of cash in the account at the beginning of the day
+    ///
+    /// NOTE: Only applies to equities
+    pub account_balance: Option<String>,
+    /// Beginning of day value for cash available to withdraw
+    pub cash_available_to_withdraw: Option<String>,
+    /// The number of day trades placed in the account within the previous
+    /// 4 trading days.
+    ///
+    /// NOTE: Only applies to equities
+    pub day_trades: Option<String>,
+    /// The Intraday Buying Power with which the account started the trading day
+    ///
+    /// NOTE: Only applies to equities
+    pub day_trading_marginable_buying_power: Option<String>,
+    /// The total amount of equity with which you started the current trading day
+    pub equity: String,
+    /// The amount of cash in the account at the beginning of the day
+    pub net_cash: String,
+    /// Unrealized profit and loss at the beginning of the day
+    ///
+    /// NOTE: Only applies to futures
+    pub open_trade_equity: Option<String>,
+    /// Option buying power at the start of the trading day
+    ///
+    /// NOTE: Only applies to equities
+    pub option_buying_power: Option<String>,
+    /// Intraday liquidation value of option positions
+    ///
+    /// NOTE: Only applies to equities
+    pub option_value: Option<String>,
+    /// Overnight Buying Power (Regulation T) at the start of the trading day
+    ///
+    /// NOTE: Only applies to equities
+    pub overnight_buying_power: Option<String>,
+    /// The value of special securities that are deposited by the customer with
+    /// the clearing firm for the sole purpose of increasing purchasing power in
+    /// their trading account.
+    ///
+    /// NOTE: Only applies to futures
+    pub security_on_deposit: Option<String>,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct BODCurrencyDetails {
+    /// The dollar amount of Beginning Day Margin for the given forex account
+    pub account_margin_requirement: Option<String>,
+    /// The dollar amount of Beginning Day Trade Equity for the given account
+    pub account_open_trade_equity: String,
+    /// The value of special securities that are deposited by the customer with
+    /// the clearing firm for the sole purpose of increasing purchasing power in
+    /// their trading account.
+    ///
+    /// NOTE: This number will be reset daily by the account balances
+    /// clearing file.
+    ///
+    /// NOTE: The entire value of this field will increase purchasing power
+    pub account_securities: String,
+    /// The dollar amount of the Beginning Day Cash Balance for the given account
+    pub cash_balance: String,
+    /// The currency of the entity
+    pub currency: String,
+    /// The dollar amount of Beginning Day Margin for the given forex account
+    pub margin_requirement: Option<String>,
+    /// The dollar amount of Beginning Day Trade Equity for the given account
+    pub open_trade_equity: String,
+    /// Indicates the dollar amount of Beginning Day Securities
+    pub securities: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -952,15 +1028,16 @@ pub enum OrderRelationship {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct Position {
     #[serde(rename = "AccountID")]
     /// The `Account` id the `Position` belongs to.
     account_id: String,
     /// Indicates the asset type of the position.
     // NOTE: use enum
-    asset_type: Option<String>,
+    asset_type: String,
     /// The average price of the position currently held.
-    average_price: Option<String>,
+    average_price: String,
     /// The highest price a prospective buyer is prepared to pay at
     /// a particular time for a trading unit of a given symbol.
     bid: String,
@@ -974,12 +1051,12 @@ pub struct Position {
     ///
     /// NOTE: Currently only calculated for futures positions.
     /// Other asset classes will have a 0 for this value.
-    day_tarde_requirements: String,
+    day_trade_requirement: String,
     /// The UTC formatted expiration date of the future or option symbol,
     /// in the country the contract is traded in.
     ///
     /// NOTE: The time portion of the value should be ignored.
-    expiration_date: String,
+    expiration_date: Option<String>,
     /// The margin account balance denominated in the symbol currency required
     /// for entering a position on margin.
     ///
@@ -1001,6 +1078,7 @@ pub struct Position {
     ///
     /// NOTE: This value is updated in real-time.
     market_value: String,
+    #[serde(rename = "PositionID")]
     /// A unique identifier for the position.
     position_id: String,
     /// The number of shares or contracts for a particular position.
@@ -1015,15 +1093,19 @@ pub struct Position {
     /// held, calculated using the MarkToMarketPrice.
     ///
     /// NOTE: Only applies to equity and option positions.
+    #[serde(rename = "TodaysProfitLoss")]
     todays_pnl: String,
     /// The total cost denominated in the account currency of the open position.
     total_cost: String,
+    #[serde(rename = "UnrealizedProfitLoss")]
     /// The unrealized profit or loss denominated in the symbol currency on the position
     /// held, calculated based on the average price of the position.
     unrealized_pnl: String,
+    #[serde(rename = "UnrealizedProfitLossPercent")]
     /// The unrealized profit or loss on the position expressed as a percentage of the
     /// initial value of the position.
     unrealized_pnl_percent: String,
+    #[serde(rename = "UnrealizedProfitLossQty")]
     /// The unrealized profit or loss denominated in the account currency divided by the
     /// number of shares, contracts or units held.
     unrealized_pnl_qty: String,

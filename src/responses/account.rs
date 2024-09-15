@@ -21,7 +21,8 @@ pub struct GetBalanceResp {
 /// The TradeStation API Response for getting account's balance.
 // TODO: This also gives a key for errors, look into using these.
 pub struct GetBODBalanceResp {
-    pub balances: Vec<BODBalance>,
+    #[serde(rename = "BODBalances")]
+    pub bod_balances: Vec<BODBalance>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

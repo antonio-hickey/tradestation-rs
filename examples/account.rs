@@ -14,7 +14,6 @@ async fn main() -> Result<(), Error> {
         .await?
         .build()
         .await?;
-
     println!("Your TradeStation API Bearer Token: {:?}", client.token);
 
     //---
