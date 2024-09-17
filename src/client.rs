@@ -164,6 +164,7 @@ impl Client {
 
         Ok(())
     }
+
     /// Refresh your clients bearer token used for authentication
     /// with TradeStation's API.
     pub async fn refresh_token(&mut self) -> Result<(), Error> {
