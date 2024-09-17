@@ -2,6 +2,7 @@ use crate::token::RefreshedToken;
 use crate::{Error, Token};
 use reqwest::{header, Response};
 use serde::Serialize;
+use serde_json::Value;
 use std::collections::HashMap;
 
 /// TradeStation API Client
@@ -86,6 +87,83 @@ impl Client {
         Ok(resp)
     }
 
+    /// Start a stream from the TradeStation API to the `Client`
+    ///
+    /// NOTE: You need to provide a processing function for handeling the stream chunks
+    pub async fn stream<F>(&mut self, endpoint: &str, mut process_chunk: F) -> Result<(), Error>
+    where
+        F: FnMut(Value) -> Result<(), Error>,
+    {
+        let url = format!("https://api.tradestation.com/v3/{endpoint}");
+        let mut resp = self
+            .clone()
+            .send_request(|token| {
+                self.http_client
+                    .get(&url)
+                    .header(
+                        reqwest::header::AUTHORIZATION,
+                        format!("Bearer {}", token.access_token),
+                    )
+                    .send()
+            })
+            .await?;
+
+        if !resp.status().is_success() {
+            return Err(Error::StreamIssue(format!(
+                "Request failed with status: {}",
+                resp.status()
+            )));
+        }
+
+        // Buffer to accumulate stream chunks
+        let mut buffer = String::new();
+
+        while let Some(chunk) = resp.chunk().await? {
+            let chunk_str = std::str::from_utf8(&chunk).unwrap_or("");
+            buffer.push_str(chunk_str);
+
+            while let Some(pos) = buffer.find("\n") {
+                let json_str = buffer[..pos].trim().to_string();
+
+                // Remove the processed part from the buffer
+                buffer = buffer[pos + 1..].to_string();
+
+                // Skip empty lines
+                if json_str.is_empty() {
+                    continue;
+                }
+
+                match serde_json::from_str::<Value>(&json_str) {
+                    Ok(json_value) => {
+                        // Skip stream status updates for now to keep it simple
+                        // TODO: include stream status
+                        if json_value.get("StreamStatus").is_none() {
+                            process_chunk(json_value)?;
+                        }
+                    }
+                    Err(e) => {
+                        return Err(Error::Json(e));
+                    }
+                }
+            }
+        }
+
+        // Handle any leftover data in the buffer
+        if !buffer.trim().is_empty() {
+            match serde_json::from_str::<Value>(&buffer) {
+                Ok(json_value) => {
+                    if json_value.get("StreamStatus").is_none() {
+                        process_chunk(json_value)?;
+                    }
+                }
+                Err(e) => {
+                    return Err(Error::Json(e));
+                }
+            }
+        }
+
+        Ok(())
+    }
     /// Refresh your clients bearer token used for authentication
     /// with TradeStation's API.
     pub async fn refresh_token(&mut self) -> Result<(), Error> {

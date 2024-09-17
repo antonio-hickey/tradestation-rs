@@ -7,6 +7,8 @@ pub enum Error {
     AccountNotFound,
     Request(reqwest::Error),
     BoxedError(Box<dyn StdErrorTrait + Send + Sync>),
+    StreamIssue(String),
+    Json(serde_json::Error),
 }
 impl StdErrorTrait for Error {}
 /// Implement display trait for `Error`
@@ -19,6 +21,8 @@ impl std::fmt::Display for Error {
             }
             Self::Request(e) => write!(f, "{e:?}"),
             Self::BoxedError(e) => write!(f, "{e:?}"),
+            Self::StreamIssue(e) => write!(f, "Issue during stream: {e}"),
+            Self::Json(e) => write!(f, "JSON Error: {e:?}"),
         }
     }
 }
@@ -32,5 +36,11 @@ impl From<reqwest::Error> for Error {
 impl From<Box<dyn StdErrorTrait + Send + Sync>> for Error {
     fn from(err: Box<dyn StdErrorTrait + Send + Sync>) -> Self {
         Error::BoxedError(err)
+    }
+}
+/// Implement error conversion (`serde_json::Error` -> `Error`)
+impl From<serde_json::Error> for Error {
+    fn from(err: serde_json::Error) -> Error {
+        Error::Json(err)
     }
 }
