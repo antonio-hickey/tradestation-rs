@@ -8,6 +8,8 @@ pub enum Error {
     Request(reqwest::Error),
     BoxedError(Box<dyn StdErrorTrait + Send + Sync>),
     StreamIssue(String),
+    /// Use this to stop a stream connection.
+    StopStream,
     Json(serde_json::Error),
 }
 impl StdErrorTrait for Error {}
@@ -22,6 +24,7 @@ impl std::fmt::Display for Error {
             Self::Request(e) => write!(f, "{e:?}"),
             Self::BoxedError(e) => write!(f, "{e:?}"),
             Self::StreamIssue(e) => write!(f, "Issue during stream: {e}"),
+            Self::StopStream => write!(f, "WARNING: You've stopped a stream!"),
             Self::Json(e) => write!(f, "JSON Error: {e:?}"),
         }
     }

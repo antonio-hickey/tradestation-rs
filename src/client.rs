@@ -115,30 +115,26 @@ impl Client {
             )));
         }
 
-        // Buffer to accumulate stream chunks
         let mut buffer = String::new();
-
         while let Some(chunk) = resp.chunk().await? {
             let chunk_str = std::str::from_utf8(&chunk).unwrap_or("");
             buffer.push_str(chunk_str);
 
             while let Some(pos) = buffer.find("\n") {
                 let json_str = buffer[..pos].trim().to_string();
-
-                // Remove the processed part from the buffer
                 buffer = buffer[pos + 1..].to_string();
-
-                // Skip empty lines
                 if json_str.is_empty() {
                     continue;
                 }
 
                 match serde_json::from_str::<Value>(&json_str) {
                     Ok(json_value) => {
-                        // Skip stream status updates for now to keep it simple
-                        // TODO: include stream status
-                        if json_value.get("StreamStatus").is_none() {
-                            process_chunk(json_value)?;
+                        if let Err(e) = process_chunk(json_value) {
+                            if matches!(e, Error::StopStream) {
+                                return Ok(());
+                            } else {
+                                return Err(e);
+                            }
                         }
                     }
                     Err(e) => {
@@ -152,8 +148,12 @@ impl Client {
         if !buffer.trim().is_empty() {
             match serde_json::from_str::<Value>(&buffer) {
                 Ok(json_value) => {
-                    if json_value.get("StreamStatus").is_none() {
-                        process_chunk(json_value)?;
+                    if let Err(e) = process_chunk(json_value) {
+                        if matches!(e, Error::StopStream) {
+                            return Ok(());
+                        } else {
+                            return Err(e);
+                        }
                     }
                 }
                 Err(e) => {
