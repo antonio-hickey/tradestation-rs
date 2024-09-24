@@ -1,7 +1,7 @@
 // Example file on basic usage for account endoints
 
-use tradestation_rs::account::MultipleAccounts;
-use tradestation_rs::responses::account::StreamOrdersResp;
+use tradestation_rs::account::{MultipleAccounts, Position, PositionType};
+use tradestation_rs::responses::account::{StreamOrdersResp, StreamPositionsResp};
 use tradestation_rs::{ClientBuilder, Error};
 
 #[tokio::main]
@@ -16,6 +16,7 @@ async fn main() -> Result<(), Error> {
         .build()
         .await?;
     println!("Your TradeStation API Bearer Token: {:?}", client.token);
+    //---
 
     //---
     // Example: Get all of your registered `Account`(s)
@@ -90,6 +91,61 @@ async fn main() -> Result<(), Error> {
                 Ok(())
             })
             .await?;
+
+        // Example: collect losing trades into a vector
+        let mut losing_positions: Vec<Position> = Vec::new();
+        specific_account
+            .stream_positions(&mut client, |stream_data| {
+                // the response type is `responses::account::streampositionsresp`
+                // which has multiple variants the main one you care about is
+                // `order` which will contain order data sent from the stream.
+                match stream_data {
+                    StreamPositionsResp::Position(position) => {
+                        // response for an `position` streamed in
+                        println!("{position:?}");
+
+                        if position.long_short == PositionType::Long {
+                            if position.last < position.average_price {
+                                losing_positions.push(*position)
+                            }
+                        } else if position.long_short == PositionType::Short {
+                            if position.last > position.average_price {
+                                losing_positions.push(*position)
+                            }
+                        }
+
+                        // do something with the list of losing trades
+                        // maybe send email or text of the positions
+                        println!("{losing_positions:?}");
+                    }
+                    StreamPositionsResp::Heartbeat(heartbeat) => {
+                        // response for periodic signals letting you know the connection is
+                        // still alive. a heartbeat is sent every 5 seconds of inactivity.
+                        println!("{heartbeat:?}");
+
+                        // for the sake of this example after we recieve the
+                        // tenth heartbeat, we will stop the stream session.
+                        if heartbeat.heartbeat > 10 {
+                            // example: stopping a stream connection
+                            return Err(Error::StopStream);
+                        }
+                    }
+                    StreamPositionsResp::Status(status) => {
+                        // signal sent on state changes in the stream
+                        // (closed, opened, paused, resumed)
+                        println!("{status:?}");
+                    }
+                    StreamPositionsResp::Error(err) => {
+                        // response for when an error was encountered,
+                        // with details on the error
+                        println!("{err:?}");
+                    }
+                }
+
+                Ok(())
+            })
+            .await?;
+        //--
 
         Ok(())
     } else {

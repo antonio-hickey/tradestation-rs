@@ -84,3 +84,43 @@ impl<'de> Deserialize<'de> for StreamOrdersResp {
         }
     }
 }
+
+/// The TradeStation API Response for streaming `Position`(s).
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum StreamPositionsResp {
+    /// The main response which contains position data
+    Position(Box<self::Position>),
+    /// Periodic signal to know the connection is still alive
+    Heartbeat(stream::Heartbeat),
+    /// Signal sent on state changes in the stream (closed, opened, paused, resumed)
+    Status(stream::StreamStatus),
+    /// Response for when an error was encountered, with details on the error
+    Error(stream::ErrorResp),
+}
+impl<'de> Deserialize<'de> for StreamPositionsResp {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+
+        if value.get("AccountID").is_some() {
+            // Deserialize into the `Position` variant
+            let position = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamPositionsResp::Position(Box::new(position)))
+        } else if value.get("StreamStatus").is_some() {
+            // Deserialize into the `Status` variant
+            let status = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamPositionsResp::Status(status))
+        } else if value.get("Heartbeat").is_some() {
+            // Deserialize into the `Heartbeat` variant
+            let heartbeat = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamPositionsResp::Heartbeat(heartbeat))
+        } else {
+            // Default to `Error` variant if nothing else matches
+            let error = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamPositionsResp::Error(error))
+        }
+    }
+}

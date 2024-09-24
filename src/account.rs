@@ -1,4 +1,4 @@
-use crate::responses::account::StreamOrdersResp;
+use crate::responses::account::{StreamOrdersResp, StreamPositionsResp};
 use crate::{responses::account as responses, Client, Error};
 use serde::{Deserialize, Serialize};
 use std::{error::Error as StdErrorTrait, future::Future, pin::Pin};
@@ -616,6 +616,185 @@ impl Account {
 
         Ok(collected_orders)
     }
+
+    /// Stream `Position`s for the given `Account`
+    ///
+    /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
+    ///
+    /// Example: Collect losing trades into a vector and do something with them.
+    /// ```rust
+    /// let mut losing_positions: Vec<Position> = Vec::new();
+    /// specific_account
+    ///     .stream_positions(&mut client, |stream_data| {
+    ///         // the response type is `responses::account::StreamPositionsResp`
+    ///         // which has multiple variants the main one you care about is
+    ///         // `order` which will contain order data sent from the stream.
+    ///         match stream_data {
+    ///             StreamPositionsResp::Position(position) => {
+    ///                 // response for an `position` streamed in
+    ///                 println!("{position:?}");
+    ///
+    ///                 if position.long_short == PositionType::Long {
+    ///                     if position.last < position.average_price {
+    ///                         losing_positions.push(*position)
+    ///                     }
+    ///                 } else if position.long_short == PositionType::Short {
+    ///                     if position.last > position.average_price {
+    ///                         losing_positions.push(*position)
+    ///                     }
+    ///                 }
+    ///
+    ///                 // do something with the list of losing trades
+    ///                 // maybe send email or text of the positions
+    ///                 println!("{losing_positions:?}");
+    ///             }
+    ///             StreamPositionsResp::Heartbeat(heartbeat) => {
+    ///                 // response for periodic signals letting you know the connection is
+    ///                 // still alive. a heartbeat is sent every 5 seconds of inactivity.
+    ///                 println!("{heartbeat:?}");
+    ///
+    ///                 // for the sake of this example after we recieve the
+    ///                 // tenth heartbeat, we will stop the stream session.
+    ///                 if heartbeat.heartbeat > 10 {
+    ///                     // example: stopping a stream connection
+    ///                     return Err(Error::StopStream);
+    ///                 }
+    ///             }
+    ///             StreamPositionsResp::Status(status) => {
+    ///                 // signal sent on state changes in the stream
+    ///                 // (closed, opened, paused, resumed)
+    ///                 println!("{status:?}");
+    ///             }
+    ///             StreamPositionsResp::Error(err) => {
+    ///                 // response for when an error was encountered,
+    ///                 // with details on the error
+    ///                 println!("{err:?}");
+    ///             }
+    ///         }
+    ///
+    ///         Ok(())
+    ///     })
+    ///     .await?;
+    /// ```
+    pub async fn stream_positions<F>(
+        &self,
+        client: &mut Client,
+        mut on_chunk: F,
+    ) -> Result<Vec<Position>, Error>
+    where
+        F: FnMut(StreamPositionsResp) -> Result<(), Error>,
+    {
+        let endpoint = format!("brokerage/stream/accounts/{}/positions", self.account_id);
+
+        let mut collected_positions: Vec<Position> = Vec::new();
+        client
+            .stream(&endpoint, |chunk| {
+                let parsed_chunk = serde_json::from_value::<StreamPositionsResp>(chunk)?;
+                on_chunk(parsed_chunk.clone())?;
+
+                // Only collect orders, so when the stream is done
+                // all the orders that were streamed can be returned
+                if let StreamPositionsResp::Position(position) = parsed_chunk {
+                    collected_positions.push(*position);
+                }
+
+                Ok(())
+            })
+            .await?;
+
+        Ok(collected_positions)
+    }
+
+    /// Stream `Position`s for the given `Account`(s)
+    ///
+    /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
+    ///
+    /// Example: Collect losing trades into a vector and do something with them.
+    /// ```rust
+    /// let mut losing_positions: Vec<Position> = Vec::new();
+    /// specific_account
+    ///     .stream_positions(&mut client, |stream_data| {
+    ///         // the response type is `responses::account::StreamPositionsResp`
+    ///         // which has multiple variants the main one you care about is
+    ///         // `order` which will contain order data sent from the stream.
+    ///         match stream_data {
+    ///             StreamPositionsResp::Position(position) => {
+    ///                 // response for an `position` streamed in
+    ///                 println!("{position:?}");
+    ///
+    ///                 if position.long_short == PositionType::Long {
+    ///                     if position.last < position.average_price {
+    ///                         losing_positions.push(*position)
+    ///                     }
+    ///                 } else if position.long_short == PositionType::Short {
+    ///                     if position.last > position.average_price {
+    ///                         losing_positions.push(*position)
+    ///                     }
+    ///                 }
+    ///
+    ///                 // do something with the list of losing trades
+    ///                 // maybe send email or text of the positions
+    ///                 println!("{losing_positions:?}");
+    ///             }
+    ///             StreamPositionsResp::Heartbeat(heartbeat) => {
+    ///                 // response for periodic signals letting you know the connection is
+    ///                 // still alive. a heartbeat is sent every 5 seconds of inactivity.
+    ///                 println!("{heartbeat:?}");
+    ///
+    ///                 // for the sake of this example after we recieve the
+    ///                 // tenth heartbeat, we will stop the stream session.
+    ///                 if heartbeat.heartbeat > 10 {
+    ///                     // example: stopping a stream connection
+    ///                     return Err(Error::StopStream);
+    ///                 }
+    ///             }
+    ///             StreamPositionsResp::Status(status) => {
+    ///                 // signal sent on state changes in the stream
+    ///                 // (closed, opened, paused, resumed)
+    ///                 println!("{status:?}");
+    ///             }
+    ///             StreamPositionsResp::Error(err) => {
+    ///                 // response for when an error was encountered,
+    ///                 // with details on the error
+    ///                 println!("{err:?}");
+    ///             }
+    ///         }
+    ///
+    ///         Ok(())
+    ///     })
+    ///     .await?;
+    /// ```
+    pub async fn stream_positions_for_accounts<F>(
+        client: &mut Client,
+        account_ids: Vec<&str>,
+        mut on_chunk: F,
+    ) -> Result<Vec<Position>, Error>
+    where
+        F: FnMut(StreamPositionsResp) -> Result<(), Error>,
+    {
+        let endpoint = format!(
+            "brokerage/stream/accounts/{}/positions",
+            account_ids.join(",")
+        );
+
+        let mut collected_positions: Vec<Position> = Vec::new();
+        client
+            .stream(&endpoint, |chunk| {
+                let parsed_chunk = serde_json::from_value::<StreamPositionsResp>(chunk)?;
+                on_chunk(parsed_chunk.clone())?;
+
+                // Only collect orders, so when the stream is done
+                // all the orders that were streamed can be returned
+                if let StreamPositionsResp::Position(position) = parsed_chunk {
+                    collected_positions.push(*position);
+                }
+
+                Ok(())
+            })
+            .await?;
+
+        Ok(collected_positions)
+    }
 }
 
 pub trait MultipleAccounts {
@@ -818,6 +997,78 @@ pub trait MultipleAccounts {
     ) -> Self::StreamOrdersByIdFuture<'a>
     where
         F: FnMut(StreamOrdersResp) -> Result<(), Error> + Send + 'a;
+
+    type StreamPositionsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
+        + Send
+        + 'a
+    where
+        Self: 'a;
+    /// Stream `Position`s for the given `Account`(s)
+    ///
+    /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
+    ///
+    /// Example: Collect losing trades into a vector and do something with them.
+    /// ```rust
+    /// let mut losing_positions: Vec<Position> = Vec::new();
+    /// specific_account
+    ///     .stream_positions(&mut client, |stream_data| {
+    ///         // the response type is `responses::account::StreamPositionsResp`
+    ///         // which has multiple variants the main one you care about is
+    ///         // `order` which will contain order data sent from the stream.
+    ///         match stream_data {
+    ///             StreamPositionsResp::Position(position) => {
+    ///                 // response for an `position` streamed in
+    ///                 println!("{position:?}");
+    ///
+    ///                 if position.long_short == PositionType::Long {
+    ///                     if position.last < position.average_price {
+    ///                         losing_positions.push(*position)
+    ///                     }
+    ///                 } else if position.long_short == PositionType::Short {
+    ///                     if position.last > position.average_price {
+    ///                         losing_positions.push(*position)
+    ///                     }
+    ///                 }
+    ///
+    ///                 // do something with the list of losing trades
+    ///                 // maybe send email or text of the positions
+    ///                 println!("{losing_positions:?}");
+    ///             }
+    ///             StreamPositionsResp::Heartbeat(heartbeat) => {
+    ///                 // response for periodic signals letting you know the connection is
+    ///                 // still alive. a heartbeat is sent every 5 seconds of inactivity.
+    ///                 println!("{heartbeat:?}");
+    ///
+    ///                 // for the sake of this example after we recieve the
+    ///                 // tenth heartbeat, we will stop the stream session.
+    ///                 if heartbeat.heartbeat > 10 {
+    ///                     // example: stopping a stream connection
+    ///                     return Err(Error::StopStream);
+    ///                 }
+    ///             }
+    ///             StreamPositionsResp::Status(status) => {
+    ///                 // signal sent on state changes in the stream
+    ///                 // (closed, opened, paused, resumed)
+    ///                 println!("{status:?}");
+    ///             }
+    ///             StreamPositionsResp::Error(err) => {
+    ///                 // response for when an error was encountered,
+    ///                 // with details on the error
+    ///                 println!("{err:?}");
+    ///             }
+    ///         }
+    ///
+    ///         Ok(())
+    ///     })
+    ///     .await?;
+    /// ```
+    fn stream_positions<'a, F>(
+        &'a self,
+        on_chunk: &'a mut F,
+        client: &'a mut Client,
+    ) -> Self::StreamPositionsFuture<'a>
+    where
+        F: FnMut(StreamPositionsResp) -> Result<(), Error> + Send + 'a;
 }
 impl MultipleAccounts for Vec<Account> {
     fn find_by_id(&self, id: &str) -> Option<Account> {
@@ -1110,6 +1361,92 @@ impl MultipleAccounts for Vec<Account> {
             )
             .await?;
             Ok(orders)
+        })
+    }
+
+    type StreamPositionsFuture<'a> = Pin<
+        Box<
+            dyn Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
+                + Send
+                + 'a,
+        >,
+    >;
+    /// Stream `Position`s for the given `Account`(s)
+    ///
+    /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
+    ///
+    /// Example: Collect losing trades into a vector and do something with them.
+    /// ```rust
+    /// let mut losing_positions: Vec<Position> = Vec::new();
+    /// specific_account
+    ///     .stream_positions(&mut client, |stream_data| {
+    ///         // the response type is `responses::account::StreamPositionsResp`
+    ///         // which has multiple variants the main one you care about is
+    ///         // `order` which will contain order data sent from the stream.
+    ///         match stream_data {
+    ///             StreamPositionsResp::Position(position) => {
+    ///                 // response for an `position` streamed in
+    ///                 println!("{position:?}");
+    ///
+    ///                 if position.long_short == PositionType::Long {
+    ///                     if position.last < position.average_price {
+    ///                         losing_positions.push(*position)
+    ///                     }
+    ///                 } else if position.long_short == PositionType::Short {
+    ///                     if position.last > position.average_price {
+    ///                         losing_positions.push(*position)
+    ///                     }
+    ///                 }
+    ///
+    ///                 // do something with the list of losing trades
+    ///                 // maybe send email or text of the positions
+    ///                 println!("{losing_positions:?}");
+    ///             }
+    ///             StreamPositionsResp::Heartbeat(heartbeat) => {
+    ///                 // response for periodic signals letting you know the connection is
+    ///                 // still alive. a heartbeat is sent every 5 seconds of inactivity.
+    ///                 println!("{heartbeat:?}");
+    ///
+    ///                 // for the sake of this example after we recieve the
+    ///                 // tenth heartbeat, we will stop the stream session.
+    ///                 if heartbeat.heartbeat > 10 {
+    ///                     // example: stopping a stream connection
+    ///                     return Err(Error::StopStream);
+    ///                 }
+    ///             }
+    ///             StreamPositionsResp::Status(status) => {
+    ///                 // signal sent on state changes in the stream
+    ///                 // (closed, opened, paused, resumed)
+    ///                 println!("{status:?}");
+    ///             }
+    ///             StreamPositionsResp::Error(err) => {
+    ///                 // response for when an error was encountered,
+    ///                 // with details on the error
+    ///                 println!("{err:?}");
+    ///             }
+    ///         }
+    ///
+    ///         Ok(())
+    ///     })
+    ///     .await?;
+    /// ```
+    fn stream_positions<'a, F>(
+        &'a self,
+        mut on_chunk: &'a mut F,
+        client: &'a mut Client,
+    ) -> Self::StreamPositionsFuture<'a>
+    where
+        F: FnMut(StreamPositionsResp) -> Result<(), Error> + Send + 'a,
+    {
+        let account_ids: Vec<&str> = self
+            .iter()
+            .map(|account| account.account_id.as_str())
+            .collect();
+
+        Box::pin(async move {
+            let positions =
+                Account::stream_positions_for_accounts(client, account_ids, &mut on_chunk).await?;
+            Ok(positions)
         })
     }
 }
@@ -1713,40 +2050,40 @@ pub enum OrderRelationship {
 pub struct Position {
     #[serde(rename = "AccountID")]
     /// The `Account` id the `Position` belongs to.
-    account_id: String,
+    pub account_id: String,
     /// Indicates the asset type of the position.
     // NOTE: use enum
-    asset_type: String,
+    pub asset_type: String,
     /// The average price of the position currently held.
-    average_price: String,
+    pub average_price: String,
     /// The highest price a prospective buyer is prepared to pay at
     /// a particular time for a trading unit of a given symbol.
-    bid: String,
+    pub bid: String,
     /// The price at which a security, futures contract, or other
     /// financial instrument is offered for sale.
-    ask: String,
+    pub ask: String,
     /// The currency conversion rate that is used in order to convert
     /// from the currency of the symbol to the currency of the account.
-    conversion_rate: String,
+    pub conversion_rate: String,
     /// DayTradeMargin used on open positions.
     ///
     /// NOTE: Currently only calculated for futures positions.
     /// Other asset classes will have a 0 for this value.
-    day_trade_requirement: String,
+    pub day_trade_requirement: String,
     /// The UTC formatted expiration date of the future or option symbol,
     /// in the country the contract is traded in.
     ///
     /// NOTE: The time portion of the value should be ignored.
-    expiration_date: Option<String>,
+    pub expiration_date: Option<String>,
     /// The margin account balance denominated in the symbol currency required
     /// for entering a position on margin.
     ///
     /// NOTE: Only applies to future and option positions.
-    initial_requirement: String,
+    pub initial_requirement: String,
     /// The last price at which the symbol traded.
-    last: String,
+    pub last: String,
     /// Specifies if the position is Long or Short.
-    long_short: PositionType,
+    pub long_short: PositionType,
     /// The MarkToMarketPrice value is the weighted average of the previous close
     /// price for the position quantity held overnight and the purchase price of the
     /// position quantity opened during the current market session.
@@ -1754,45 +2091,45 @@ pub struct Position {
     /// NOTE: This value is used to calculate TodaysProfitLoss.
     ///
     /// NOTE: Only applies to equity and option positions.
-    mark_to_market_price: String,
+    pub mark_to_market_price: String,
     /// The actual market value denominated in the symbol currency of the open position.
     ///
     /// NOTE: This value is updated in real-time.
-    market_value: String,
+    pub market_value: String,
     #[serde(rename = "PositionID")]
     /// A unique identifier for the position.
-    position_id: String,
+    pub position_id: String,
     /// The number of shares or contracts for a particular position.
     ///
     /// NOTE: This value is negative for short positions.
-    quantity: String,
+    pub quantity: String,
     /// Symbol of the position.
-    symbol: String,
+    pub symbol: String,
     /// Time the position was entered.
-    timestamp: String,
+    pub timestamp: String,
     /// The unrealized profit or loss denominated in the account currency on the position
     /// held, calculated using the MarkToMarketPrice.
     ///
     /// NOTE: Only applies to equity and option positions.
     #[serde(rename = "TodaysProfitLoss")]
-    todays_pnl: String,
+    pub todays_pnl: String,
     /// The total cost denominated in the account currency of the open position.
-    total_cost: String,
+    pub total_cost: String,
     #[serde(rename = "UnrealizedProfitLoss")]
     /// The unrealized profit or loss denominated in the symbol currency on the position
     /// held, calculated based on the average price of the position.
-    unrealized_pnl: String,
+    pub unrealized_pnl: String,
     #[serde(rename = "UnrealizedProfitLossPercent")]
     /// The unrealized profit or loss on the position expressed as a percentage of the
     /// initial value of the position.
-    unrealized_pnl_percent: String,
+    pub unrealized_pnl_percent: String,
     #[serde(rename = "UnrealizedProfitLossQty")]
     /// The unrealized profit or loss denominated in the account currency divided by the
     /// number of shares, contracts or units held.
-    unrealized_pnl_qty: String,
+    pub unrealized_pnl_qty: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 /// A position type can either be short or long
 pub enum PositionType {
     /// Long a share, or futures/options contract
