@@ -1,12 +1,15 @@
 //! Example file on basic usage for market data endpoints
 
-use tradestation_rs::MarketData::BarUnit;
-use tradestation_rs::{ClientBuilder, Error, MarketData};
+use tradestation_rs::{
+    responses::MarketData::StreamBarsResp,
+    ClientBuilder, Error,
+    MarketData::{self, BarUnit},
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // Example: initialize client
-    // NOTE: With the `Client` you can interact with all of TradeStation's API endpoints,
+    // NOTE: With the `Client` you can directly interact with all of TradeStation's API endpoints,
     // but it's suggested to use the higher level abstractions provided in the examples below.
     let mut client = ClientBuilder::new()?
         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
@@ -18,19 +21,54 @@ async fn main() -> Result<(), Error> {
     //---
 
     //--
-    // Example: Get the 10 most recent 5 minute bars of trading
-    // activity for November 2024 Crude Oil Futures.
-    let fetch_bars_query = MarketData::GetBarsQueryBuilder::new()
+    // Example: Stream bars of November 2024 Crude Oil Futures trading activity in
+    // 4 hour (240 minute) intervals.
+    let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
         .set_symbol("CLX24")
         .set_unit(BarUnit::Minute)
-        .set_interval("5")
-        .set_bars_back("10")
+        .set_interval("240")
         .build()?;
 
-    let bars = client.fetch_bars(&fetch_bars_query).await?;
+    let streamed_bars = client
+        .stream_bars(&stream_bars_query, |stream_data| {
+            // The response type is `responses::market_data::StreamBarsResp`
+            // which has multiple variants the main one you care about is
+            // `Bar` which will contain order data sent from the stream.
+            match stream_data {
+                StreamBarsResp::Bar(bar) => {
+                    // Do something with the bars like making a chart
+                    println!("{bar:?}")
+                }
+                StreamBarsResp::Heartbeat(heartbeat) => {
+                    // Response for periodic signals letting you know the connection is
+                    // still alive. A heartbeat is sent every 5 seconds of inactivity.
+                    println!("{heartbeat:?}");
 
-    // Do something with the bars, maybe make a chart?
-    println!("{bars:?}");
+                    // for the sake of this example after we recieve the
+                    // tenth heartbeat, we will stop the stream session.
+                    if heartbeat.heartbeat > 10 {
+                        // Example: stopping a stream connection
+                        return Err(Error::StopStream);
+                    }
+                }
+                StreamBarsResp::Status(status) => {
+                    // Signal sent on state changes in the stream
+                    // (closed, opened, paused, resumed)
+                    println!("{status:?}");
+                }
+                StreamBarsResp::Error(err) => {
+                    // Response for when an error was encountered,
+                    // with details on the error
+                    println!("{err:?}");
+                }
+            }
+
+            Ok(())
+        })
+        .await?;
+
+    // All the bars collected during the stream
+    println!("{streamed_bars:?}");
     //--
 
     Ok(())

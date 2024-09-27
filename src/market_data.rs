@@ -1,5 +1,7 @@
-use crate::responses::market_data::GetBarsResp;
-use crate::{responses::market_data as responses, Client, Error};
+use crate::{
+    responses::MarketData::{GetBarsResp, GetBarsRespRaw, StreamBarsResp},
+    Client, Error,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -83,7 +85,7 @@ impl Bar {
         let resp_raw = client
             .get(&endpoint)
             .await?
-            .json::<responses::GetBarsRespRaw>()
+            .json::<GetBarsRespRaw>()
             .await?;
 
         let resp: GetBarsResp = resp_raw.into();
@@ -94,11 +96,108 @@ impl Bar {
             Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
         }
     }
+
+    /// Stream bars of market activity for a given query `GetBarsQuery`
+    ///
+    /// Example: Stream bars of November 2024 Crude Oil Futures trading activity
+    /// in 4 hour (240 minute) intervals.
+    /// ```rust
+    /// let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
+    ///     .set_symbol("CLX24")
+    ///     .set_unit(BarUnit::Minute)
+    ///     .set_interval("240")
+    ///     .build()?;
+    ///
+    /// let streamed_bars = client
+    ///     .stream_bars(&stream_bars_query, |stream_data| {
+    ///         // The response type is `responses::market_data::StreamBarsResp`
+    ///         // which has multiple variants the main one you care about is
+    ///         // `Bar` which will contain order data sent from the stream.
+    ///         match stream_data {
+    ///             StreamBarsResp::Bar(bar) => {
+    ///                 // Do something with the bars like making a chart
+    ///                 println!("{bar:?}")
+    ///             }
+    ///             StreamBarsResp::Heartbeat(heartbeat) => {
+    ///                 // Response for periodic signals letting you know the connection is
+    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///                 println!("{heartbeat:?}");
+    ///
+    ///                 // for the sake of this example after we recieve the
+    ///                 // tenth heartbeat, we will stop the stream session.
+    ///                 if heartbeat.heartbeat > 10 {
+    ///                     // Example: stopping a stream connection
+    ///                     return Err(Error::StopStream);
+    ///                 }
+    ///             }
+    ///             StreamBarsResp::Status(status) => {
+    ///                 // Signal sent on state changes in the stream
+    ///                 // (closed, opened, paused, resumed)
+    ///                 println!("{status:?}");
+    ///             }
+    ///             StreamBarsResp::Error(err) => {
+    ///                 // Response for when an error was encountered,
+    ///                 // with details on the error
+    ///                 println!("{err:?}");
+    ///             }
+    ///         }
+    ///
+    ///         Ok(())
+    ///     })
+    ///     .await?;
+    ///
+    /// // All the bars collected during the stream
+    /// println!("{streamed_bars:?}");
+    /// ```
+    pub async fn stream_bars<F>(
+        client: &mut Client,
+        query: &StreamBarsQuery,
+        mut on_chunk: F,
+    ) -> Result<Vec<Bar>, Error>
+    where
+        F: FnMut(StreamBarsResp) -> Result<(), Error>,
+    {
+        let endpoint = format!(
+            "marketdata/stream/barcharts/{}{}",
+            query.symbol,
+            query.as_query_string()
+        );
+
+        let mut collected_bars: Vec<Bar> = Vec::new();
+        client
+            .stream(&endpoint, |chunk| {
+                let parsed_chunk = serde_json::from_value::<StreamBarsResp>(chunk)?;
+                on_chunk(parsed_chunk.clone())?;
+
+                // Only collect orders, so when the stream is done
+                // all the orders that were streamed can be returned
+                if let StreamBarsResp::Bar(bar) = parsed_chunk {
+                    collected_bars.push(*bar);
+                }
+
+                Ok(())
+            })
+            .await?;
+
+        Ok(collected_bars)
+    }
 }
 impl Client {
     /// Fetch `Vec<Bar>` for a given query `GetBarsQuery`
     pub async fn fetch_bars(&mut self, query: &GetBarsQuery) -> Result<Vec<Bar>, Error> {
         Bar::fetch(self, query).await
+    }
+
+    /// Stream bars of market activity for a q given query `StreamBarsQuery`
+    pub async fn stream_bars<F>(
+        &mut self,
+        query: &StreamBarsQuery,
+        on_chunk: F,
+    ) -> Result<Vec<Bar>, Error>
+    where
+        F: FnMut(StreamBarsResp) -> Result<(), Error>,
+    {
+        Bar::stream_bars(self, query, on_chunk).await
     }
 }
 
@@ -166,6 +265,55 @@ impl GetBarsQuery {
         if !self.start_date.is_empty() {
             query_string.push_str(&format!("startDate={}&", self.start_date));
         }
+
+        if query_string.ends_with('&') {
+            query_string.pop();
+        }
+
+        query_string
+    }
+}
+
+pub struct StreamBarsQuery {
+    /// The symbol of the security you want bars for.
+    ///
+    /// Example: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
+    /// or
+    /// Example: `"PLTR"` for bars on the stock Palantir.
+    pub symbol: String,
+    /// The interval (of time units) that each bar will consist of
+    ///
+    /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
+    /// then the max allowed interval is 1440.
+    ///
+    /// Example: If unit is set to `BarUnit::Minute` than an interval of 5
+    /// would mean each `Bar` is a 5 minute aggregation of market data.
+    pub interval: String,
+    /// The unit of measurement for time in each bar interval.
+    pub unit: BarUnit,
+    /// Number of bars back to fetch.
+    ///
+    /// NOTE: Always defaults to 1, and the max number of intraday bars back
+    /// is 57,600. There is no limit on `BarUnit::Daily`, `BarUnit::Weekly`,
+    /// or `BarUnit::Monthly` unit.
+    ///
+    /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
+    pub bars_back: String,
+    /// The United States (US) stock market session template.
+    ///
+    /// NOTE: Ignored for non U.S equity symbols.
+    pub session_template: SessionTemplate,
+}
+impl StreamBarsQuery {
+    pub fn as_query_string(&self) -> String {
+        let mut query_string = String::from("?");
+
+        query_string.push_str(&format!("interval={}&", self.interval));
+        query_string.push_str(&format!("unit={:?}&", self.unit));
+        if !self.bars_back.is_empty() {
+            query_string.push_str(&format!("barsBack={}&", self.bars_back));
+        }
+        query_string.push_str(&format!("sessionTemplate={:?}&", self.session_template));
 
         if query_string.ends_with('&') {
             query_string.pop();
@@ -361,6 +509,112 @@ impl GetBarsQueryBuilder {
             last_date: self.last_date.unwrap_or_default(),
             session_template: self.session_template.unwrap_or(SessionTemplate::Default),
             start_date: self.start_date.unwrap_or_default(),
+        })
+    }
+}
+
+#[derive(Debug, Default)]
+/// Builder pattern struct for `StreamBarsQuery`.
+pub struct StreamBarsQueryBuilder {
+    /// The symbol of the security you want bars for.
+    ///
+    /// Example: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
+    /// or
+    /// Example: `"PLTR"` for bars on the stock Palantir.
+    symbol: Option<String>,
+    /// The interval (of time units) that each bar will consist of
+    ///
+    /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
+    /// then the max allowed interval is 1440.
+    ///
+    /// Example: If unit is set to `BarUnit::Minute` than an interval of 5
+    /// would mean each `Bar` is a 5 minute aggregation of market data.
+    interval: Option<String>,
+    /// The unit of measurement for time in each bar interval.
+    unit: Option<BarUnit>,
+    /// Number of bars back to fetch.
+    ///
+    /// NOTE: Always defaults to 1, and the max number of intraday bars back
+    /// is 57,600. There is no limit on `BarUnit::Daily`, `BarUnit::Weekly`,
+    /// or `BarUnit::Monthly` unit.
+    ///
+    /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
+    bars_back: Option<String>,
+    /// The United States (US) stock market session template.
+    ///
+    /// NOTE: Ignored for non U.S equity symbols.
+    session_template: Option<SessionTemplate>,
+}
+impl StreamBarsQueryBuilder {
+    /// Initialize a new builder for `GetBarsQuery`.
+    pub fn new() -> Self {
+        StreamBarsQueryBuilder {
+            symbol: None,
+            interval: None,
+            unit: None,
+            bars_back: None,
+            session_template: None,
+        }
+    }
+
+    /// Set the symbol of the security you want bars for.
+    ///
+    /// Example: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
+    /// or
+    /// Example: `"PLTR"` for bars on the stock Palantir.
+    pub fn set_symbol(mut self, symbol: impl Into<String>) -> Self {
+        self.symbol = Some(symbol.into());
+        self
+    }
+
+    /// Set the interval (of time units) that each bar will consist of
+    ///
+    /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
+    /// then the max allowed interval is 1440.
+    ///
+    /// Example: If unit is set to `BarUnit::Minute` than an interval of 5
+    /// would mean each `Bar` is a 5 minute aggregation of market data.
+    pub fn set_interval(mut self, interval: impl Into<String>) -> Self {
+        self.interval = Some(interval.into());
+        self
+    }
+
+    /// Set the unit of measurement for time in each bar interval.
+    pub fn set_unit(mut self, unit: BarUnit) -> Self {
+        self.unit = Some(unit);
+        self
+    }
+
+    /// Set the number of bars back to fetch.
+    ///
+    /// NOTE: Always defaults to 1, and the max number of intraday bars back
+    /// is 57,600. There is no limit on `BarUnit::Daily`, `BarUnit::Weekly`,
+    /// or `BarUnit::Monthly` unit.
+    ///
+    /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
+    pub fn set_bars_back(mut self, bars_back: impl Into<String>) -> Self {
+        self.bars_back = Some(bars_back.into());
+        self
+    }
+
+    /// Set the United States (US) stock market session template.
+    ///
+    /// NOTE: Ignored for non U.S equity symbols.
+    pub fn set_session_template(mut self, session_template: SessionTemplate) -> Self {
+        self.session_template = Some(session_template);
+        self
+    }
+
+    /// Finish building, returning a `StreamBarsQuery`.
+    ///
+    /// NOTE: You must call `set_symbol` before calling `build`.
+    pub fn build(self) -> Result<StreamBarsQuery, Error> {
+        Ok(StreamBarsQuery {
+            symbol: self.symbol.ok_or_else(|| Error::SymbolNotSet)?,
+            interval: self.interval.unwrap_or(String::from("1")),
+            unit: self.unit.unwrap_or(BarUnit::Daily),
+            bars_back: self.bars_back.unwrap_or(String::from("1")),
+            session_template: self.session_template.unwrap_or(SessionTemplate::Default),
         })
     }
 }
