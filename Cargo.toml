@@ -1,11 +1,12 @@
 [package]
 name = "tradestation-rs"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Antonio Hickey <contact@antoniohickey.com>"]
 description = "An ergonomic Rust client for the TradeStation API."
 documentation = "https://github.com/antonio-hickey/tradestation-rs"
 homepage = "https://github.com/antonio-hickey/tradestation-rs"
 repository = "https://github.com/antonio-hickey/tradestation-rs"
+readme = "README.md"
 keywords = ["tradestation", "finance", "quant", "trading"]
 license = "MIT"
 exclude = ["/.github/"]
