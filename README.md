@@ -1,5 +1,4 @@
-TradeStation-rs
-===
+# TradeStation Rust Client
 
 An ergonomic Rust client for the [TradeStation API](https://www.tradestation.com/platforms-and-tools/trading-api/).
 
@@ -7,23 +6,23 @@ Install
 ---
 Use cargo CLI:
 ```
-cargo install tradestation-rs
+cargo install tradestation
 ```
 
 Or manually add it into your `Cargo.toml`:
 ```toml
 [dependencies]
-tradestation_rs = "0.1.0"
+tradestation = "0.0.1"
 ```
 
 Usage
 ---
 
-For more thorough information, read the [docs](https://docs.rs/tradestation-rs/latest/tradestation_rs/).
+For more thorough information, read the [docs](https://docs.rs/tradestation/latest/tradestation/).
 
 Simple example for streaming bars of trading activity:
 ```rust
-use tradestation_rs::{
+use tradestation::{
     responses::MarketData::StreamBarsResp,
     ClientBuilder, Error,
     MarketData::{self, BarUnit},

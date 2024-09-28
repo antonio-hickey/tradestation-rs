@@ -1,6 +1,6 @@
 [package]
-name = "tradestation-rs"
-version = "0.1.1"
+name = "tradestation"
+version = "0.0.1"
 authors = ["Antonio Hickey <contact@antoniohickey.com>"]
 description = "An ergonomic Rust client for the TradeStation API."
 documentation = "https://github.com/antonio-hickey/tradestation-rs"
@@ -10,7 +10,12 @@ readme = "README.md"
 keywords = ["tradestation", "finance", "quant", "trading"]
 license = "MIT"
 exclude = ["/.github/"]
+include = ["README.md", "src/**/*", "examples/**/*"]
 edition = "2021"
+
+[lib]
+name = "tradestation"
+path = "src/lib.rs"
 
 [dependencies]
 reqwest = { version = "0.12", features = ["json"] }

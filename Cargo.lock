@@ -1068,8 +1068,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "tradestation-rs"
-version = "0.1.1"
+name = "tradestation"
+version = "0.0.1"
 dependencies = [
  "reqwest",
  "serde",

@@ -1,8 +1,10 @@
 // Example file on basic usage for account endoints
 
-use tradestation_rs::account::{MultipleAccounts, Position, PositionType};
-use tradestation_rs::responses::account::{StreamOrdersResp, StreamPositionsResp};
-use tradestation_rs::{ClientBuilder, Error};
+use tradestation::{
+    account::{MultipleAccounts, Position, PositionType},
+    responses::account::{StreamOrdersResp, StreamPositionsResp},
+    ClientBuilder, Error,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {

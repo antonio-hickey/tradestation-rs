@@ -1,6 +1,6 @@
 //! Example file on basic usage for market data endpoints
 
-use tradestation_rs::{
+use tradestation::{
     responses::MarketData::StreamBarsResp,
     ClientBuilder, Error,
     MarketData::{self, BarUnit},
