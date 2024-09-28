@@ -21,6 +21,14 @@ async fn main() -> Result<(), Error> {
     //---
 
     //--
+    // Example: Get symbol details (`MarketData::SymbolDetails`) on symbols the nasdaq index `NQQ`,
+    // and Feburary 21st 2025 $105 call option for 20+ Year Treasury fund `TLT 250221C105`.
+    let symbols = vec!["NQQ", "TLT 250221C105"];
+    let details = client.get_symbol_details(symbols).await?;
+    println!("Symbol Details: {details:?}");
+    //--
+
+    //--
     // Example: Stream bars of November 2024 Crude Oil Futures trading activity in
     // 4 hour (240 minute) intervals.
     let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()

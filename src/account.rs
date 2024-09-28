@@ -1960,7 +1960,7 @@ pub struct OrderLeg {
     /// The stage of the `Order` , is it opening or closing?
     pub open_or_close: Option<OrderStage>,
     /// The type of option
-    pub option_type: Option<String>,
+    pub option_type: Option<OptionType>,
     /// Number of shares or contracts being purchased or sold.
     pub quantity_ordered: String,
     /// In a partially filled `Order` , this is the number of shares
@@ -1982,7 +1982,9 @@ pub struct OrderLeg {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// The type of option
 pub enum OptionType {
+    #[serde(rename = "CALL")]
     Call,
+    #[serde(rename = "PUT")]
     Put,
 }
 

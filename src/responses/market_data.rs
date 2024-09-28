@@ -1,5 +1,47 @@
+use crate::market_data::SymbolDetails;
 use crate::{responses::stream, Error, MarketData::Bar};
 use serde::{de, Deserialize, Serialize};
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The TradeStation API Response for fetching symbol details.
+pub struct GetSymbolDetailsRespRaw {
+    /// The symbol details.
+    pub symbols: Option<Vec<SymbolDetails>>,
+    /// The error type from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub error: Option<String>,
+    /// The error message from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub message: Option<String>,
+}
+#[derive(Debug)]
+/// The TradeStation API Response for fetching symbol details.
+pub struct GetSymbolDetailsResp {
+    /// The symbol details.
+    pub symbols: Option<Vec<SymbolDetails>>,
+    /// The error from TradeStation's API.
+    ///
+    /// NOTE: Will be None if there was no error.
+    pub error: Option<Error>,
+}
+impl From<GetSymbolDetailsRespRaw> for GetSymbolDetailsResp {
+    fn from(raw: GetSymbolDetailsRespRaw) -> Self {
+        let error_enum =
+            if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
+                Error::from_tradestation_api_error(err, msg)
+            } else {
+                None
+            };
+
+        GetSymbolDetailsResp {
+            symbols: raw.symbols,
+            error: error_enum,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
