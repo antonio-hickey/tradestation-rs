@@ -1,6 +1,48 @@
+use crate::market_data::options::OptionExpiration;
 use crate::market_data::SymbolDetails;
 use crate::{responses::stream, Error, MarketData::Bar};
 use serde::{de, Deserialize, Serialize};
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The TradeStation API Response for fetching symbol details.
+pub struct GetOptionExpirationsRespRaw {
+    /// The option expirations for a symbol.
+    pub expirations: Option<Vec<OptionExpiration>>,
+    /// The error type from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub error: Option<String>,
+    /// The error message from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub message: Option<String>,
+}
+#[derive(Debug)]
+/// The TradeStation API Response for fetching symbol details.
+pub struct GetOptionExpirationsResp {
+    /// The option expirations for a symbol.
+    pub expirations: Option<Vec<OptionExpiration>>,
+    /// The error from TradeStation's API.
+    ///
+    /// NOTE: Will be None if there was no error.
+    pub error: Option<Error>,
+}
+impl From<GetOptionExpirationsRespRaw> for GetOptionExpirationsResp {
+    fn from(raw: GetOptionExpirationsRespRaw) -> Self {
+        let error_enum =
+            if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
+                Error::from_tradestation_api_error(err, msg)
+            } else {
+                None
+            };
+
+        GetOptionExpirationsResp {
+            expirations: raw.expirations,
+            error: error_enum,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
