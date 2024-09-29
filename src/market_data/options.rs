@@ -9,15 +9,10 @@ use serde::{Deserialize, Serialize};
 /// An option contract's expiration date and type.
 pub struct OptionExpiration {
     /// Timestamp represented as an `RFC3339` formatted date, a profile of the ISO 8601 date standard.
-    ///
-    /// Example: `"2021-12-17T00:00:00Z"`.
+    /// E.g: `"2021-12-17T00:00:00Z"`.
     date: String,
     /// The type of expiration for the options contract.
-    ///
-    /// Example:
-    /// ```no_run
-    /// OptionExpirationType::Weekly
-    /// ```
+    /// E.g: `OptionExpirationType::Weekly`
     r#type: OptionExpirationType,
 }
 impl OptionExpiration {
@@ -30,8 +25,12 @@ impl OptionExpiration {
     /// NOTE: `strike_price` is optional, and if provided this will only return
     /// expirations for that strike price.
     ///
-    /// Example: Fetch all expirations for Cloudflare (NET) options.
-    /// ```no_run
+    /// # Example
+    /// ---
+    ///
+    /// Fetch all expirations for Cloudflare (NET) options.
+    ///
+    /// ```ignore
     /// let cloudflare_option_expirations = client.fetch_option_expirations("NET", None).await?;
     /// println!("Cloudflare Option Expirations: {cloudflare_option_expirations:?}");
     /// ```
@@ -70,8 +69,12 @@ impl Client {
     /// NOTE: `strike_price` is optional, and if provided this will only return
     /// expirations for that strike price.
     ///
-    /// Example: Fetch all expirations for Cloudflare (NET) options.
-    /// ```no_run
+    /// # Example:
+    /// ---
+    ///
+    /// Fetch all expirations for Cloudflare (NET) options.
+    ///
+    /// ```ignore
     /// let cloudflare_option_expirations = client.fetch_option_expirations("NET", None).await?;
     /// println!("Cloudflare Option Expirations: {cloudflare_option_expirations:?}");
     /// ```

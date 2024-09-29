@@ -33,8 +33,7 @@ pub struct Bar {
     /// NOTE: Futures and Options ONLY.
     pub open_interest: Option<String>,
     /// Timestamp represented as an RFC3339 formatted date.
-    ///
-    /// Example: 2024-09-01T23:30:30Z
+    /// E.g: `"2024-09-01T23:30:30Z"`
     pub time_stamp: String,
     /// The total number of ticks (upticks and downticks together).
     pub total_ticks: u64,
@@ -60,9 +59,12 @@ pub struct Bar {
 impl Bar {
     /// Fetch `Vec<Bar>` for a given query `GetBarsQuery`
     ///
-    /// Example: Get the 10 most recent 5 minute bars of trading
+    /// # Example
+    /// ---
+    ///
+    /// Get the 10 most recent 5 minute bars of trading
     /// activity for November 2024 Crude Oil Futures.
-    /// ```rust
+    /// ```ignore
     /// let fetch_bars_query = MarketData::GetBarsQueryBuilder::new()
     ///     .set_symbol("CLX24")
     ///     .set_unit(BarUnit::Minute)
@@ -99,9 +101,12 @@ impl Bar {
 
     /// Stream bars of market activity for a given query `GetBarsQuery`
     ///
-    /// Example: Stream bars of November 2024 Crude Oil Futures trading activity
+    /// # Example
+    /// ---
+    ///
+    /// Stream bars of November 2024 Crude Oil Futures trading activity
     /// in 4 hour (240 minute) intervals.
-    /// ```rust
+    /// ```ignore
     /// let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
     ///     .set_symbol("CLX24")
     ///     .set_unit(BarUnit::Minute)
@@ -204,16 +209,16 @@ impl Client {
 pub struct GetBarsQuery {
     /// The symbol of the security you want bars for.
     ///
-    /// Example: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
+    /// E.g: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
     /// or
-    /// Example: `"PLTR"` for bars on the stock Palantir.
+    /// E.g: `"PLTR"` for bars on the stock Palantir.
     pub symbol: String,
     /// The interval (of time units) that each bar will consist of
     ///
     /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
     /// then the max allowed interval is 1440.
     ///
-    /// Example: If unit is set to `BarUnit::Minute` than an interval of 5
+    /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
     pub interval: String,
     /// The unit of measurement for time in each bar interval.
@@ -277,16 +282,16 @@ impl GetBarsQuery {
 pub struct StreamBarsQuery {
     /// The symbol of the security you want bars for.
     ///
-    /// Example: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
+    /// E.g: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
     /// or
-    /// Example: `"PLTR"` for bars on the stock Palantir.
+    /// E.g: `"PLTR"` for bars on the stock Palantir.
     pub symbol: String,
     /// The interval (of time units) that each bar will consist of
     ///
     /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
     /// then the max allowed interval is 1440.
     ///
-    /// Example: If unit is set to `BarUnit::Minute` than an interval of 5
+    /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
     pub interval: String,
     /// The unit of measurement for time in each bar interval.
@@ -324,6 +329,7 @@ impl StreamBarsQuery {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// The different types of Market Session Templates.
 pub enum SessionTemplate {
     /// U.S Equities Pre Market Session Template
     USEQPre,
@@ -364,16 +370,16 @@ pub enum BarStatus {
 pub struct GetBarsQueryBuilder {
     /// The symbol of the security you want bars for.
     ///
-    /// Example: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
+    /// E.g: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
     /// or
-    /// Example: `"PLTR"` for bars on the stock Palantir.
+    /// E.g: `"PLTR"` for bars on the stock Palantir.
     symbol: Option<String>,
     /// The interval (of time units) that each bar will consist of
     ///
     /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
     /// then the max allowed interval is 1440.
     ///
-    /// Example: If unit is set to `BarUnit::Minute` than an interval of 5
+    /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
     interval: Option<String>,
     /// The unit of measurement for time in each bar interval.
@@ -423,9 +429,9 @@ impl GetBarsQueryBuilder {
 
     /// Set the symbol of the security you want bars for.
     ///
-    /// Example: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
+    /// E.g: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
     /// or
-    /// Example: `"PLTR"` for bars on the stock Palantir.
+    /// E.g: `"PLTR"` for bars on the stock Palantir.
     pub fn set_symbol(mut self, symbol: impl Into<String>) -> Self {
         self.symbol = Some(symbol.into());
         self
@@ -436,7 +442,7 @@ impl GetBarsQueryBuilder {
     /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
     /// then the max allowed interval is 1440.
     ///
-    /// Example: If unit is set to `BarUnit::Minute` than an interval of 5
+    /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
     pub fn set_interval(mut self, interval: impl Into<String>) -> Self {
         self.interval = Some(interval.into());
@@ -518,16 +524,16 @@ impl GetBarsQueryBuilder {
 pub struct StreamBarsQueryBuilder {
     /// The symbol of the security you want bars for.
     ///
-    /// Example: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
+    /// E.g: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
     /// or
-    /// Example: `"PLTR"` for bars on the stock Palantir.
+    /// E.g: `"PLTR"` for bars on the stock Palantir.
     symbol: Option<String>,
     /// The interval (of time units) that each bar will consist of
     ///
     /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
     /// then the max allowed interval is 1440.
     ///
-    /// Example: If unit is set to `BarUnit::Minute` than an interval of 5
+    /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
     interval: Option<String>,
     /// The unit of measurement for time in each bar interval.
@@ -559,9 +565,9 @@ impl StreamBarsQueryBuilder {
 
     /// Set the symbol of the security you want bars for.
     ///
-    /// Example: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
+    /// E.g: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
     /// or
-    /// Example: `"PLTR"` for bars on the stock Palantir.
+    /// E.g: `"PLTR"` for bars on the stock Palantir.
     pub fn set_symbol(mut self, symbol: impl Into<String>) -> Self {
         self.symbol = Some(symbol.into());
         self
@@ -572,7 +578,7 @@ impl StreamBarsQueryBuilder {
     /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
     /// then the max allowed interval is 1440.
     ///
-    /// Example: If unit is set to `BarUnit::Minute` than an interval of 5
+    /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
     pub fn set_interval(mut self, interval: impl Into<String>) -> Self {
         self.interval = Some(interval.into());

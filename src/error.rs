@@ -1,23 +1,36 @@
 use std::error::Error as StdErrorTrait;
 
-/// TradeStation API Client Error
 #[derive(Debug)]
+/// TradeStation API Client Error
 pub enum Error {
+    /// Issue with your current `Token` the `Client` is using.
     InvalidToken,
+    /// An `Account` was not found for a given account id.
     AccountNotFound,
+    /// An HTTP request error.
     Request(reqwest::Error),
     BoxedError(Box<dyn StdErrorTrait + Send + Sync>),
+    /// Error while in stream
     StreamIssue(String),
     /// Use this to stop a stream connection.
     StopStream,
+    /// Error with JSON serializing or deseializing.
     Json(serde_json::Error),
+    /// No symbol set when one was required.
     SymbolNotSet,
+    /// TradeStation API Error for a bad request
     BadRequest(String),
+    /// TradeStation API Error for an unauthorized request.
     Unauthorized(String),
+    /// TradeStation API Error for a forbidden request.
     Forbidden(String),
+    /// TradeStation API Error for too many requests.
     TooManyRequests(String),
+    /// TradeStation API Error for an internal server error.
     InternalServerError(String),
+    /// TradeStation API Error for a gateway timeout.
     GatewayTimeout(String),
+    /// TradeStation API Error for an unkown error.
     UnknownTradeStationAPIError,
 }
 impl Error {
@@ -40,6 +53,7 @@ impl Error {
 impl StdErrorTrait for Error {}
 /// Implement display trait for `Error`
 impl std::fmt::Display for Error {
+    /// The error message display format
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::InvalidToken => write!(f, "Invalid `Token` may be expired, bad, or `None`"),

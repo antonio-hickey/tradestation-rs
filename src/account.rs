@@ -8,7 +8,7 @@ use std::{error::Error as StdErrorTrait, future::Future, pin::Pin};
 /// TradeStation Account
 pub struct Account {
     #[serde(rename = "AccountID")]
-    /// The main identifier for a TradeStation account
+    /// The main identifier for a TradeStation account.
     account_id: String,
     /// The currency the account is based on.
     currency: String,
@@ -21,7 +21,7 @@ pub struct Account {
     account_detail: Option<AccountDetail>,
 }
 impl Account {
-    /// Get a specific TradeStation `Account` by it's account id
+    /// Get a specific TradeStation `Account` by it's account id.
     pub async fn get(client: &mut Client, account_id: &str) -> Result<Account, Error> {
         if let Some(account) = Account::get_all(client)
             .await?
@@ -34,7 +34,7 @@ impl Account {
         }
     }
 
-    /// Get all of your registered TradeStation `Account`(s)
+    /// Get all of your registered TradeStation `Account`(s).
     pub async fn get_all(client: &mut Client) -> Result<Vec<Account>, Error> {
         let endpoint = "brokerage/accounts";
 
@@ -47,7 +47,7 @@ impl Account {
         Ok(resp.accounts)
     }
 
-    /// Get the current balance of an `Account`
+    /// Get the current balance of an `Account`.
     pub async fn get_balance(&self, client: &mut Client) -> Result<Balance, Error> {
         let endpoint = format!("brokerage/accounts/{}/balances", self.account_id);
 
@@ -65,7 +65,7 @@ impl Account {
         }
     }
 
-    /// Get the current balance of all `Account`(s) by account ids
+    /// Get the current balance of all `Account`(s) by account ids.
     ///
     /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_balances()`
     /// this method should only be used in cases where you ONLY have account id's.
@@ -84,7 +84,7 @@ impl Account {
         Ok(resp.balances)
     }
 
-    /// Get the beginning of day balance of an `Account`
+    /// Get the beginning of day balance of an `Account`.
     pub async fn get_bod_balance(&self, client: &mut Client) -> Result<BODBalance, Error> {
         let endpoint = format!("brokerage/accounts/{}/bodbalances", self.account_id);
 
@@ -102,7 +102,7 @@ impl Account {
         }
     }
 
-    /// Get the beginning of day balances for multiple `Account`(s) by account id
+    /// Get the beginning of day balances for multiple `Account`(s) by account id.
     ///
     /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_bod_balances()`
     /// this method should only be used if you ONLY have account id's.
@@ -258,13 +258,16 @@ impl Account {
         Ok(resp.positions)
     }
 
-    /// Stream `Order`(s) for the given `Account`
+    /// Stream `Order`(s) for the given `Account`.
     ///
     /// NOTE: You need to pass a closure function that will handle
     /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
     ///
-    /// Example: Get the amount of funds allocated to open orders.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Get the amount of funds allocated to open orders.
+    /// ```ignore
     /// let mut funds_allocated_to_open_orders = 0.00;
     /// specific_account
     ///     .stream_orders(&mut client, |stream_data| {
@@ -339,15 +342,19 @@ impl Account {
         Ok(collected_orders)
     }
 
-    /// Stream `Order`(s) by order id's for the given `Account`
+    /// Stream `Order`(s) by order id's for the given `Account`.
     ///
     /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`
     ///
     /// NOTE: You need to pass a closure function that will handle
-    /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
+    /// each chunk of data `StreamOrdersResp` as it's streamed in.
     ///
-    /// Example: Do something until all order's in a trade are filled.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Do something until all order's in a trade are filled.
+    ///
+    /// ```ignore
     /// let mut some_trades_order_statuses: HashMap<String, String> = HashMap::new();
     /// specific_account
     ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
@@ -437,13 +444,16 @@ impl Account {
         Ok(collected_orders)
     }
 
-    /// Stream `Order`(s) for the given `Account`
+    /// Stream `Order`(s) for the given `Account`.
     ///
     /// NOTE: You need to pass a closure function that will handle
     /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
     ///
-    /// Example: Get the amount of funds allocated to open orders.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Get the amount of funds allocated to open orders.
+    /// ```ignore
     /// let mut funds_allocated_to_open_orders = 0.00;
     /// specific_account
     ///     .stream_orders(&mut client, |stream_data| {
@@ -518,15 +528,18 @@ impl Account {
         Ok(collected_orders)
     }
 
-    /// Stream `Order`s by order id's for the given `Account`(s)
+    /// Stream `Order`s by order id's for the given `Account`(s).
     ///
     /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`
     ///
     /// NOTE: You need to pass a closure function that will handle
     /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
     ///
-    /// Example: Do something until all order's in a trade are filled.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Do something until all order's in a trade are filled.
+    /// ```ignore
     /// let mut some_trades_order_statuses: HashMap<String, String> = HashMap::new();
     /// specific_account
     ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
@@ -617,12 +630,15 @@ impl Account {
         Ok(collected_orders)
     }
 
-    /// Stream `Position`s for the given `Account`
+    /// Stream `Position`s for the given `Account`.
     ///
     /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
     ///
-    /// Example: Collect losing trades into a vector and do something with them.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Collect losing trades into a vector and do something with them.
+    /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
     /// specific_account
     ///     .stream_positions(&mut client, |stream_data| {
@@ -705,12 +721,15 @@ impl Account {
         Ok(collected_positions)
     }
 
-    /// Stream `Position`s for the given `Account`(s)
+    /// Stream `Position`s for the given `Account`(s).
     ///
     /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
     ///
-    /// Example: Collect losing trades into a vector and do something with them.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Collect losing trades into a vector and do something with them.
+    /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
     /// specific_account
     ///     .stream_positions(&mut client, |stream_data| {
@@ -797,8 +816,9 @@ impl Account {
     }
 }
 
+/// Trait to allow calling methods on multiple accounts `Vec<Account>`.
 pub trait MultipleAccounts {
-    /// Find an `Account` by it's id
+    /// Find an `Account` by it's id.
     fn find_by_id(&self, id: &str) -> Option<Account>;
 
     type GetBalanceFuture<'a>: Future<Output = Result<Vec<Balance>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -806,7 +826,7 @@ pub trait MultipleAccounts {
         + 'a
     where
         Self: 'a;
-    /// Get the current balance of multiple `Account`(s)
+    /// Get the current balance of multiple `Account`(s).
     fn get_balances<'a>(&'a self, client: &'a mut Client) -> Self::GetBalanceFuture<'a>;
 
     type GetBODBalanceFuture<'a>: Future<Output = Result<Vec<BODBalance>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -814,7 +834,7 @@ pub trait MultipleAccounts {
         + 'a
     where
         Self: 'a;
-    /// Get the beginning of day balances for multiple `Account`(s) by account id
+    /// Get the beginning of day balances for multiple `Account`(s) by account id.
     fn get_bod_balances<'a>(&'a self, client: &'a mut Client) -> Self::GetBODBalanceFuture<'a>;
 
     type GetHistoricOrdersFuture<'a>: Future<Output = Result<Vec<Order>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -822,7 +842,7 @@ pub trait MultipleAccounts {
         + 'a
     where
         Self: 'a;
-    /// Get the historical `Order`(s) for multiple `Account`(s)
+    /// Get the historical `Order`(s) for multiple `Account`(s).
     ///
     /// NOTE: Date format is {YEAR-MONTH-DAY} ex: `"2024-07-09"`, and is limited to 90
     /// days prior to the current date.
@@ -839,7 +859,7 @@ pub trait MultipleAccounts {
         + 'a
     where
         Self: 'a;
-    /// Get the `Position`(s) for multiple `Account`(s)
+    /// Get the `Position`(s) for multiple `Account`(s).
     fn get_positions<'a>(&'a self, client: &'a mut Client) -> Self::GetPositionsFuture<'a>;
 
     type GetPositionsInSymbolsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -847,7 +867,7 @@ pub trait MultipleAccounts {
         + 'a
     where
         Self: 'a;
-    /// Get the `Position`(s) in specific symbols for multiple `Account`(s)
+    /// Get the `Position`(s) in specific symbols for multiple `Account`(s).
     fn get_positions_in_symbols<'a>(
         &'a self,
         symbols: &'a str,
@@ -859,13 +879,16 @@ pub trait MultipleAccounts {
         + 'a
     where
         Self: 'a;
-    /// Stream `Order`(s) for the given `Account`
+    /// Stream `Order`(s) for the given `Account`.
     ///
     /// NOTE: You need to pass a closure function that will handle
     /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
     ///
-    /// Example: Get the amount of funds allocated to open orders.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Get the amount of funds allocated to open orders.
+    /// ```ignore
     /// let mut funds_allocated_to_open_orders = 0.00;
     /// specific_account
     ///     .stream_orders(&mut client, |stream_data| {
@@ -924,15 +947,18 @@ pub trait MultipleAccounts {
         + 'a
     where
         Self: 'a;
-    /// Stream `Order`s by order id's for the given `Account`(s)
+    /// Stream `Order`s by order id's for the given `Account`(s).
     ///
-    /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`
+    /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`.
     ///
     /// NOTE: You need to pass a closure function that will handle
     /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
     ///
-    /// Example: Do something until all order's in a trade are filled.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Do something until all order's in a trade are filled.
+    /// ```ignore
     /// let mut some_trades_order_statuses: HashMap<String, String> = HashMap::new();
     /// specific_account
     ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
@@ -1003,12 +1029,15 @@ pub trait MultipleAccounts {
         + 'a
     where
         Self: 'a;
-    /// Stream `Position`s for the given `Account`(s)
+    /// Stream `Position`s for the given `Account`(s).
     ///
     /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
     ///
-    /// Example: Collect losing trades into a vector and do something with them.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Collect losing trades into a vector and do something with them.
+    /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
     /// specific_account
     ///     .stream_positions(&mut client, |stream_data| {
@@ -1071,6 +1100,8 @@ pub trait MultipleAccounts {
         F: FnMut(StreamPositionsResp) -> Result<(), Error> + Send + 'a;
 }
 impl MultipleAccounts for Vec<Account> {
+    /// Find a specific account by a given account id from
+    /// a `Vec<Account>`.
     fn find_by_id(&self, id: &str) -> Option<Account> {
         self.iter()
             .filter(|account| account.account_id == id)
@@ -1086,7 +1117,7 @@ impl MultipleAccounts for Vec<Account> {
                 + 'a,
         >,
     >;
-    /// Get the beginning of day balances for multiple `Account`(s)
+    /// Get the beginning of day balances for multiple `Account`(s).
     fn get_balances<'a>(&'a self, client: &'a mut Client) -> Self::GetBalanceFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
@@ -1151,6 +1182,7 @@ impl MultipleAccounts for Vec<Account> {
                 + 'a,
         >,
     >;
+    /// Get the `Position`(s) for multiple `Account`(s).
     fn get_positions<'a>(&'a self, client: &'a mut Client) -> Self::GetPositionsFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
@@ -1170,6 +1202,7 @@ impl MultipleAccounts for Vec<Account> {
                 + 'a,
         >,
     >;
+    /// Get the `Position`(s) in specific symbols for multiple `Account`(s).
     fn get_positions_in_symbols<'a>(
         &'a self,
         symbols: &'a str,
@@ -1199,8 +1232,11 @@ impl MultipleAccounts for Vec<Account> {
     /// NOTE: You need to pass a closure function that will handle
     /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
     ///
-    /// Example: Get the amount of funds allocated to open orders.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Get the amount of funds allocated to open orders.
+    /// ```ignore
     /// let mut funds_allocated_to_open_orders = 0.00;
     /// specific_account
     ///     .stream_orders(&mut client, |stream_data| {
@@ -1280,8 +1316,11 @@ impl MultipleAccounts for Vec<Account> {
     /// NOTE: You need to pass a closure function that will handle
     /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
     ///
-    /// Example: Do something until all order's in a trade are filled.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Do something until all order's in a trade are filled.
+    /// ```ignore
     /// let mut some_trades_order_statuses: HashMap<String, String> = HashMap::new();
     /// specific_account
     ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
@@ -1371,12 +1410,15 @@ impl MultipleAccounts for Vec<Account> {
                 + 'a,
         >,
     >;
-    /// Stream `Position`s for the given `Account`(s)
+    /// Stream `Position`s for the given `Account`(s).
     ///
     /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
     ///
-    /// Example: Collect losing trades into a vector and do something with them.
-    /// ```rust
+    /// # Example
+    /// ---
+    ///
+    /// Collect losing trades into a vector and do something with them.
+    /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
     /// specific_account
     ///     .stream_positions(&mut client, |stream_data| {
@@ -1513,6 +1555,7 @@ pub struct AccountDetail {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// The real time balance of an `Account`.
 pub struct Balance {
     #[serde(rename = "AccountID")]
     /// The main identifier for a TradeStation account
@@ -1541,6 +1584,7 @@ pub struct Balance {
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// Real time balance information for an `Account`.
 pub struct BalanceDetail {
     /// The real time cost for all positions open in the `Account`
     ///
@@ -1550,155 +1594,162 @@ pub struct BalanceDetail {
     ///
     /// NOTE: This updates daily
     ///
-    /// NOTE: This is always None for futures `Account`
+    /// NOTE: This is always None for futures `Account`.
     pub day_trades: Option<String>,
     /// The real time dollar amount of required funds for `Account` margin maintenance
     ///
-    /// NOTE: SUM(maintenance margin of all open positions in the account)
+    /// NOTE: SUM(maintenance margin of all open positions in the account).
     ///
-    /// NOTE: This is always None for futures `Account`
+    /// NOTE: This is always None for futures `Account`.
     pub maintenance_rate: Option<String>,
     /// The real time value of intraday buying power for options
     ///
-    /// NOTE: This is always None for futures `Account`
+    /// NOTE: This is always None for futures `Account`.
     pub option_buying_power: Option<String>,
-    /// The real time Market Value of current open option positions in an `Account`
+    /// The real time Market Value of current open option positions in an `Account`.
     pub options_market_value: Option<String>,
-    /// The real time Buying Power value that can be held overnight w/o triggering a margin call
+    /// The real time Buying Power value that can be held overnight w/o triggering a margin call.
     ///
-    /// NOTE: (Equity - Overnight Requirement %) / 50 %
+    /// NOTE: (Equity - Overnight Requirement %) / 50 %.
     pub overnight_buying_power: Option<String>,
-    /// The real time dollar value of open order Day Trade Margins for an `Account`
+    /// The real time dollar value of open order Day Trade Margins for an `Account`.
     ///
-    /// NOTE: SUM(Day Trade Margin of all open orders in the account)
+    /// NOTE: SUM(Day Trade Margin of all open orders in the account).
     ///
     /// NOTE: Always `None` for cash & margin accounts
     pub day_trade_open_order_margin: Option<String>,
-    /// The real time dollar value of open order Initial Margin for an `Account`
+    /// The real time dollar value of open order Initial Margin for an `Account`.
     ///
-    /// NOTE: SUM(Initial Margin of all open orders in the account)
+    /// NOTE: SUM(Initial Margin of all open orders in the account).
     ///
-    /// NOTE: Always `None` for cash & margin accounts
+    /// NOTE: Always `None` for cash & margin accounts.
     pub open_order_margin: Option<String>,
-    /// The real time dollar value of Initial Margin for an `Account`
+    /// The real time dollar value of Initial Margin for an `Account`.
     ///
-    /// NOTE: SUM(Initial Margin of all open positions in the account)
+    /// NOTE: SUM(Initial Margin of all open positions in the account).
     pub initial_margin: Option<String>,
-    /// The real time dollar value of Maintenance Margin for an `Account`
+    /// The real time dollar value of Maintenance Margin for an `Account`.
     ///
-    /// NOTE: SUM(Maintenance Margins of all open positions in the account)
+    /// NOTE: SUM(Maintenance Margins of all open positions in the account).
     ///
-    /// NOTE: Always `None` for cash & margin accounts
+    /// NOTE: Always `None` for cash & margin accounts.
     pub maintenance_margin: Option<String>,
-    /// The real time dollar amount of Trade Equity for an `Account`
+    /// The real time dollar amount of Trade Equity for an `Account`.
     ///
-    /// NOTE: Always `None` for cash & margin accounts
+    /// NOTE: Always `None` for cash & margin accounts.
     pub trade_equity: Option<String>,
     /// The value of special securities deposited with the clearing firm
     /// for the sole purpose of increasing purchasing power in `Account`
     ///
-    /// NOTE: This number will be reset daily by the account balances clearing file
+    /// NOTE: This number will be reset daily by the account balances clearing file.
     ///
-    /// NOTE: The entire value of this field will increase purchasing power
+    /// NOTE: The entire value of this field will increase purchasing power.
     ///
-    /// NOTE: Always `None` for cash & margin accounts
+    /// NOTE: Always `None` for cash & margin accounts.
     pub security_on_deposit: Option<String>,
-    /// The real time dollar value of Today's Trade Equity for an `Account`
+    /// The real time dollar value of Today's Trade Equity for an `Account`.
     ///
-    /// NOTE: (Beginning Day Trade Equity - Real Time Trade Equity)
+    /// NOTE: (Beginning Day Trade Equity - Real Time Trade Equity).
     pub today_real_time_trade_equity: Option<String>,
-    /// Deeper details on base currency
+    /// Deeper details on base currency.
     ///
-    /// NOTE: Always `None` for cash & margin accounts
+    /// NOTE: Always `None` for cash & margin accounts.
     pub currency_details: Option<CurrencyDetails>,
-    /// The real time amount of required funds for `Account` margin maintenance
+    /// The real time amount of required funds for `Account` margin maintenance.
     ///
-    /// NOTE: The currency denomination is dependant on `Account::currency`
+    /// NOTE: The currency denomination is dependant on `Account::currency`.
     ///
-    /// NOTE: SUM(maintenance margin of all open positions in the account)
-    /// NOTE: Always `None` for futures accounts
+    /// NOTE: SUM(maintenance margin of all open positions in the account).
+    ///
+    /// NOTE: Always `None` for futures accounts.
     pub required_margin: Option<String>,
-    /// Funds received by TradeStation that are not settled from a transaction in the `Account`
-    /// NOTE: Always `None` for futures accounts
-    pub unsettled_funds: Option<String>,
-    /// Maintenance Excess
+    /// Funds received by TradeStation that are not settled from a transaction in the `Account`.
     ///
-    /// NOTE: (Cash Balance + Long Market Value + Short Credit - Maintenance Requirement - Margin Debt - Short Market Value)
+    /// NOTE: Always `None` for futures accounts.
+    pub unsettled_funds: Option<String>,
+    /// Maintenance Excess.
+    ///
+    /// NOTE: (Cash Balance + Long Market Value + Short Credit - Maintenance Requirement - Margin Debt - Short Market Value).
     pub day_trade_excess: String,
     #[serde(rename = "RealizedProfitLoss")]
-    /// The net Realized Profit or Loss of an `Account` for the current trading day
+    /// The net Realized Profit or Loss of an `Account` for the current trading day.
     ///
-    /// NOTE: This includes all commissions and routing fees
+    /// NOTE: This includes all commissions and routing fees.
     pub realized_pnl: String,
     #[serde(rename = "UnrealizedProfitLoss")]
-    /// The net Unrealized Profit or Loss of an `Account` for all currently open positions
+    /// The net Unrealized Profit or Loss of an `Account` for all currently open positions.
     ///
-    /// NOTE: This does not include commissions or routing fees
+    /// NOTE: This does not include commissions or routing fees.
     pub unrealized_pnl: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// The beginning of day balance of an `Account`.
 pub struct BODBalance {
     #[serde(rename = "AccountID")]
-    /// The main identifier for a TradeStation account
+    /// The main identifier for a TradeStation account.
     pub account_id: String,
-    /// The type of account, examples: "Cash" or "Margin"
+    /// The type of account, examples: "Cash" or "Margin".
     pub account_type: String,
-    /// Deeper details on the `Balance` of an `Account`
+    /// Deeper details on the `Balance` of an `Account`.
     pub balance_detail: BODBalanceDetail,
-    /// Deeper details on the `Currency` local of an `Account`
+    /// Deeper details on the `Currency` local of an `Account`.
     ///
-    /// NOTE: Only applies to futures
+    /// NOTE: Only applies to futures.
     pub currency_details: Option<Vec<BODCurrencyDetails>>,
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// The beginning of day balance information of an `Account`.
 pub struct BODBalanceDetail {
-    /// The amount of cash in the account at the beginning of the day
+    /// The amount of cash in the account at the beginning of the day.
     ///
-    /// NOTE: Only applies to equities
+    /// NOTE: Only applies to equities.
     pub account_balance: Option<String>,
     /// Beginning of day value for cash available to withdraw
     pub cash_available_to_withdraw: Option<String>,
     /// The number of day trades placed in the account within the previous
     /// 4 trading days.
     ///
-    /// NOTE: Only applies to equities
+    /// NOTE: Only applies to equities.
     pub day_trades: Option<String>,
-    /// The Intraday Buying Power with which the account started the trading day
+    /// The Intraday Buying Power with which the account started the trading day.
     ///
-    /// NOTE: Only applies to equities
+    /// NOTE: Only applies to equities.
     pub day_trading_marginable_buying_power: Option<String>,
-    /// The total amount of equity with which you started the current trading day
+    /// The total amount of equity with which you started the current trading day.
     pub equity: String,
-    /// The amount of cash in the account at the beginning of the day
+    /// The amount of cash in the account at the beginning of the day.
     pub net_cash: String,
-    /// Unrealized profit and loss at the beginning of the day
+    /// Unrealized profit and loss at the beginning of the day.
     ///
-    /// NOTE: Only applies to futures
+    /// NOTE: Only applies to futures.
     pub open_trade_equity: Option<String>,
-    /// Option buying power at the start of the trading day
+    /// Option buying power at the start of the trading day.
     ///
-    /// NOTE: Only applies to equities
+    /// NOTE: Only applies to equities.
     pub option_buying_power: Option<String>,
-    /// Intraday liquidation value of option positions
+    /// Intraday liquidation value of option positions.
     ///
-    /// NOTE: Only applies to equities
+    /// NOTE: Only applies to equities.
     pub option_value: Option<String>,
-    /// Overnight Buying Power (Regulation T) at the start of the trading day
+    /// Overnight Buying Power (Regulation T) at the start of the trading day.
     ///
-    /// NOTE: Only applies to equities
+    /// NOTE: Only applies to equities.
     pub overnight_buying_power: Option<String>,
     /// The value of special securities that are deposited by the customer with
     /// the clearing firm for the sole purpose of increasing purchasing power in
     /// their trading account.
     ///
-    /// NOTE: Only applies to futures
+    /// NOTE: Only applies to futures.
     pub security_on_deposit: Option<String>,
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// The beginning of day currency information.
+///
+/// NOTE: Only applies to futures.
 pub struct BODCurrencyDetails {
     /// The dollar amount of Beginning Day Margin for the given forex account
     pub account_margin_requirement: Option<String>,
@@ -1727,46 +1778,50 @@ pub struct BODCurrencyDetails {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// The properties that describe balance characteristics in different currencies.
+///
+/// NOTE: Only applies to futures.
 pub struct CurrencyDetails {
-    /// Base currency
+    /// Base currency.
     currency: String,
-    /// The net Unrealized Profit or Loss for all currently open positions
+    /// The net Unrealized Profit or Loss for all currently open positions.
     ///
-    /// NOTE: This does not include commissions or routing fees
+    /// NOTE: This does not include commissions or routing fees.
     commission: String,
-    /// The real time value of an `Account`(s) Cash Balance
+    /// The real time value of an `Account`(s) Cash Balance.
     cash_balance: String,
     #[serde(rename = "RealizedProfitLoss")]
-    /// The net Realized Profit or Loss of an `Account` for the current trading day
+    /// The net Realized Profit or Loss of an `Account` for the current trading day.
     ///
-    /// NOTE: This includes all commissions and routing fees
+    /// NOTE: This includes all commissions and routing fees.
     realized_pnl: String,
     #[serde(rename = "UnrealizedProfitLoss")]
-    /// The net Unrealized Profit or Loss of an `Account` for all currently open positions
+    /// The net Unrealized Profit or Loss of an `Account` for all currently open positions.
     ///
-    /// NOTE: This does not include commissions or routing fees
+    /// NOTE: This does not include commissions or routing fees.
     unrealized_pnl: String,
-    /// The real time dollar value of Initial Margin for an `Account`
+    /// The real time dollar value of Initial Margin for an `Account`.
     ///
-    /// NOTE: SUM(Initial Margin of all open positions in the account)
+    /// NOTE: SUM(Initial Margin of all open positions in the account).
     initial_margin: String,
-    /// The real time dollar value of Maintenance Margin for an `Account`
+    /// The real time dollar value of Maintenance Margin for an `Account`.
     ///
-    /// NOTE: SUM(Maintenance Margins of all open positions in the account)
+    /// NOTE: SUM(Maintenance Margins of all open positions in the account).
     maintenance_margin: String,
-    /// The real time conversion rate used to translate value from symbol currency to `Account` currency
+    /// The real time conversion rate used to translate value from symbol currency to `Account` currency.
     account_conversion_rate: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// An order to open, close, add, or trim positions.
 pub struct Order {
     #[serde(rename = "AccountID")]
-    /// The `Account` id to the this `Order` belongs to
+    /// The `Account` id to the this `Order` belongs to.
     pub account_id: String,
-    /// The `Order rules` or brackets
+    /// The `Order rules` or brackets.
     pub advanced_options: Option<String>,
-    /// The Closed Date Time of this `order`
+    /// The Closed Date Time of this `Order`.
     pub closed_date_time: Option<String>,
     /// The actual brokerage commission cost and routing fees
     /// for a trade based on the number of shares or contracts.
@@ -1787,7 +1842,7 @@ pub struct Order {
     pub filled_price: Option<String>,
     /// The expiration date-time for the `Order`
     ///
-    /// NOTE: The time portion, if "T:00:00:00Z", should be ignored.
+    /// NOTE: The time portion, if `"T:00:00:00Z"`, should be ignored.
     pub good_till_date: Option<String>,
     /// An identifier for `Order`(s) that are part of the same bracket.
     pub group_name: Option<String>,
@@ -1805,7 +1860,7 @@ pub struct Order {
     /// Time the `Order` was placed.
     pub opened_date_time: String,
     #[serde(rename = "OrderID")]
-    /// The `order` id.
+    /// The `Order` id.
     pub order_id: String,
     /// The type of `Order` this is.
     pub order_type: OrderType,
@@ -1857,9 +1912,13 @@ pub struct TrailingStop {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// Types of `Order`(s).
 pub enum OrderType {
+    /// Limit Order
     Limit,
+    /// Market Order
     Market,
+    /// Stop Loss At Market Order
     StopMarket,
+    /// Stop Loss At Limit Order
     StopLimit,
 }
 
@@ -1983,29 +2042,37 @@ pub struct OrderLeg {
 /// The type of option
 pub enum OptionType {
     #[serde(rename = "CALL")]
+    /// Call Option
     Call,
     #[serde(rename = "PUT")]
+    /// Put Option
     Put,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// The stage of the `Order` , is it opening or closing?
 pub enum OrderStage {
+    /// Order to open position.
     Open,
+    /// Order to close position.
     Close,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// The different types of order actions.
 pub enum OrderAction {
+    /// Buying to open.
     Buy,
+    /// Selling to close.
     Sell,
-    /// Open a short position
+    /// Open a short position.
     SellShort,
-    /// Closing a short position
+    /// Closing a short position.
     BuyToCover,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// The different types of asset's.
 pub enum AssetType {
     #[serde(rename = "UNKNOWN")]
     Unknown,
@@ -2029,6 +2096,8 @@ pub enum AssetType {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// Describes the relationship between linked
+/// orders in a group and this order.
 pub struct ConditionalOrder {
     #[serde(rename = "OrderID")]
     /// The id of the linked `Order`.
@@ -2049,6 +2118,7 @@ pub enum OrderRelationship {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// The open trades (positons).
 pub struct Position {
     #[serde(rename = "AccountID")]
     /// The `Account` id the `Position` belongs to.

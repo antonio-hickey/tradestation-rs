@@ -5,8 +5,8 @@ use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
 
-/// TradeStation API Client
 #[derive(Clone, Debug)]
+/// TradeStation API Client
 pub struct Client {
     http_client: reqwest::Client,
     client_id: String,
@@ -205,10 +205,13 @@ impl Client {
 pub struct ClientBuilder;
 
 #[derive(Debug, Default)]
+/// First step to building a `Client`.
 pub struct Step1;
 #[derive(Debug, Default)]
+/// Second step to building a `Client`.
 pub struct Step2;
 #[derive(Debug, Default)]
+/// Third step to building a `Client`.
 pub struct Step3;
 
 #[derive(Debug, Default)]
@@ -223,8 +226,8 @@ pub struct ClientBuilderStep<CurrentStep> {
 }
 
 impl ClientBuilder {
-    /// Instantiate a new instance of `ClientBuilder`
     #[allow(clippy::new_ret_no_self)]
+    /// Instantiate a new instance of `ClientBuilder`
     pub fn new() -> Result<ClientBuilderStep<Step1>, Error> {
         Ok(ClientBuilderStep {
             _current_step: Step1,
@@ -299,6 +302,7 @@ impl ClientBuilderStep<Step2> {
     }
 }
 impl ClientBuilderStep<Step3> {
+    /// Finish building into a `Client`.
     pub async fn build(self) -> Result<Client, Error> {
         let http_client = self.http_client.unwrap();
         let client_id = self.client_id.unwrap();

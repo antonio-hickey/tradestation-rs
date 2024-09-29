@@ -57,9 +57,13 @@ impl SymbolDetails {
     /// NOTE: Symbols should be a vector of valid symbol string slices.
     /// e.g: `vec!["TLT", "SPY", "ESH25", "@SR3"]`
     ///
-    /// Example: Get symbol details (`MarketData::SymbolDetails`) on symbols the nasdaq index `NQQ`,
+    /// # Example
+    /// ---
+    ///
+    /// Get symbol details `MarketData::SymbolDetails` on symbols the nasdaq index `NQQ`,
     /// and Feburary 21st 2025 $105 call option for 20+ Year Treasury fund `TLT 250221C105`.
-    /// ```rust
+    ///
+    /// ```ignore
     /// let symbols = vec!["NQQ", "TLT 250221C105"];
     /// let details = client.get_symbol_details(symbols).await?;
     /// println!("Symbol Details: {details:?}");
@@ -90,9 +94,13 @@ impl Client {
     /// NOTE: Symbols should be a vector of valid symbol string slices.
     /// e.g: `vec!["TLT", "SPY", "ESH25", "@SR3"]`
     ///
-    /// Example: Get symbol details (`MarketData::SymbolDetails`) on symbols the nasdaq index `NQQ`,
+    /// # Example
+    /// ---
+    ///
+    /// Get symbol details (`MarketData::SymbolDetails`) on symbols the nasdaq index `NQQ`,
     /// and Feburary 21st 2025 $105 call option for 20+ Year Treasury fund `TLT 250221C105`.
-    /// ```rust
+    ///
+    /// ```ignore
     /// let symbols = vec!["NQQ", "TLT 250221C105"];
     /// let details = client.get_symbol_details(symbols).await?;
     /// println!("Symbol Details: {details:?}");
@@ -141,17 +149,17 @@ pub struct PriceFormat {
 pub enum Format {
     /// Decimal values.
     ///
-    /// Example: `123.20`
+    /// E.g: `123.20`
     Decimal,
     /// Fraction values.
     ///
-    /// Example: `534 4/8`
+    /// E.g: `534 4/8`
     ///
     /// NOTE: Common in interest rate derivatives.
     Fraction,
     /// Sub Fractional values.
     ///
-    /// Example: `125'29.7`
+    /// E.g: `125'29.7`
     ///
     /// NOTE: Common in interest rate derivatives.
     SubFraction,
