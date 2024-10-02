@@ -1,7 +1,124 @@
-use crate::market_data::options::OptionExpiration;
+use crate::market_data::options::{OptionExpiration, OptionRiskRewardAnalysis, OptionsSpreadType};
 use crate::market_data::SymbolDetails;
 use crate::{responses::stream, Error, MarketData::Bar};
 use serde::{de, Deserialize, Serialize};
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The TradeStation API Response for running risk vs reward
+/// analysis on an options trade.
+pub struct GetOptionsRiskRewardRespRaw {
+    /// Indicates whether the maximum gain can be infinite.
+    pub max_gain_is_infinite: Option<bool>,
+    /// The adjusted maximum gain (if it is not infinite).
+    pub adjusted_max_gain: Option<String>,
+    /// Indicates whether the maximum loss can be infinite.
+    pub max_loss_is_infinite: Option<bool>,
+    /// The adjusted maximum loss (if it is not infinite).
+    pub adjusted_max_loss: Option<String>,
+    /// Market price that the underlying security must reach
+    /// for the trade to avoid a loss.
+    pub breakeven_points: Option<Vec<String>>,
+    /// The error type from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub error: Option<String>,
+    /// The error message from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub message: Option<String>,
+}
+#[derive(Debug)]
+/// The TradeStation API Response for fetching symbol details.
+pub struct GetOptionsRiskRewardResp {
+    /// The option expirations for a symbol.
+    pub analysis: Option<OptionRiskRewardAnalysis>,
+    /// The error from TradeStation's API.
+    ///
+    /// NOTE: Will be None if there was no error.
+    pub error: Option<Error>,
+}
+impl From<GetOptionsRiskRewardRespRaw> for GetOptionsRiskRewardResp {
+    fn from(raw: GetOptionsRiskRewardRespRaw) -> Self {
+        let error_enum =
+            if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
+                Error::from_tradestation_api_error(err, msg)
+            } else {
+                None
+            };
+
+        // NOTE: If one of these is some they all are some, same vice versa.
+        let analysis = if let (
+            Some(max_gain_is_infinite),
+            Some(adjusted_max_gain),
+            Some(max_loss_is_infinite),
+            Some(adjusted_max_loss),
+            Some(breakeven_points),
+        ) = (
+            raw.max_gain_is_infinite,
+            raw.adjusted_max_gain.as_deref(),
+            raw.max_loss_is_infinite,
+            raw.adjusted_max_loss.as_deref(),
+            raw.breakeven_points.as_deref(),
+        ) {
+            Some(OptionRiskRewardAnalysis {
+                max_gain_is_infinite,
+                adjusted_max_gain: adjusted_max_gain.to_owned(),
+                max_loss_is_infinite,
+                adjusted_max_loss: adjusted_max_loss.to_owned(),
+                breakeven_points: breakeven_points.to_vec(),
+            })
+        } else {
+            None
+        };
+
+        GetOptionsRiskRewardResp {
+            analysis,
+            error: error_enum,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The TradeStation API Response for fetching option spread types.
+pub struct GetOptionsSpreadTypesRespRaw {
+    /// The different type of availble spreads for options.
+    pub spread_types: Option<Vec<OptionsSpreadType>>,
+    /// The error type from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub error: Option<String>,
+    /// The error message from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub message: Option<String>,
+}
+#[derive(Debug)]
+/// The TradeStation API Response for fetching option spread types.
+pub struct GetOptionsSpreadTypesResp {
+    /// The different type of availble spreads for options.
+    pub spread_types: Option<Vec<OptionsSpreadType>>,
+    /// The error from TradeStation's API.
+    ///
+    /// NOTE: Will be None if there was no error.
+    pub error: Option<Error>,
+}
+impl From<GetOptionsSpreadTypesRespRaw> for GetOptionsSpreadTypesResp {
+    fn from(raw: GetOptionsSpreadTypesRespRaw) -> Self {
+        let error_enum =
+            if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
+                Error::from_tradestation_api_error(err, msg)
+            } else {
+                None
+            };
+
+        GetOptionsSpreadTypesResp {
+            spread_types: raw.spread_types,
+            error: error_enum,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]

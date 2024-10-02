@@ -3,7 +3,11 @@
 use tradestation::{
     responses::MarketData::StreamBarsResp,
     ClientBuilder, Error,
-    MarketData::{self, BarUnit},
+    MarketData::{
+        self,
+        options::{OptionTradeAction, OptionsLeg},
+        BarUnit,
+    },
 };
 
 #[tokio::main]
@@ -91,6 +95,41 @@ async fn main() -> Result<(), Error> {
 
     // All the bars collected during the stream
     println!("{streamed_bars:?}");
+    //--
+
+    //--
+    // Example: Analyze the risk vs reward of a long volatility
+    // trade for TLT at the November 15th expiration via buying
+    // a call **and** a put at the $99 strike.
+    //
+    // NOTE: The call will make money if TLT makes a big move up, and
+    // the put will make money if TLT makes a big move down. The downside
+    // of this trade comes from stable, slow, or small price movement.
+    //
+    // NOTE: This spread offers unlimited potential profit while defining
+    // a max potential loss.
+    let risk_reward_analysis = client
+        .analyze_options_risk_reward(
+            4.33,
+            vec![
+                OptionsLeg {
+                    symbol: String::from("TLT 241115C99"),
+                    quantity: 5,
+                    trade_action: OptionTradeAction::Buy,
+                },
+                OptionsLeg {
+                    symbol: String::from("TLT 241115P99"),
+                    quantity: 5,
+                    trade_action: OptionTradeAction::Buy,
+                },
+            ],
+        )
+        .await?;
+
+    println!(
+        "TLT November 15th Long Volatility Via ATM Straddle
+         Risk vs Reward Analysis: {risk_reward_analysis:?}"
+    );
     //--
 
     Ok(())
