@@ -1,4 +1,4 @@
-use crate::market_data::options::{OptionExpiration, OptionRiskRewardAnalysis, OptionsSpreadType};
+use crate::market_data::options::{OptionExpiration, OptionRiskRewardAnalysis};
 use crate::market_data::SymbolDetails;
 use crate::{responses::stream, Error, MarketData::Bar};
 use serde::{de, Deserialize, Serialize};
@@ -74,47 +74,6 @@ impl From<GetOptionsRiskRewardRespRaw> for GetOptionsRiskRewardResp {
 
         GetOptionsRiskRewardResp {
             analysis,
-            error: error_enum,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
-/// The TradeStation API Response for fetching option spread types.
-pub struct GetOptionsSpreadTypesRespRaw {
-    /// The different type of availble spreads for options.
-    pub spread_types: Option<Vec<OptionsSpreadType>>,
-    /// The error type from TradeStation's API
-    ///
-    /// NOTE: Will be None if there was no error
-    pub error: Option<String>,
-    /// The error message from TradeStation's API
-    ///
-    /// NOTE: Will be None if there was no error
-    pub message: Option<String>,
-}
-#[derive(Debug)]
-/// The TradeStation API Response for fetching option spread types.
-pub struct GetOptionsSpreadTypesResp {
-    /// The different type of availble spreads for options.
-    pub spread_types: Option<Vec<OptionsSpreadType>>,
-    /// The error from TradeStation's API.
-    ///
-    /// NOTE: Will be None if there was no error.
-    pub error: Option<Error>,
-}
-impl From<GetOptionsSpreadTypesRespRaw> for GetOptionsSpreadTypesResp {
-    fn from(raw: GetOptionsSpreadTypesRespRaw) -> Self {
-        let error_enum =
-            if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
-                Error::from_tradestation_api_error(err, msg)
-            } else {
-                None
-            };
-
-        GetOptionsSpreadTypesResp {
-            spread_types: raw.spread_types,
             error: error_enum,
         }
     }

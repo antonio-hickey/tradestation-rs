@@ -1,7 +1,7 @@
 use crate::{
     responses::MarketData::{
         GetOptionExpirationsResp, GetOptionExpirationsRespRaw, GetOptionsRiskRewardResp,
-        GetOptionsRiskRewardRespRaw, GetOptionsSpreadTypesResp, GetOptionsSpreadTypesRespRaw,
+        GetOptionsRiskRewardRespRaw,
     },
     Client, Error,
 };
@@ -108,47 +108,185 @@ pub enum OptionExpirationType {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// Information on an options spread.
-///
-/// e.g: a time spread, buying a long dated call
-/// and hedging some of that duration premium
-/// by selling a shorter dated call. This would
-/// involve a spread with 2 different expirations.
-pub struct OptionsSpreadType {
-    /// Name of the spread type
-    pub name: String,
-    /// Conveys if the spread is composed of
-    /// multiple strike prices.
-    pub strike_interval: bool,
-    /// Conveys if the spread is composed of
-    /// multiple expirations.
-    pub expiration_interval: bool,
-}
-impl OptionsSpreadType {
-    /// Fetch the available spread types for option chains.
+///// Information on an options spread.
+/////
+///// e.g: a time spread, buying a long dated call
+///// and hedging some of that duration premium
+///// by selling a shorter dated call. This would
+///// involve a spread with 2 different expirations.
+pub enum OptionSpreadType {
+    /// A single option position, either a call or put.
     ///
-    // TODO: I feel like the HTTP call to the API can be skipped here, it always returns
-    // the same Option Spread Types, so can just directly respond with them.
-    pub async fn fetch_available(client: &mut Client) -> Result<Vec<OptionsSpreadType>, Error> {
-        let resp: GetOptionsSpreadTypesResp = client
-            .get("marketdata/options/spreadtypes")
-            .await?
-            .json::<GetOptionsSpreadTypesRespRaw>()
-            .await?
-            .into();
+    /// <div class="warning">NOTE: Selling this spread type has the potential for infinite loss.</div>
+    Single,
+    /// A spread involving a call and a put with
+    /// the same strike price and expiration date.
+    ///
+    /// <div class="warning">NOTE: Selling this spread type has the potential for infinite loss.</div>
+    Straddle,
+    /// A spread involving a call and a put at different
+    /// strike prices, but the same expiration date.
+    Strangle,
+    /// A spread involving buying and selling two options
+    /// of the same type (calls or puts) at different strike
+    /// prices, but the same expiration date.
+    Vertical,
+    /// A spread involving buying one option and selling 2
+    /// options of the same type as the one bought, but with
+    /// different strike prices and the same expiration date.
+    RatioBack1x2,
+    /// A spread involving buying one option and selling 3
+    /// options of the same type as the one bought, but with
+    /// different strike prices and the same expiration date.
+    ///
+    /// NOTE: Similar to `OptionSpreadType::RatioBack1x2`, but
+    /// `RatioBack1x3` offers more leverage.
+    RatioBack1x3,
+    /// A spread involving buying one option and selling 3
+    /// options of the same type as the one bought, but with
+    /// different strike prices and the same expiration date.
+    ///
+    /// NOTE: Similar to `OptionSpreadType::RatioBack1x2` and
+    /// `OptionSpreadType::RatioBack1x3`, but a more balanced
+    /// risk reward.
+    RatioBack2x3,
+    /// A spread involving buying an option at one strike price,
+    /// and selling 2 options of that same option type bought (call or puts).
+    ///
+    /// NOTE: If using call options, then the 2 options to sell should be
+    /// at a higher strike than the call bought. If using put options, then
+    /// the 2 put options to sell should be at a lower strike price then the
+    /// put bought.
+    ///
+    /// <div class="warning">NOTE: This spread type has the potential for infinite loss.</div>
+    Butterfly,
+    /// A spread involving selling an At-The-Money straddle `OptionSpreadType::Straddle`,
+    /// and buying an Out-of-The-Money call and put to hedge risk. Where all options are
+    /// of the same expiration date.
+    IronButterfly,
+    /// A spread involving buying an option at one strike price, selling 2 options
+    /// at middle price, and buying one option at a higher strike price. Where all the
+    /// options are of the same type (call or put), and the same expiration date.
+    Condor,
+    /// A spread involving selling a call spread and a put spread. Where all options
+    /// are of the same expiration date.
+    IronCondor,
+    /// A spread involving the underlying asset and an option.
+    ///
+    /// E.g: Covered Call involves buying 100 shares (or one contract if futures options)
+    /// of the underlying asset, and selling one call option.
+    ///
+    /// E.g: Covered Put involves short selling 100 shares (or one contract if futures options)
+    /// of the underlying asset, and selling one put option.
+    ///
+    /// <div class="warning">NOTE: In a Covered Put, there is potential for infinite loss
+    /// if the underlying asset's price rises indefinitely.</div>
+    Covered,
+    /// A spread involving holding a position in the underlying asset, buying a protective
+    /// option (opposite of your underlying position, put if long or call if short the
+    /// underlying), and selling an option the opposite of the option you bought to reduce
+    /// the cost of the protection, but putting a cap on potential reward.
+    Collar,
+    /// A spread involving buying or selling a mix of option types at a mix of strike prices
+    /// and expiration dates.
+    ///
+    /// <div class="warning">NOTE: Depending on the specific positions, this spread can have the
+    /// potential for infinite loss, especially if it includes uncovered short options.</div>
+    Combo,
+    /// A spread involving buying and selling 2 options of the same type (calls or puts) with
+    /// the same strike price, but different expiration dates.
+    ///
+    /// NOTE: Similar to diagonal spreads `OptionSpreadType::Diagonal`, but with the same
+    /// strike prices allowing for a more neutral position.
+    Calendar,
+    /// A spread involving buying and selling 2 options of the same type (calls or puts), but
+    /// with different strike prices, and expiration dates.
+    ///
+    /// NOTE: Similar to calendar spreads `OptionSpreadType::Calendar`, but with different
+    /// strike prices allowing for more directional biases.
+    ///
+    /// <div class="warning">NOTE: Depending on the strike prices and the extent of coverage
+    /// from long options, this spread type can have the potential for unlimited loss.</div>
+    Diagonal,
+}
+impl OptionSpreadType {
+    /// Get a vector of all the option spread types.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Get all the spread types and print information about them:
+    ///
+    /// ```rust
+    /// let option_spread_types = OptionSpreadType::all();
+    /// for spread_type in option_spread_types.iter() {
+    ///     println!(
+    ///         "{spread_type:?} | contains stike interval {} | contains expiration interval: {}",
+    ///         spread_type.involves_strike_interval(),
+    ///         spread_type.involves_expiration_interval()
+    ///     );
+    /// }
+    /// ```
+    pub fn all() -> Vec<OptionSpreadType> {
+        vec![
+            Self::Single,
+            Self::Straddle,
+            Self::Strangle,
+            Self::Vertical,
+            Self::RatioBack1x2,
+            Self::RatioBack1x3,
+            Self::RatioBack2x3,
+            Self::Butterfly,
+            Self::IronButterfly,
+            Self::Condor,
+            Self::IronCondor,
+            Self::Covered,
+            Self::Collar,
+            Self::Combo,
+            Self::Calendar,
+            Self::Diagonal,
+        ]
+    }
 
-        if let Some(spread_types) = resp.spread_types {
-            Ok(spread_types)
-        } else {
-            println!("{resp:?}");
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
-        }
+    /// Does the `OptionSpreadType` involve an interval of strike prices?
+    ///
+    /// NOTE: This will return false for `OptionSpreadType::Combo` even though
+    /// it may consist of multiple strikes, but TradeStations API returns false.
+    pub fn involves_strike_interval(&self) -> bool {
+        !matches!(
+            self,
+            Self::Calendar | Self::Combo | Self::Covered | Self::Single | Self::Straddle
+        )
+    }
+
+    /// Does the `OptionSpreadType` involve an interval of expirations?
+    ///
+    /// NOTE: This will return false for `OptionSpreadType::Combo` even though
+    /// it may consist of multiple expirations, but TradeStations API returns false.
+    pub fn involves_expiration_interval(&self) -> bool {
+        matches!(self, Self::Calendar | Self::Diagonal)
     }
 }
 impl Client {
-    /// Fetch the available spread types for option chains.
-    pub async fn get_option_spread_types(&mut self) -> Result<Vec<OptionsSpreadType>, Error> {
-        OptionsSpreadType::fetch_available(self).await
+    /// Get a vector of all the option spread types.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Get all the spread types and print information about them:
+    ///
+    /// ```rust
+    /// let option_spread_types = OptionSpreadType::all();
+    /// for spread_type in option_spread_types.iter() {
+    ///     println!(
+    ///         "{spread_type:?} | contains stike interval {} | contains expiration interval: {}",
+    ///         spread_type.involves_strike_interval(),
+    ///         spread_type.involves_expiration_interval()
+    ///     );
+    /// }
+    /// ```
+    pub fn get_option_spread_types(&mut self) -> Vec<OptionSpreadType> {
+        OptionSpreadType::all()
     }
 }
 
