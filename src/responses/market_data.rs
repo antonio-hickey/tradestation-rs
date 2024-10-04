@@ -1,5 +1,7 @@
-use crate::market_data::options::{OptionExpiration, OptionRiskRewardAnalysis};
 use crate::market_data::SymbolDetails;
+use crate::market_data::{
+    OptionExpiration, OptionRiskRewardAnalysis, OptionSpreadStrikes, OptionSpreadType,
+};
 use crate::{responses::stream, Error, MarketData::Bar};
 use serde::{de, Deserialize, Serialize};
 
@@ -244,6 +246,61 @@ impl<'de> Deserialize<'de> for StreamBarsResp {
             // Default to `Error` variant if nothing else matches
             let error = serde_json::from_value(value).map_err(de::Error::custom)?;
             Ok(StreamBarsResp::Error(error))
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The TradeStation API Response for running risk vs reward
+/// analysis on an options trade.
+pub struct OptionSpreadStrikesRespRaw {
+    /// Indicates whether the maximum gain can be infinite.
+    pub spread_type: Option<OptionSpreadType>,
+    pub strikes: Option<Vec<Vec<String>>>,
+    /// The error type from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub error: Option<String>,
+    /// The error message from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub message: Option<String>,
+}
+#[derive(Debug)]
+/// The TradeStation API Response for fetching symbol details.
+pub struct OptionSpreadStrikesResp {
+    /// The option expirations for a symbol.
+    pub spread_strikes: Option<OptionSpreadStrikes>,
+    /// The error from TradeStation's API.
+    ///
+    /// NOTE: Will be None if there was no error.
+    pub error: Option<Error>,
+}
+impl From<OptionSpreadStrikesRespRaw> for OptionSpreadStrikesResp {
+    fn from(raw: OptionSpreadStrikesRespRaw) -> Self {
+        println!("{raw:?}");
+        let error_enum =
+            if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
+                Error::from_tradestation_api_error(err, msg)
+            } else {
+                None
+            };
+
+        // NOTE: If one of these is some they all are some, same vice versa.
+        let spread_strikes =
+            if let (Some(spread_type), Some(strikes)) = (raw.spread_type, raw.strikes) {
+                Some(OptionSpreadStrikes {
+                    spread_type,
+                    strikes,
+                })
+            } else {
+                None
+            };
+
+        OptionSpreadStrikesResp {
+            spread_strikes,
+            error: error_enum,
         }
     }
 }

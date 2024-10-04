@@ -1,7 +1,10 @@
 use crate::{
-    responses::MarketData::{
-        GetOptionExpirationsResp, GetOptionExpirationsRespRaw, GetOptionsRiskRewardResp,
-        GetOptionsRiskRewardRespRaw,
+    responses::{
+        market_data::{OptionSpreadStrikesResp, OptionSpreadStrikesRespRaw},
+        MarketData::{
+            GetOptionExpirationsResp, GetOptionExpirationsRespRaw, GetOptionsRiskRewardResp,
+            GetOptionsRiskRewardRespRaw,
+        },
     },
     Client, Error,
 };
@@ -14,10 +17,10 @@ use serde_json::json;
 pub struct OptionExpiration {
     /// Timestamp represented as an `RFC3339` formatted date, a profile of the ISO 8601 date standard.
     /// E.g: `"2021-12-17T00:00:00Z"`.
-    date: String,
+    pub date: String,
     /// The type of expiration for the options contract.
     /// E.g: `OptionExpirationType::Weekly`
-    r#type: OptionExpirationType,
+    pub r#type: OptionExpirationType,
 }
 impl OptionExpiration {
     /// Fetch available option contract expiration dates for an underlying symbol.
@@ -218,6 +221,8 @@ impl OptionSpreadType {
     /// Get all the spread types and print information about them:
     ///
     /// ```rust
+    /// use tradestation::MarketData::OptionSpreadType;
+    ///
     /// let option_spread_types = OptionSpreadType::all();
     /// for spread_type in option_spread_types.iter() {
     ///     println!(
@@ -276,6 +281,8 @@ impl Client {
     /// Get all the spread types and print information about them:
     ///
     /// ```rust
+    /// use tradestation::MarketData::OptionSpreadType;
+    ///
     /// let option_spread_types = OptionSpreadType::all();
     /// for spread_type in option_spread_types.iter() {
     ///     println!(
@@ -468,4 +475,197 @@ pub enum OptionTradeAction {
     #[serde(rename = "SELL")]
     /// Selling an option contract
     Sell,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The available strikes for an options spread.
+pub struct OptionSpreadStrikes {
+    /// Name of the spread type for these strikes.
+    pub spread_type: OptionSpreadType,
+    /// Vector of the strike prices for this spread type.
+    ///
+    /// NOTE: Each element in the Strikes vector is a vector
+    /// of strike prices for a single spread.
+    pub strikes: Vec<Vec<String>>,
+}
+impl OptionSpreadStrikes {
+    /// Fetch the available strike prices for a spread type and expiration date.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Fetch all the availble strikes for an iron condor on Amazon
+    /// `"AMZN"` for the Dec 20th 2024 expiration `"12-20-2024"`.
+    ///
+    /// ```ignore
+    /// let query = OptionSpreadStrikesQueryBuilder::new()
+    ///     .underlying("AMZN")
+    ///     .spread_type(OptionSpreadType::IronCondor)
+    ///     .expiration("12-20-2024")
+    ///     .build()?;
+    ///
+    /// let availble_strikes = client.get_option_spread_strikes(query).await?;
+    ///
+    /// println!("Amazon Dec 20th Iron Condor Strikes Availble: {availble_strikes:?}");
+    /// ```
+    pub async fn fetch(
+        client: &mut Client,
+        query: OptionSpreadStrikesQuery,
+    ) -> Result<OptionSpreadStrikes, Error> {
+        let mut endpoint = format!(
+            "marketdata/options/strikes/{}?spreadType={:?}&strikeInterval={}",
+            query.underlying, query.spread_type, query.strike_interval,
+        );
+
+        if let Some(date) = query.expiration {
+            let query_param = format!("&expiration={}", date);
+            endpoint.push_str(&query_param);
+
+            if let Some(date_2) = query.expiration2 {
+                let query_param_2 = format!("&expiration2={}", date_2);
+                endpoint.push_str(&query_param_2);
+            }
+        }
+
+        let resp: OptionSpreadStrikesResp = client
+            .get(&endpoint)
+            .await?
+            .json::<OptionSpreadStrikesRespRaw>()
+            .await?
+            .into();
+
+        if let Some(spread_strikes) = resp.spread_strikes {
+            Ok(spread_strikes)
+        } else {
+            eprintln!("{:?}", resp.error);
+            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        }
+    }
+}
+impl Client {
+    /// Fetch the available strike prices for a spread type and expiration date.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Fetch all the availble strikes for an iron condor on Amazon
+    /// `"AMZN"` for the Dec 20th 2024 expiration `"12-20-2024"`.
+    ///
+    /// ```ignore
+    /// let query = OptionSpreadStrikesQueryBuilder::new()
+    ///     .underlying("AMZN")
+    ///     .spread_type(OptionSpreadType::IronCondor)
+    ///     .expiration("12-20-2024")
+    ///     .build()?;
+    ///
+    /// let availble_strikes = client.get_option_spread_strikes(query).await?;
+    ///
+    /// println!("Amazon Dec 20th Iron Condor Strikes Availble: {availble_strikes:?}");
+    /// ```
+    pub async fn get_option_spread_strikes(
+        &mut self,
+        query: OptionSpreadStrikesQuery,
+    ) -> Result<OptionSpreadStrikes, Error> {
+        OptionSpreadStrikes::fetch(self, query).await
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The query required to fetch `OptionSpreadStrikes`.
+pub struct OptionSpreadStrikesQuery {
+    /// The symbol for the underlying security
+    /// on which the option contracts are based.
+    ///
+    /// NOTE: The underlying symbol must be an equity or index.
+    pub underlying: String,
+    /// The type of spread `MarketData::OptionSpreadType`
+    pub spread_type: OptionSpreadType,
+    /// The desired interval between the strike prices
+    /// in a spread. It must be greater than or equal to 1.
+    /// A value of 1 uses consecutive strikes; a value of 2
+    /// skips one between strikes; and so on.
+    pub strike_interval: i32,
+    /// The date on which the option contract expires;
+    /// must be a valid expiration date.
+    ///
+    /// NOTE: Defaults to the next contract expiration date.
+    pub expiration: Option<String>,
+    /// The second contract expiration date required
+    /// for Calendar and Diagonal spreads.
+    pub expiration2: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
+#[serde(rename_all = "PascalCase")]
+/// Builder for `OptionSpreadStrikesQuery`
+pub struct OptionSpreadStrikesQueryBuilder {
+    underlying: Option<String>,
+    spread_type: Option<OptionSpreadType>,
+    strike_interval: Option<i32>,
+    expiration: Option<String>,
+    expiration2: Option<String>,
+}
+impl OptionSpreadStrikesQueryBuilder {
+    /// Create a new `OptionSpreadStrikesQueryBuilder`.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the symbol for the underlying security
+    /// on which the option contracts are based.
+    ///
+    /// NOTE: The underlying symbol must be an equity or index.
+    pub fn underlying<S: Into<String>>(mut self, symbol: S) -> Self {
+        self.underlying = Some(symbol.into());
+
+        self
+    }
+
+    /// Set the type of spread `MarketData::OptionSpreadType`
+    pub fn spread_type(mut self, spread: OptionSpreadType) -> Self {
+        self.spread_type = Some(spread);
+
+        self
+    }
+
+    /// Set the desired interval between the strike prices in a spread.
+    /// It must be greater than or equal to 1. A value of 1 uses consecutive strikes;
+    /// a value of 2 skips one between strikes; and so on.
+    pub fn strike_interval(mut self, interval: i32) -> Self {
+        self.strike_interval = Some(interval);
+
+        self
+    }
+
+    /// Set the date on which the option contract expires; must be a valid expiration date.
+    ///
+    /// NOTE: Defaults to the next contract expiration date.
+    pub fn expiration<S: Into<String>>(mut self, date: S) -> Self {
+        self.expiration = Some(date.into());
+
+        self
+    }
+
+    /// Set the second contract expiration date required
+    /// for Calendar and Diagonal spreads.
+    pub fn expiration2<S: Into<String>>(mut self, date: S) -> Self {
+        self.expiration2 = Some(date.into());
+
+        self
+    }
+
+    /// Finish building, returning a `OptionSpreadStrikesQuery`.
+    ///
+    /// NOTE: You must set `symbol` before calling `build`.
+    pub fn build(self) -> Result<OptionSpreadStrikesQuery, Error> {
+        Ok(OptionSpreadStrikesQuery {
+            underlying: self.underlying.ok_or_else(|| Error::SymbolNotSet)?,
+            spread_type: self.spread_type.unwrap_or(OptionSpreadType::Single),
+            strike_interval: self.strike_interval.unwrap_or(1),
+            expiration: self.expiration,
+            expiration2: self.expiration2,
+        })
+    }
 }
