@@ -1,11 +1,11 @@
 //! Example file on basic usage for market data endpoints
 
 use tradestation::{
-    responses::MarketData::StreamBarsResp,
+    responses::MarketData::{StreamBarsResp, StreamOptionChainResp},
     ClientBuilder, Error,
     MarketData::{
         self,
-        options::{OptionTradeAction, OptionsLeg},
+        options::{OptionSpreadType, OptionTradeAction, OptionsLeg},
         BarUnit,
     },
 };
@@ -130,6 +130,62 @@ async fn main() -> Result<(), Error> {
         "TLT November 15th Long Volatility Via ATM Straddle
          Risk vs Reward Analysis: {risk_reward_analysis:?}"
     );
+    //--
+
+    //--
+    // Example: Stream an option chain of iron butterfly's for Apple `"AAPL"`
+    // expiring December 20th 2024.
+    let stream_aapl_option_chain_query = MarketData::OptionChainQueryBuilder::new()
+        .underlying("AAPL")
+        .spread_type(OptionSpreadType::IronButterfly)
+        .expiration("12-20-2024")
+        // Using the 1 month us treasury
+        // to base the risk free rate off
+        // which is currently 4.85%
+        .risk_free_rate(0.04)
+        .build()?;
+
+    let streamed_chains = client
+        .stream_option_chain(&stream_aapl_option_chain_query, |stream_data| {
+            // The response type is `responses::market_data::StreamOptionChainResp`
+            // which has multiple variants the main one you care about is `OptionChain`
+            // which will contain option chain data sent from the stream.
+            match stream_data {
+                StreamOptionChainResp::OptionChain(chain) => {
+                    // Do something with the option chain like display it
+                    // with a table on a website.
+                    println!("{chain:?}")
+                }
+                StreamOptionChainResp::Heartbeat(heartbeat) => {
+                    // Response for periodic signals letting you know the connection is
+                    // still alive. A heartbeat is sent every 5 seconds of inactivity.
+                    println!("{heartbeat:?}");
+
+                    // for the sake of this example after we recieve the
+                    // tenth heartbeat, we will stop the stream session.
+                    if heartbeat.heartbeat > 10 {
+                        // Example: stopping a stream connection
+                        return Err(Error::StopStream);
+                    }
+                }
+                StreamOptionChainResp::Status(status) => {
+                    // Signal sent on state changes in the stream
+                    // (closed, opened, paused, resumed)
+                    println!("{status:?}");
+                }
+                StreamOptionChainResp::Error(err) => {
+                    // Response for when an error was encountered,
+                    // with details on the error
+                    println!("{err:?}");
+                }
+            }
+
+            Ok(())
+        })
+        .await?;
+
+    // After the stream ends print all the collected option chains
+    println!("{streamed_chains:?}");
     //--
 
     Ok(())

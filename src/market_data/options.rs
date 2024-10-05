@@ -1,6 +1,6 @@
 use crate::{
     responses::{
-        market_data::{OptionSpreadStrikesResp, OptionSpreadStrikesRespRaw},
+        market_data::{OptionSpreadStrikesResp, OptionSpreadStrikesRespRaw, StreamOptionChainResp},
         MarketData::{
             GetOptionExpirationsResp, GetOptionExpirationsRespRaw, GetOptionsRiskRewardResp,
             GetOptionsRiskRewardRespRaw,
@@ -668,4 +668,581 @@ impl OptionSpreadStrikesQueryBuilder {
             expiration2: self.expiration2,
         })
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// A chain of option spreads for a given underlying symbol,
+/// spread type, and expiration.
+pub struct OptionChain {
+    /// The expected change in an option position’s value resulting
+    /// from a one point increase in the price of the underlying security.
+    pub delta: Option<String>,
+    /// The expected decline in an option position’s value resulting
+    /// from the passage of one day’s time, holding all other variables
+    /// (price of the underlying, volatility, etc.) constant.
+    pub theta: Option<String>,
+    /// The expected change in an option position’s delta resulting
+    /// from a one point increase in the price of the underlying security.
+    pub gamma: Option<String>,
+    /// The expected change in an option position’s value resulting
+    /// from an increase of one percentage point in the risk-free
+    /// interest rate (e.g. an increase from 3% to 4%).
+    pub rho: Option<String>,
+    /// The expected change in an option position’s value resulting
+    /// from an increase of one percentage point in the volatility of
+    /// the underlying security (e.g. an increase from 26% to 27%).
+    pub vega: Option<String>,
+    /// The volatility of the underlying implied by an option
+    /// position’s current price.
+    pub implied_volatility: Option<String>,
+    /// The value of an option position exclusive of the position’s
+    /// time value. The value of the option position if it were to
+    /// expire immediately.
+    pub intrinsic_value: String,
+    /// The time value of an option position.
+    ///
+    /// NOTE: The market value of an option position minus
+    /// the position’s intrinsic value.
+    pub extrinsic_value: String,
+    /// The value of an option position based on a theoretical model
+    /// of option prices (the Bjerksund-Stensland model).
+    ///
+    /// NOTE: Calculated using volatility of the underlying.
+    pub theoretical_value: String,
+    #[serde(rename = "ProbabilityITM")]
+    /// The calculated probability that an option position will have
+    /// intrinsic value at expiration.
+    ///
+    /// NOTE: Calculated using volatility of the underlying.
+    pub probability_itm: Option<String>,
+    #[serde(rename = "ProbabilityOTM")]
+    /// The calculated probability that an option position will not have
+    /// intrinsic value at expiration.
+    ///
+    /// NOTE: Calculated using volatility of the underlying.
+    pub probability_otm: Option<String>,
+    #[serde(rename = "ProbabilityBE")]
+    /// The calculated probability that an option position will have
+    /// a value at expiration that is equal to or greater than the
+    /// position’s current cost.
+    ///
+    /// NOTE: Calculated using volatility of the underlying.
+    pub probability_be: Option<String>,
+    #[serde(rename = "ProbabilityITM_IV")]
+    /// The calculated probability that an option position will have
+    /// intrinsic value at expiration.
+    ///
+    /// NOTE: Calculated using implied volatility.
+    pub probability_itm_iv: Option<String>,
+    #[serde(rename = "ProbabilityOTM_IV")]
+    /// The calculated probability that an option position will not
+    /// have intrinsic value at expiration.
+    ///
+    /// NOTE: Calculated using implied volatility.
+    pub probability_otm_iv: Option<String>,
+    #[serde(rename = "ProbabilityBE_IV")]
+    /// The calculated probability that an option position will have a
+    /// value at expiration that is equal to or greater than the position’s
+    /// current cost.
+    ///
+    /// NOTE: Calculated using implied volatility.
+    pub probability_be_iv: Option<String>,
+    #[serde(rename = "TheoreticalValueIV")]
+    /// The value of an option position based on a theoretical model of
+    /// option prices (the Bjerksund-Stensland model).
+    ///
+    /// NOTE: Calculated using implied volatility.
+    pub theoretical_value_iv: Option<String>,
+    /// Total number of open contracts for the option spread.
+    ///
+    /// NOTE: This value is updated daily.
+    pub daily_open_interest: i32,
+    /// Ask price. The price a seller is willing to accept for the option spread.
+    pub ask: String,
+    /// Bid price. The price a buyer is willing to pay for the option spread.
+    pub bid: String,
+    /// Average between `ask` and `bid`.
+    pub mid: String,
+    /// Amount of contracts at the given `ask` price.
+    pub ask_size: i32,
+    /// Amount of contracts at the given `bid` price.
+    pub bid_size: i32,
+    /// The last traded price for the option spread.
+    ///
+    /// NOTE: This value only updates during the official market session.
+    pub close: String,
+    /// Today's highest price for the option spread.
+    pub high: String,
+    /// The last traded price for the option spread.
+    pub last: String,
+    /// Today's lowest traded price for the option spread.
+    pub low: String,
+    /// Difference between prior Close price and current Close price for the
+    /// option spread.
+    pub net_change: String,
+    /// Percentage changed between prior `close` price and current `close` price
+    /// for the option spread.
+    pub net_change_pct: String,
+    /// The initial price for the option spread during the official market session.
+    pub open: String,
+    /// Prior day's Closing price.
+    pub previous_close: String,
+    /// The number of contracts traded today.
+    pub volume: i32,
+    /// The side of the option chain.
+    pub side: OptionChainSide,
+    /// The strike prices for the option contracts in the legs of this spread.
+    pub strikes: Vec<String>,
+    /// The legs of the option spread.
+    pub legs: Vec<OptionSpreadLeg>,
+}
+impl OptionChain {
+    /// Stream an options chain for a given query `OptionChainQuery`.
+    ///
+    /// NOTE: You need to provide a function to handle each stream chunk.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Example: Stream an option chain for Apple `"AAPL"`.
+    ///
+    /// ```ignore
+    /// let stream_aapl_option_chain_query = MarketData::OptionChainQueryBuilder::new()
+    ///     .underlying("AAPL")
+    ///     .build()?;
+    ///
+    /// let streamed_chains = client
+    ///     .stream_option_chain(&stream_aapl_option_chain_query, |stream_data| {
+    ///         // The response type is `responses::market_data::StreamOptionChainResp`
+    ///         // which has multiple variants the main one you care about is `OptionChain`
+    ///         // which will contain option chain data sent from the stream.
+    ///         match stream_data {
+    ///             StreamOptionChainResp::OptionChain(chain) => {
+    ///                 // Do something with the option chain like
+    ///                 // display it with a table on a website.
+    ///                 println!("{chain:?}")
+    ///             }
+    ///             StreamOptionChainResp::Heartbeat(heartbeat) => {
+    ///                 // Response for periodic signals letting you know the connection is
+    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///                 println!("{heartbeat:?}");
+    ///
+    ///                 // for the sake of this example after we recieve the
+    ///                 // tenth heartbeat, we will stop the stream session.
+    ///                 if heartbeat.heartbeat > 10 {
+    ///                     // Example: stopping a stream connection
+    ///                     return Err(Error::StopStream);
+    ///                 }
+    ///             }
+    ///             StreamOptionChainResp::Status(status) => {
+    ///                 // Signal sent on state changes in the stream
+    ///                 // (closed, opened, paused, resumed)
+    ///                 println!("{status:?}");
+    ///             }
+    ///             StreamOptionChainResp::Error(err) => {
+    ///                 // Response for when an error was encountered,
+    ///                 // with details on the error
+    ///                 println!("{err:?}");
+    ///             }
+    ///         }
+    ///
+    ///         Ok(())
+    ///     })
+    ///     .await?;
+    ///
+    /// // After the stream ends print all the collected option chains
+    /// println!("{streamed_chains:?}");
+    /// ```
+    pub async fn stream<F>(
+        client: &mut Client,
+        query: &OptionChainQuery,
+        mut on_chunk: F,
+    ) -> Result<Vec<OptionChain>, Error>
+    where
+        F: FnMut(StreamOptionChainResp) -> Result<(), Error>,
+    {
+        let endpoint = format!(
+            "marketdata/stream/options/chains/{}{}",
+            query.underlying,
+            query.as_query_string()
+        );
+
+        let mut collected_chains: Vec<OptionChain> = Vec::new();
+        client
+            .stream(&endpoint, |chunk| {
+                let parsed_chunk = serde_json::from_value::<StreamOptionChainResp>(chunk)?;
+                on_chunk(parsed_chunk.clone())?;
+
+                // Only collect orders, so when the stream is done
+                // all the orders that were streamed can be returned
+                if let StreamOptionChainResp::OptionChain(option_chain) = parsed_chunk {
+                    collected_chains.push(*option_chain);
+                }
+
+                Ok(())
+            })
+            .await?;
+
+        Ok(collected_chains)
+    }
+}
+impl Client {
+    /// Stream an options chain for a given query `OptionChainQuery`.
+    ///
+    /// NOTE: You need to provide a function to handle each stream chunk.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Example: Stream an option chain for Apple `"AAPL"`.
+    ///
+    /// ```ignore
+    /// let stream_aapl_option_chain_query = MarketData::OptionChainQueryBuilder::new()
+    ///     .underlying("AAPL")
+    ///     .build()?;
+    ///
+    /// let streamed_chains = client
+    ///     .stream_option_chain(&stream_aapl_option_chain_query, |stream_data| {
+    ///         // The response type is `responses::market_data::StreamOptionChainResp`
+    ///         // which has multiple variants the main one you care about is `OptionChain`
+    ///         // which will contain option chain data sent from the stream.
+    ///         match stream_data {
+    ///             StreamOptionChainResp::OptionChain(chain) => {
+    ///                 // Do something with the option chain like
+    ///                 // display it with a table on a website.
+    ///                 println!("{chain:?}")
+    ///             }
+    ///             StreamOptionChainResp::Heartbeat(heartbeat) => {
+    ///                 // Response for periodic signals letting you know the connection is
+    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///                 println!("{heartbeat:?}");
+    ///
+    ///                 // for the sake of this example after we recieve the
+    ///                 // tenth heartbeat, we will stop the stream session.
+    ///                 if heartbeat.heartbeat > 10 {
+    ///                     // Example: stopping a stream connection
+    ///                     return Err(Error::StopStream);
+    ///                 }
+    ///             }
+    ///             StreamOptionChainResp::Status(status) => {
+    ///                 // Signal sent on state changes in the stream
+    ///                 // (closed, opened, paused, resumed)
+    ///                 println!("{status:?}");
+    ///             }
+    ///             StreamOptionChainResp::Error(err) => {
+    ///                 // Response for when an error was encountered,
+    ///                 // with details on the error
+    ///                 println!("{err:?}");
+    ///             }
+    ///         }
+    ///
+    ///         Ok(())
+    ///     })
+    ///     .await?;
+    ///
+    /// // After the stream ends print all the collected option chains
+    /// println!("{streamed_chains:?}");
+    /// ```
+    pub async fn stream_option_chain<F>(
+        &mut self,
+        query: &OptionChainQuery,
+        on_chunk: F,
+    ) -> Result<Vec<OptionChain>, Error>
+    where
+        F: FnMut(StreamOptionChainResp) -> Result<(), Error>,
+    {
+        OptionChain::stream(self, query, on_chunk).await
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The query used to sream an options chain.
+pub struct OptionChainQuery {
+    /// The symbol for the underlying security on which the option contracts are based.
+    pub underlying: String,
+    /// Date on which the option contract expires; must be a valid expiration date.
+    ///
+    /// NOTE: Defaults to the next contract expiration date.
+    pub expiration: Option<String>,
+    /// Second contract expiration date required
+    /// for Calendar and Diagonal spreads.
+    pub expiration2: Option<String>,
+    /// Specifies the number of spreads to display above and below the price center.
+    ///
+    /// NOTE: Defaults to a proximity of `5` strikes above and below the price center.
+    pub strike_proximity: i32,
+    /// Specifies the name of the spread type to use.
+    pub spread_type: OptionSpreadType,
+    /// The theoretical rate of return of an investment with zero risk.
+    /// NOTE: Defaults to the current quote for `$IRX.X`.
+    ///
+    /// NOTE: The percentage rate should be specified as a decimal value.
+    /// E.g, to use 2% for the rate, pass in `0.02`.
+    pub risk_free_rate: Option<f64>,
+    /// Specifies the strike price center.
+    ///
+    /// NOTE: Defaults to the last quoted price for the underlying security.
+    pub price_center: Option<f64>,
+    /// Specifies the desired interval between the strike prices in a spread.
+    ///
+    /// NOTE: It must be greater than or equal to 1. A value of 1 uses consecutive strikes;
+    /// a value of 2 skips one between strikes; and so on.
+    ///
+    /// NOTE: Defaults to `1`.
+    pub strike_interval: i32,
+    /// Specifies whether or not greeks properties are returned.
+    ///
+    /// NOTE: Defaults to `true`.
+    pub enable_greeks: bool,
+    /// Set the option chain filter for specific range of options.
+    ///
+    /// NOTE: Defaults to all `OptionStrikeRange::All`.
+    ///
+    /// E.g: Filter the chain for out of the money options:
+    /// `OptionStrikeRange::OTM`.
+    pub strike_range: OptionStrikeRange,
+    /// Filters the spreads by a specific option type.
+    pub option_type: OptionType,
+}
+impl OptionChainQuery {
+    pub fn as_query_string(&self) -> String {
+        let mut query_string = String::from("?");
+
+        query_string.push_str(&format!("strikeInterval={}&", self.strike_interval));
+        query_string.push_str(&format!("strikeProximity={}&", self.strike_proximity));
+        query_string.push_str(&format!("spreadType={:?}&", self.spread_type));
+        query_string.push_str(&format!("enableGreeks={}&", self.enable_greeks));
+        query_string.push_str(&format!("strikeRange={:?}&", self.strike_range));
+        query_string.push_str(&format!("optionType={:?}&", self.option_type));
+
+        if let Some(expiration) = &self.expiration {
+            query_string.push_str(&format!("expiration={}&", expiration));
+        }
+        if let Some(expiration) = &self.expiration2 {
+            query_string.push_str(&format!("expiration2={}&", expiration));
+        }
+        if let Some(rate) = self.risk_free_rate {
+            query_string.push_str(&format!("riskFreeRate={}&", rate));
+        }
+        if let Some(price) = self.price_center {
+            query_string.push_str(&format!("priceCenter={}&", price));
+        }
+
+        if query_string.ends_with('&') {
+            query_string.pop();
+        }
+
+        query_string
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
+#[serde(rename_all = "PascalCase")]
+/// Builder for `OptionChainQuery`.
+pub struct OptionChainQueryBuilder {
+    /// The symbol for the underlying security on which the option contracts are based.
+    underlying: Option<String>,
+    /// Date on which the option contract expires; must be a valid expiration date.
+    ///
+    /// NOTE: Defaults to the next contract expiration date.
+    expiration: Option<String>,
+    /// Second contract expiration date required
+    /// for Calendar and Diagonal spreads.
+    expiration2: Option<String>,
+    /// Specifies the number of spreads to display above and below the price center.
+    ///
+    /// NOTE: Defaults to a proximity of `5` strikes above and below the price center.
+    strike_proximity: Option<i32>,
+    /// Specifies the name of the spread type to use.
+    spread_type: Option<OptionSpreadType>,
+    /// The theoretical rate of return of an investment with zero risk.
+    /// NOTE: Defaults to the current quote for `$IRX.X`.
+    ///
+    /// NOTE: The percentage rate should be specified as a decimal value.
+    /// E.g, to use 2% for the rate, pass in `0.02`.
+    risk_free_rate: Option<f64>,
+    /// Specifies the strike price center.
+    ///
+    /// NOTE: Defaults to the last quoted price for the underlying security.
+    price_center: Option<f64>,
+    /// Specifies the desired interval between the strike prices in a spread.
+    ///
+    /// NOTE: It must be greater than or equal to 1. A value of 1 uses consecutive strikes;
+    /// a value of 2 skips one between strikes; and so on.
+    ///
+    /// NOTE: Defaults to `1`.
+    strike_interval: Option<i32>,
+    /// Specifies whether or not greeks properties are returned.
+    ///
+    /// NOTE: Defaults to `true`.
+    enable_greeks: Option<bool>,
+    /// Set the option chain filter for specific range of options.
+    ///
+    /// NOTE: Defaults to all `OptionStrikeRange::All`.
+    ///
+    /// E.g: Filter the chain for out of the money options:
+    /// `OptionStrikeRange::OTM`.
+    strike_range: Option<OptionStrikeRange>,
+    /// Filters the spreads by a specific option type.
+    option_type: Option<OptionType>,
+}
+impl OptionChainQueryBuilder {
+    /// Create a new builder for `OptionChainQuery`
+    pub fn new() -> Self {
+        OptionChainQueryBuilder::default()
+    }
+
+    /// Set the expiration date for an option chain.
+    ///
+    /// NOTE: This is required to be set before calling
+    /// `OptionChainQueryBuilder::build()`.
+    pub fn underlying<S: Into<String>>(mut self, symbol: S) -> Self {
+        self.underlying = Some(symbol.into());
+
+        self
+    }
+
+    /// Set the expiration date for an option chain.
+    pub fn expiration<S: Into<String>>(mut self, date: S) -> Self {
+        self.expiration = Some(date.into());
+
+        self
+    }
+
+    /// Set the second expiration date for an option chain.
+    ///
+    /// NOTE: This is required for `OptionSpreadType::Calendar` and
+    /// `OptionSpreadType::Diagonal` option spreads.
+    pub fn expiration2<S: Into<String>>(mut self, date: S) -> Self {
+        self.expiration2 = Some(date.into());
+
+        self
+    }
+
+    /// Set the strike proximity (of the center price) for the option chain.
+    pub fn strike_proximity(mut self, proximity: i32) -> Self {
+        self.strike_proximity = Some(proximity);
+
+        self
+    }
+
+    /// Set the spread type for the option chain
+    pub fn spread_type(mut self, spread_type: OptionSpreadType) -> Self {
+        self.spread_type = Some(spread_type);
+
+        self
+    }
+
+    /// Set your risk free rate.
+    pub fn risk_free_rate(mut self, rate: f64) -> Self {
+        self.risk_free_rate = Some(rate);
+
+        self
+    }
+
+    /// Set the center price point for the option chain.
+    pub fn price_center(mut self, price: f64) -> Self {
+        self.price_center = Some(price);
+
+        self
+    }
+
+    /// Set the interval of strikes for the option chain.
+    pub fn strike_interval(mut self, interval: i32) -> Self {
+        self.strike_interval = Some(interval);
+
+        self
+    }
+
+    /// Set if the option chain should contain greeks.
+    pub fn enable_greeks(mut self, val: bool) -> Self {
+        self.enable_greeks = Some(val);
+
+        self
+    }
+
+    /// Set the option chain filter for specific range of options.
+    pub fn strike_range(mut self, range: OptionStrikeRange) -> Self {
+        self.strike_range = Some(range);
+
+        self
+    }
+
+    /// Set the option chain filter for a specific option type.
+    pub fn option_type(mut self, opt_type: OptionType) -> Self {
+        self.option_type = Some(opt_type);
+
+        self
+    }
+
+    /// Finish building `OptionChainQuery`.
+    ///
+    /// NOTE: Must set the `underlying` symbol before calling `build`.
+    pub fn build(self) -> Result<OptionChainQuery, Error> {
+        Ok(OptionChainQuery {
+            underlying: self.underlying.ok_or_else(|| Error::SymbolNotSet)?,
+            expiration: self.expiration,
+            expiration2: self.expiration2,
+            strike_range: self.strike_range.unwrap_or(OptionStrikeRange::All),
+            option_type: self.option_type.unwrap_or(OptionType::All),
+            enable_greeks: self.enable_greeks.unwrap_or(true),
+            strike_interval: self.strike_interval.unwrap_or(1),
+            spread_type: self.spread_type.unwrap_or(OptionSpreadType::Single),
+            strike_proximity: self.strike_proximity.unwrap_or(5),
+            price_center: self.price_center,
+            risk_free_rate: self.risk_free_rate,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The different types of option strike ranges.
+pub enum OptionStrikeRange {
+    /// A range containing all strikes
+    All,
+    /// A range containing In-The-Money strikes
+    ITM,
+    /// A range containing Out-of-The-Money strikes
+    OTM,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// A component of a larger options trade.
+pub struct OptionSpreadLeg {
+    /// Option contract symbol or underlying symbol to be traded for this leg.
+    pub symbol: String,
+    /// The number of option contracts or underlying shares for this leg,
+    /// relative to the other legs. A positive number represents a buy trade
+    /// and a negative number represents a sell trade.
+    ///
+    /// E.g, a Butterfly spread can be represented using ratios of 1, -2, and 1:
+    /// buy 1 contract of the first leg, sell 2 contracts of the second leg, and
+    /// buy 1 contract of the third leg.
+    pub ratio: i32,
+    /// The strike price of the option contract for this leg.
+    pub strike_price: String,
+    /// Date on which the contract expires.
+    /// E.g: `2021-12-17T00:00:00Z`.
+    pub expiration: String,
+    /// The option type `MarketData::OptionType`
+    pub option_type: OptionType,
+    /// The asset category for this leg.
+    pub asset_type: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum OptionChainSide {
+    Call,
+    Put,
+    Both,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum OptionType {
+    Call,
+    Put,
+    All,
 }
