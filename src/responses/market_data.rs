@@ -1,6 +1,7 @@
 use crate::market_data::SymbolDetails;
 use crate::market_data::{
-    OptionChain, OptionExpiration, OptionRiskRewardAnalysis, OptionSpreadStrikes, OptionSpreadType,
+    OptionChain, OptionExpiration, OptionQuote, OptionRiskRewardAnalysis, OptionSpreadStrikes,
+    OptionSpreadType,
 };
 use crate::{responses::stream, Error, MarketData::Bar};
 use serde::{de, Deserialize, Serialize};
@@ -341,6 +342,46 @@ impl<'de> Deserialize<'de> for StreamOptionChainResp {
             // Default to `Error` variant if nothing else matches
             let error = serde_json::from_value(value).map_err(de::Error::custom)?;
             Ok(StreamOptionChainResp::Error(error))
+        }
+    }
+}
+
+/// The TradeStation API Response for streaming an options quotes.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum StreamOptionQuotesResp {
+    /// The main response which contains the option chain data.
+    OptionQuotes(Box<self::OptionQuote>),
+    /// Periodic signal to know the connection is still alive.
+    Heartbeat(stream::Heartbeat),
+    /// Signal sent on state changes in the stream (closed, opened, paused, resumed).
+    Status(stream::StreamStatus),
+    /// Response for when an error was encountered, with details on the error.
+    Error(stream::ErrorResp),
+}
+impl<'de> Deserialize<'de> for StreamOptionQuotesResp {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+
+        if value.get("Open").is_some() {
+            // Deserialize into the `OptionQuotes` variant
+            let option_quote = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamOptionQuotesResp::OptionQuotes(Box::new(option_quote)))
+        } else if value.get("StreamStatus").is_some() {
+            // Deserialize into the `Status` variant
+            let status = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamOptionQuotesResp::Status(status))
+        } else if value.get("Heartbeat").is_some() {
+            // Deserialize into the `Heartbeat` variant
+            let heartbeat = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamOptionQuotesResp::Heartbeat(heartbeat))
+        } else {
+            // Default to `Error` variant if nothing else matches
+            let error = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamOptionQuotesResp::Error(error))
         }
     }
 }

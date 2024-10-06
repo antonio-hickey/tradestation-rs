@@ -18,6 +18,8 @@ pub enum Error {
     Json(serde_json::Error),
     /// No symbol set when one was required.
     SymbolNotSet,
+    /// No Option legs set when they were required.
+    OptionLegsNotSet,
     /// TradeStation API Error for a bad request
     BadRequest(String),
     /// TradeStation API Error for an unauthorized request.
@@ -66,6 +68,7 @@ impl std::fmt::Display for Error {
             Self::StopStream => write!(f, "WARNING: You've stopped a stream!"),
             Self::Json(e) => write!(f, "JSON Error: {e:?}"),
             Self::SymbolNotSet => write!(f, "ERROR: You need to set the symbol."),
+            Self::OptionLegsNotSet => write!(f, "ERROR: You need to set the option legs."),
             Self::BadRequest(msg) => write!(f, "TradeStation API ERROR: {msg}"),
             Self::Unauthorized(msg) => write!(f, "TradeStation API ERROR: {msg}"),
             Self::Forbidden(msg) => write!(f, "TradeStation API ERROR: {msg}"),

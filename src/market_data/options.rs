@@ -1,6 +1,9 @@
 use crate::{
     responses::{
-        market_data::{OptionSpreadStrikesResp, OptionSpreadStrikesRespRaw, StreamOptionChainResp},
+        market_data::{
+            OptionSpreadStrikesResp, OptionSpreadStrikesRespRaw, StreamOptionChainResp,
+            StreamOptionQuotesResp,
+        },
         MarketData::{
             GetOptionExpirationsResp, GetOptionExpirationsRespRaw, GetOptionsRiskRewardResp,
             GetOptionsRiskRewardRespRaw,
@@ -1234,15 +1237,474 @@ pub struct OptionSpreadLeg {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// The different sides of the option chain.
 pub enum OptionChainSide {
+    /// The side of the option chain with call options.
     Call,
+    /// The side of the option chain with put options.
     Put,
+    /// The side of the option chain with
+    /// both call and put options.
     Both,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// The type of option.
 pub enum OptionType {
+    /// Call Option
     Call,
+    /// Put Option
     Put,
+    /// All Options (Calls, and Puts)
     All,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct OptionQuote {
+    /// The expected change in an option position’s value resulting
+    /// from a one point increase in the price of the underlying security.
+    pub delta: Option<String>,
+    /// The expected decline in an option position’s value resulting
+    /// from the passage of one day’s time, holding all other variables
+    /// (price of the underlying, volatility, etc.) constant.
+    pub theta: Option<String>,
+    /// The expected change in an option position’s delta resulting
+    /// from a one point increase in the price of the underlying security.
+    pub gamma: Option<String>,
+    /// The expected change in an option position’s value resulting
+    /// from an increase of one percentage point in the risk-free
+    /// interest rate (e.g. an increase from 3% to 4%).
+    pub rho: Option<String>,
+    /// The expected change in an option position’s value resulting
+    /// from an increase of one percentage point in the volatility of
+    /// the underlying security (e.g. an increase from 26% to 27%).
+    pub vega: Option<String>,
+    /// The volatility of the underlying implied by an option
+    /// position’s current price.
+    pub implied_volatility: Option<String>,
+    /// The value of an option position exclusive of the position’s
+    /// time value. The value of the option position if it were to
+    /// expire immediately.
+    pub intrinsic_value: String,
+    /// The time value of an option position.
+    ///
+    /// NOTE: The market value of an option position minus
+    /// the position’s intrinsic value.
+    pub extrinsic_value: String,
+    /// The value of an option position based on a theoretical model
+    /// of option prices (the Bjerksund-Stensland model).
+    ///
+    /// NOTE: Calculated using volatility of the underlying.
+    pub theoretical_value: String,
+    #[serde(rename = "ProbabilityITM")]
+    /// The calculated probability that an option position will have
+    /// intrinsic value at expiration.
+    ///
+    /// NOTE: Calculated using volatility of the underlying.
+    pub probability_itm: Option<String>,
+    #[serde(rename = "ProbabilityOTM")]
+    /// The calculated probability that an option position will not have
+    /// intrinsic value at expiration.
+    ///
+    /// NOTE: Calculated using volatility of the underlying.
+    pub probability_otm: Option<String>,
+    #[serde(rename = "ProbabilityBE")]
+    /// The calculated probability that an option position will have
+    /// a value at expiration that is equal to or greater than the
+    /// position’s current cost.
+    ///
+    /// NOTE: Calculated using volatility of the underlying.
+    pub probability_be: Option<String>,
+    #[serde(rename = "ProbabilityITM_IV")]
+    /// The calculated probability that an option position will have
+    /// intrinsic value at expiration.
+    ///
+    /// NOTE: Calculated using implied volatility.
+    pub probability_itm_iv: Option<String>,
+    #[serde(rename = "ProbabilityOTM_IV")]
+    /// The calculated probability that an option position will not
+    /// have intrinsic value at expiration.
+    ///
+    /// NOTE: Calculated using implied volatility.
+    pub probability_otm_iv: Option<String>,
+    #[serde(rename = "ProbabilityBE_IV")]
+    /// The calculated probability that an option position will have a
+    /// value at expiration that is equal to or greater than the position’s
+    /// current cost.
+    ///
+    /// NOTE: Calculated using implied volatility.
+    pub probability_be_iv: Option<String>,
+    #[serde(rename = "TheoreticalValueIV")]
+    /// The value of an option position based on a theoretical model of
+    /// option prices (the Bjerksund-Stensland model).
+    ///
+    /// NOTE: Calculated using implied volatility.
+    pub theoretical_value_iv: Option<String>,
+    /// Total number of open contracts for the option spread.
+    ///
+    /// NOTE: This value is updated daily.
+    pub daily_open_interest: i32,
+    /// Ask price. The price a seller is willing to accept for the option spread.
+    pub ask: String,
+    /// Bid price. The price a buyer is willing to pay for the option spread.
+    pub bid: String,
+    /// Average between `ask` and `bid`.
+    pub mid: String,
+    /// Amount of contracts at the given `ask` price.
+    pub ask_size: i32,
+    /// Amount of contracts at the given `bid` price.
+    pub bid_size: i32,
+    /// The last traded price for the option spread.
+    ///
+    /// NOTE: This value only updates during the official market session.
+    pub close: String,
+    /// Today's highest price for the option spread.
+    pub high: String,
+    /// The last traded price for the option spread.
+    pub last: String,
+    /// Today's lowest traded price for the option spread.
+    pub low: String,
+    /// Difference between prior Close price and current Close price for the
+    /// option spread.
+    pub net_change: String,
+    /// Percentage changed between prior `close` price and current `close` price
+    /// for the option spread.
+    pub net_change_pct: String,
+    /// The initial price for the option spread during the official market session.
+    pub open: String,
+    /// Prior day's Closing price.
+    pub previous_close: String,
+    /// The number of contracts traded today.
+    pub volume: i32,
+    /// The side of the option chain.
+    pub side: OptionChainSide,
+    /// The strike prices for the option contracts in the legs of this spread.
+    pub strikes: Vec<String>,
+    /// The legs of the option spread.
+    pub legs: Vec<OptionSpreadLeg>,
+}
+impl OptionQuote {
+    /// Stream quotes of an options spread for given a query `OptionQuoteQuery`.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You need to provide a function to handle each stream chunk.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Example: Stream quotes on Iron Butterfly options trade on `"TLT"`
+    /// expiring October 11th 2024. E.g: Say you just bought this iron buttefly
+    /// now you can stream quotes on it to watch profit/loss, or take some kind
+    /// of action based on market conditions.
+    ///
+    /// ```ignore
+    /// let stream_tlt_iron_butterfly_query = MarketData::OptionQuoteQueryBuilder::new()
+    ///     .legs(vec![
+    ///         OptionQouteLeg {
+    ///             symbol: "TLT 241011P93".into(),
+    ///             ratio: -10,
+    ///         },
+    ///         OptionQouteLeg {
+    ///             symbol: "TLT 241011P95.5".into(),
+    ///             ratio: 10,
+    ///         },
+    ///         OptionQouteLeg {
+    ///             symbol: "TLT 241011C95.5".into(),
+    ///             ratio: 10,
+    ///         },
+    ///         OptionQouteLeg {
+    ///             symbol: "TLT 241011C98".into(),
+    ///             ratio: -10,
+    ///         },
+    ///     ])
+    ///     // Using the 1 month us treasury
+    ///     // to base the risk free rate off
+    ///     // which is currently 4.85%
+    ///     .risk_free_rate(0.0485)
+    ///     .build()?;
+    ///
+    /// let streamed_quotes = client
+    ///     .stream_option_quotes(&stream_tlt_iron_butterfly_query, |stream_data| {
+    ///         // The response type is `responses::market_data::StreamOptionQuotesResp`
+    ///         // which has multiple variants the main one you care about is `OptionQuotes`
+    ///         // which will contain option chain data sent from the stream.
+    ///         match stream_data {
+    ///             StreamOptionQuotesResp::OptionQuotes(quote) => {
+    ///                 // Do something with the option quote like
+    ///                 // send a text / email alert based on some
+    ///                 // data from the quote like a certain price,
+    ///                 // market spread, volatility change, or something.
+    ///                 println!("{quote:?}")
+    ///             }
+    ///             StreamOptionQuotesResp::Heartbeat(heartbeat) => {
+    ///                 // Response for periodic signals letting you know the connection is
+    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///                 println!("{heartbeat:?}");
+    ///
+    ///                 // for the sake of this example after we recieve the
+    ///                 // tenth heartbeat, we will stop the stream session.
+    ///                 if heartbeat.heartbeat > 10 {
+    ///                     // Example: stopping a stream connection
+    ///                     return Err(Error::StopStream);
+    ///                 }
+    ///             }
+    ///             StreamOptionQuotesResp::Status(status) => {
+    ///                 // Signal sent on state changes in the stream
+    ///                 // (closed, opened, paused, resumed)
+    ///                 println!("{status:?}");
+    ///             }
+    ///             StreamOptionQuotesResp::Error(err) => {
+    ///                 // Response for when an error was encountered,
+    ///                 // with details on the error
+    ///                 println!("{err:?}");
+    ///             }
+    ///         }
+    ///
+    ///         Ok(())
+    ///     })
+    ///     .await?;
+    ///
+    /// // After the stream ends print all the collected option quotes
+    /// println!("{streamed_quotes:?}");
+    /// ```
+    pub async fn stream<F>(
+        client: &mut Client,
+        query: &OptionQuoteQuery,
+        mut on_chunk: F,
+    ) -> Result<Vec<OptionQuote>, Error>
+    where
+        F: FnMut(StreamOptionQuotesResp) -> Result<(), Error>,
+    {
+        let endpoint = format!(
+            "marketdata/stream/options/quotes{}",
+            query.as_query_string()
+        );
+        println!("endpoint: {endpoint}");
+
+        let mut collected_quotes: Vec<OptionQuote> = Vec::new();
+        client
+            .stream(&endpoint, |chunk| {
+                let parsed_chunk = serde_json::from_value::<StreamOptionQuotesResp>(chunk)?;
+                on_chunk(parsed_chunk.clone())?;
+
+                // Only collect orders, so when the stream is done
+                // all the orders that were streamed can be returned
+                if let StreamOptionQuotesResp::OptionQuotes(option_chain) = parsed_chunk {
+                    collected_quotes.push(*option_chain);
+                }
+
+                Ok(())
+            })
+            .await?;
+
+        Ok(collected_quotes)
+    }
+}
+impl Client {
+    /// Stream quotes of an options spread for given a query `OptionQuoteQuery`.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You need to provide a function to handle each stream chunk.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Example: Stream quotes on Iron Butterfly options trade on `"TLT"`
+    /// expiring October 11th 2024. E.g: Say you just bought this iron buttefly
+    /// now you can stream quotes on it to watch profit/loss, or take some kind
+    /// of action based on market conditions.
+    ///
+    /// ```ignore
+    /// let stream_tlt_iron_butterfly_query = MarketData::OptionQuoteQueryBuilder::new()
+    ///     .legs(vec![
+    ///         OptionQouteLeg {
+    ///             symbol: "TLT 241011P93".into(),
+    ///             ratio: -10,
+    ///         },
+    ///         OptionQouteLeg {
+    ///             symbol: "TLT 241011P95.5".into(),
+    ///             ratio: 10,
+    ///         },
+    ///         OptionQouteLeg {
+    ///             symbol: "TLT 241011C95.5".into(),
+    ///             ratio: 10,
+    ///         },
+    ///         OptionQouteLeg {
+    ///             symbol: "TLT 241011C98".into(),
+    ///             ratio: -10,
+    ///         },
+    ///     ])
+    ///     // Using the 1 month us treasury
+    ///     // to base the risk free rate off
+    ///     // which is currently 4.85%
+    ///     .risk_free_rate(0.0485)
+    ///     .build()?;
+    ///
+    /// let streamed_quotes = client
+    ///     .stream_option_quotes(&stream_tlt_iron_butterfly_query, |stream_data| {
+    ///         // The response type is `responses::market_data::StreamOptionQuotesResp`
+    ///         // which has multiple variants the main one you care about is `OptionQuotes`
+    ///         // which will contain option chain data sent from the stream.
+    ///         match stream_data {
+    ///             StreamOptionQuotesResp::OptionQuotes(quote) => {
+    ///                 // Do something with the option quote like
+    ///                 // send a text / email alert based on some
+    ///                 // data from the quote like a certain price,
+    ///                 // market spread, volatility change, or something.
+    ///                 println!("{quote:?}")
+    ///             }
+    ///             StreamOptionQuotesResp::Heartbeat(heartbeat) => {
+    ///                 // Response for periodic signals letting you know the connection is
+    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///                 println!("{heartbeat:?}");
+    ///
+    ///                 // for the sake of this example after we recieve the
+    ///                 // tenth heartbeat, we will stop the stream session.
+    ///                 if heartbeat.heartbeat > 10 {
+    ///                     // Example: stopping a stream connection
+    ///                     return Err(Error::StopStream);
+    ///                 }
+    ///             }
+    ///             StreamOptionQuotesResp::Status(status) => {
+    ///                 // Signal sent on state changes in the stream
+    ///                 // (closed, opened, paused, resumed)
+    ///                 println!("{status:?}");
+    ///             }
+    ///             StreamOptionQuotesResp::Error(err) => {
+    ///                 // Response for when an error was encountered,
+    ///                 // with details on the error
+    ///                 println!("{err:?}");
+    ///             }
+    ///         }
+    ///
+    ///         Ok(())
+    ///     })
+    ///     .await?;
+    ///
+    /// // After the stream ends print all the collected option quotes
+    /// println!("{streamed_quotes:?}");
+    /// ```
+    pub async fn stream_option_quotes<F>(
+        &mut self,
+        query: &OptionQuoteQuery,
+        on_chunk: F,
+    ) -> Result<Vec<OptionQuote>, Error>
+    where
+        F: FnMut(StreamOptionQuotesResp) -> Result<(), Error>,
+    {
+        OptionQuote::stream(self, query, on_chunk).await
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The query to stream quotes on an options spread.
+pub struct OptionQuoteQuery {
+    /// The individual positions making up a larger trade.
+    pub legs: Vec<OptionQouteLeg>,
+    /// The theoretical rate of return of an
+    /// investment with zero risk.
+    ///
+    /// NOTE: Defaults to the current quote for `"$IRX.X"`
+    /// (The 13 Week US Treasury).
+    ///
+    /// NOTE: The percentage rate should be specified as a decimal value.
+    /// E.g: 2% = `0.02`.
+    pub risk_free_rate: Option<f64>,
+    /// Specifies whether or not greeks properties are returned.
+    ///
+    /// NOTE: Defaults to `true`.
+    pub enable_greeks: bool,
+}
+impl OptionQuoteQuery {
+    /// Convert the query into a string
+    pub fn as_query_string(&self) -> String {
+        let legs: Vec<String> = self
+            .legs
+            .iter()
+            .enumerate()
+            .map(|(idx, leg)| {
+                format!(
+                    "legs[{idx}].Symbol={}&legs[{idx}].Ratio={}",
+                    leg.symbol, leg.ratio
+                )
+            })
+            .collect();
+
+        let legs_string = legs.join("&");
+
+        if let Some(rate) = self.risk_free_rate {
+            format!(
+                "?{legs_string}&riskFreeRate={rate}&enableGreeks={}",
+                self.enable_greeks
+            )
+        } else {
+            format!("?{legs_string}&enableGreeks={}", self.enable_greeks)
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The leg for an `OptionQuoteQuery`
+pub struct OptionQouteLeg {
+    /// Option contract symbol or underlying
+    /// symbol to be traded for this leg.
+    pub symbol: String,
+    /// The number of option contracts or underlying
+    /// shares for this leg, relative to the other legs.
+    ///
+    /// NOTE: Use a positive number to represent a buy trade
+    /// and a negative number to represent a sell trade.
+    pub ratio: i32,
+}
+
+#[derive(Default)]
+/// Builder for `OptionQuoteQuery`
+pub struct OptionQuoteQueryBuilder {
+    legs: Option<Vec<OptionQouteLeg>>,
+    risk_free_rate: Option<f64>,
+    enable_greeks: Option<bool>,
+}
+impl OptionQuoteQueryBuilder {
+    /// Create a new builder for `OptionQuoteQuery`.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the option legs (each option position in the overall trade).
+    ///
+    /// NOTE: For a trade with just a single option you still need to pass
+    /// the option as a leg.
+    pub fn legs(mut self, option_legs: Vec<OptionQouteLeg>) -> Self {
+        self.legs = Some(option_legs);
+
+        self
+    }
+
+    /// Set your risk free rate.
+    pub fn risk_free_rate(mut self, rate: f64) -> Self {
+        self.risk_free_rate = Some(rate);
+
+        self
+    }
+
+    /// Set if the option chain should contain greeks.
+    pub fn enable_greeks(mut self, enable: bool) -> Self {
+        self.enable_greeks = Some(enable);
+
+        self
+    }
+
+    /// Finish building `OptionQuoteQuery`
+    pub fn build(self) -> Result<OptionQuoteQuery, Error> {
+        Ok(OptionQuoteQuery {
+            legs: self.legs.ok_or_else(|| Error::OptionLegsNotSet)?,
+            enable_greeks: self.enable_greeks.unwrap_or(true),
+            risk_free_rate: self.risk_free_rate,
+        })
+    }
 }
