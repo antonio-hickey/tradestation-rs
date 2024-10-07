@@ -1,5 +1,6 @@
 pub mod bar;
 pub mod options;
+pub mod quote;
 pub mod symbol;
 
 pub use bar::{
@@ -14,3 +15,5 @@ pub use options::{
 pub use symbol::{
     Format, IncrementSchedule, IncrementStyle, PriceFormat, QuantityFormat, SymbolDetails,
 };
+
+pub use quote::{MarketFlag, Quote};

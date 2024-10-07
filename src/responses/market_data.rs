@@ -1,3 +1,4 @@
+use crate::market_data::quote::Quote;
 use crate::market_data::SymbolDetails;
 use crate::market_data::{
     OptionChain, OptionExpiration, OptionQuote, OptionRiskRewardAnalysis, OptionSpreadStrikes,
@@ -382,6 +383,87 @@ impl<'de> Deserialize<'de> for StreamOptionQuotesResp {
             // Default to `Error` variant if nothing else matches
             let error = serde_json::from_value(value).map_err(de::Error::custom)?;
             Ok(StreamOptionQuotesResp::Error(error))
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The TradeStation API Response for fetching quote snapshots.
+pub struct GetQuoteSnapshotsRespRaw {
+    /// The quotes snapshots.
+    pub quotes: Option<Vec<Quote>>,
+    /// The error type from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub error: Option<String>,
+    /// The error message from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    pub message: Option<String>,
+}
+#[derive(Debug)]
+/// The TradeStation API Response for fetching quote snapshots.
+pub struct GetQuoteSnapshotsResp {
+    /// The quote snapshots.
+    pub quotes: Option<Vec<Quote>>,
+    /// The error from TradeStation's API.
+    ///
+    /// NOTE: Will be None if there was no error.
+    pub error: Option<Error>,
+}
+impl From<GetQuoteSnapshotsRespRaw> for GetQuoteSnapshotsResp {
+    fn from(raw: GetQuoteSnapshotsRespRaw) -> Self {
+        let error_enum =
+            if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
+                Error::from_tradestation_api_error(err, msg)
+            } else {
+                None
+            };
+
+        GetQuoteSnapshotsResp {
+            quotes: raw.quotes,
+            error: error_enum,
+        }
+    }
+}
+
+/// The TradeStation API Response for streaming quotes.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum StreamQuotesResp {
+    /// The main response which contains the option chain data.
+    Quote(Box<self::Quote>),
+    /// Periodic signal to know the connection is still alive.
+    Heartbeat(stream::Heartbeat),
+    /// Signal sent on state changes in the stream (closed, opened, paused, resumed).
+    Status(stream::StreamStatus),
+    /// Response for when an error was encountered, with details on the error.
+    Error(stream::ErrorResp),
+}
+impl<'de> Deserialize<'de> for StreamQuotesResp {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+
+        if value.get("Open").is_some() {
+            // Deserialize into the `Quotes` variant
+            let quote = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamQuotesResp::Quote(Box::new(quote)))
+        } else if value.get("StreamStatus").is_some() {
+            // Deserialize into the `Status` variant
+            let status = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamQuotesResp::Status(status))
+        } else if value.get("Heartbeat").is_some() {
+            // Deserialize into the `Heartbeat` variant
+            let heartbeat = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamQuotesResp::Heartbeat(heartbeat))
+        } else {
+            // Default to `Error` variant if nothing else matches
+            let error = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamQuotesResp::Error(error))
         }
     }
 }
