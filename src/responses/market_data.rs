@@ -1,3 +1,4 @@
+use crate::market_data::market_depth::{MarketDepthAggregates, MarketDepthQuotes};
 use crate::market_data::quote::Quote;
 use crate::market_data::SymbolDetails;
 use crate::market_data::{
@@ -464,6 +465,88 @@ impl<'de> Deserialize<'de> for StreamQuotesResp {
             // Default to `Error` variant if nothing else matches
             let error = serde_json::from_value(value).map_err(de::Error::custom)?;
             Ok(StreamQuotesResp::Error(error))
+        }
+    }
+}
+
+/// The TradeStation API Response for streaming market depth quotes.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum StreamMarketDepthQuotesResp {
+    /// The main response which contains the bid data.
+    Quote(Box<self::MarketDepthQuotes>),
+    /// Periodic signal to know the connection is still alive.
+    Heartbeat(stream::Heartbeat),
+    /// Signal sent on state changes in the stream (closed, opened, paused, resumed).
+    Status(stream::StreamStatus),
+    /// Response for when an error was encountered, with details on the error.
+    Error(stream::ErrorResp),
+}
+impl<'de> Deserialize<'de> for StreamMarketDepthQuotesResp {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+
+        if value.get("Asks").is_some() {
+            // Deserialize into the `Quote` variant
+            let quote = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamMarketDepthQuotesResp::Quote(Box::new(quote)))
+        } else if value.get("StreamStatus").is_some() {
+            // Deserialize into the `Status` variant
+            let status = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamMarketDepthQuotesResp::Status(status))
+        } else if value.get("Heartbeat").is_some() {
+            // Deserialize into the `Heartbeat` variant
+            let heartbeat = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamMarketDepthQuotesResp::Heartbeat(heartbeat))
+        } else {
+            // Default to `Error` variant if nothing else matches
+            let error = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamMarketDepthQuotesResp::Error(error))
+        }
+    }
+}
+
+/// The TradeStation API Response for streaming market depth aggregates.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum StreamMarketDepthAggregatesResp {
+    /// The main response which contains the bid/ask data for
+    /// a market depth level.
+    Aggregate(Box<self::MarketDepthAggregates>),
+    /// Periodic signal to know the connection is still alive.
+    Heartbeat(stream::Heartbeat),
+    /// Signal sent on state changes in the stream (closed, opened, paused, resumed).
+    Status(stream::StreamStatus),
+    /// Response for when an error was encountered, with details on the error.
+    Error(stream::ErrorResp),
+}
+impl<'de> Deserialize<'de> for StreamMarketDepthAggregatesResp {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        println!("{value:?}");
+
+        if value.get("Asks").is_some() {
+            // Deserialize into the `Quote` variant
+            let quote = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamMarketDepthAggregatesResp::Aggregate(Box::new(quote)))
+        } else if value.get("StreamStatus").is_some() {
+            // Deserialize into the `Status` variant
+            let status = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamMarketDepthAggregatesResp::Status(status))
+        } else if value.get("Heartbeat").is_some() {
+            // Deserialize into the `Heartbeat` variant
+            let heartbeat = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamMarketDepthAggregatesResp::Heartbeat(heartbeat))
+        } else {
+            // Default to `Error` variant if nothing else matches
+            let error = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamMarketDepthAggregatesResp::Error(error))
         }
     }
 }
