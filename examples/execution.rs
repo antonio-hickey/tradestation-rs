@@ -24,5 +24,11 @@ async fn main() -> Result<(), Error> {
     println!("Valid routes for order execution: {routes:?}");
     //--
 
+    //--
+    // Example: Fetch a list of valid activation triggers for order execution.
+    let triggers = client.get_activation_triggers().await?;
+    println!("Valid activation triggers for order execution: {triggers:?}");
+    //---
+
     Ok(())
 }
