@@ -1,8 +1,8 @@
 use crate::{
     account::{AssetType, MarketActivationRule, OrderType, TimeActivationRule, TrailingStop},
     responses::execution::{
-        GetActivationTriggersResp, GetActivationTriggersRespRaw, GetExecutionRoutesResp,
-        GetExecutionRoutesRespRaw,
+        ConfirmOrderResp, ConfirmOrderRespRaw, GetActivationTriggersResp,
+        GetActivationTriggersRespRaw, GetExecutionRoutesResp, GetExecutionRoutesRespRaw,
     },
     Client, Error,
 };
@@ -18,19 +18,19 @@ pub struct OrderRequest {
     pub account_id: String,
 
     /// Advanced Options for configuring an order.
-    pub advanced_options: AdvancedOrderOptions,
+    pub advanced_options: Option<AdvancedOrderOptions>,
 
     /// The different statuses for buing power warnings.
     pub buying_power_warning: Option<BPWarningStatus>,
 
     /// The additional legs to this order.
-    pub legs: Vec<OrderRequestLeg>,
+    pub legs: Option<Vec<OrderRequestLeg>>,
 
     /// The limit price for this order.
     pub limit_price: Option<String>,
 
     /// Order Sends Orders
-    pub osos: Vec<Oso>,
+    pub osos: Option<Vec<Oso>>,
 
     /// A unique identifier regarding an order used
     /// to prevent duplicates. Must be unique per API
@@ -68,6 +68,213 @@ pub struct OrderRequest {
     /// The different trade actions that can be sent or
     /// received, and conveys the intent of the order.
     pub trade_action: TradeAction,
+}
+impl OrderRequest {
+    /// Confirm an order getting back an estimated cost
+    /// and commission information for the order without
+    /// actually placing the order.
+    ///
+    /// NOTE: Only valid for `Market Limit`, `Stop Market`,
+    /// `Options`, and `Order Sends Order (OSO)` order types.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Confirm a limit buy order for 3 Month SOFR Futures at the
+    /// March 2025 contract @ 96.0725 with a quantity of 50 contracts
+    /// and a duration of Good Till Close (GTC).
+    ///
+    /// ```ignore
+    /// use tradestation::{ClientBuilder, Error, Token, execution::Duration};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Error> {
+    ///     // Create client
+    ///     let mut client = ClientBuilder::new()?
+    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .build()
+    ///         .await?;
+    ///
+    ///     let order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_FUTURES_ACCOUNT_ID")
+    ///         .symbol("SR3H25")
+    ///         .trade_action(TradeAction::Buy)
+    ///         .quantity("50")
+    ///         .order_type(OrderType::Limit)
+    ///         .limit_price("96.0725")
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     match order_req.confirm(&mut client).await {
+    ///         Ok(confirmation) => println!("Confirmed Order: {confirmation:?}"),
+    ///         Err(e) => println!("Issue Confirming Order: {e:?}"),
+    ///     };
+    ///     Ok(())
+    /// }
+    ///```
+    pub async fn confirm(self, client: &mut Client) -> Result<Vec<OrderConfirmation>, Error> {
+        let endpoint = String::from("orderexecution/orderconfirm");
+        let resp: ConfirmOrderResp = client
+            .post(&endpoint, &self)
+            .await?
+            .json::<ConfirmOrderRespRaw>()
+            .await?
+            .into();
+
+        if let Some(confirmations) = resp.confirmations {
+            Ok(confirmations)
+        } else {
+            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+/// The initial stage of an `Order`, this is what
+/// is sent to the route for creating a `Order`.
+pub struct OrderRequestBuilder {
+    account_id: Option<String>,
+    advanced_options: Option<AdvancedOrderOptions>,
+    buying_power_warning: Option<BPWarningStatus>,
+    legs: Option<Vec<OrderRequestLeg>>,
+    limit_price: Option<String>,
+    osos: Option<Vec<Oso>>,
+    order_confirm_id: Option<String>,
+    order_type: Option<OrderType>,
+    quantity: Option<String>,
+    route: Option<String>,
+    stop_price: Option<String>,
+    symbol: Option<String>,
+    time_in_force: Option<OrderTimeInForce>,
+    trade_action: Option<TradeAction>,
+}
+impl OrderRequestBuilder {
+    /// Initialize a new builder for `OrderRequest`.
+    pub fn new() -> Self {
+        OrderRequestBuilder::default()
+    }
+
+    /// Set the Account ID the `OrderRequest` belongs to.
+    ///
+    /// NOTE: Required to be set to build an `OrderRequest`.
+    pub fn account_id(mut self, id: impl Into<String>) -> Self {
+        self.account_id = Some(id.into());
+        self
+    }
+
+    /// Set the Order Type for the `OrderRequest`.
+    ///
+    /// NOTE: Required to be set to build an `OrderRequest`.
+    pub fn order_type(mut self, order_type: OrderType) -> Self {
+        self.order_type = Some(order_type);
+        self
+    }
+
+    /// Set the Symbol the `OrderRequest` is for.
+    ///
+    /// NOTE: Required to be set to build an `OrderRequest`.
+    pub fn symbol(mut self, symbol: impl Into<String>) -> Self {
+        self.symbol = Some(symbol.into());
+        self
+    }
+
+    /// Set the Time In Force (Duration or expiration timestamp)
+    /// for the `OrderRequest`.
+    ///
+    /// NOTE: Required to be set to build an `OrderRequest`.
+    pub fn time_in_force(mut self, time_in_force: OrderTimeInForce) -> Self {
+        self.time_in_force = Some(time_in_force);
+        self
+    }
+
+    /// Set the Quantity of shares or contracts for the `OrderRequest`.
+    pub fn quantity(mut self, quantity: impl Into<String>) -> Self {
+        self.quantity = Some(quantity.into());
+        self
+    }
+
+    /// Set the Trade Action for the `OrderRequest`.
+    ///
+    /// NOTE: Required to be set to build an `OrderRequest`.
+    pub fn trade_action(mut self, action: TradeAction) -> Self {
+        self.trade_action = Some(action);
+        self
+    }
+
+    /// Set the Execution Route for the `OrderRequest`.
+    pub fn route(mut self, route: impl Into<String>) -> Self {
+        self.route = Some(route.into());
+        self
+    }
+
+    /// Set a Stop Price for the `OrderRequest`.
+    pub fn stop_price(mut self, price: impl Into<String>) -> Self {
+        self.stop_price = Some(price.into());
+        self
+    }
+
+    /// Set an Order Confirm ID for the `OrderRequest`.
+    pub fn order_confirm_id(mut self, id: impl Into<String>) -> Self {
+        self.order_confirm_id = Some(id.into());
+        self
+    }
+
+    /// Set the Order Sends Order for the `OrderRequest`.
+    pub fn osos(mut self, osos: Vec<Oso>) -> Self {
+        self.osos = Some(osos);
+        self
+    }
+
+    /// Set a Limit Price for the `OrderRequest`.
+    pub fn limit_price(mut self, price: impl Into<String>) -> Self {
+        self.limit_price = Some(price.into());
+        self
+    }
+
+    /// Set the Legs of the `OrderRequest`.
+    pub fn legs(mut self, legs: Vec<OrderRequestLeg>) -> Self {
+        self.legs = Some(legs);
+        self
+    }
+
+    /// Set the Buying Power Warning Status for the `OrderRequest`.
+    pub fn buying_power_warning(mut self, status: BPWarningStatus) -> Self {
+        self.buying_power_warning = Some(status);
+        self
+    }
+
+    /// Set the Advanced Options for the `OrderRequest`.
+    pub fn advanced_options(mut self, options: AdvancedOrderOptions) -> Self {
+        self.advanced_options = Some(options);
+        self
+    }
+
+    /// Finish building the `OrderRequest`.
+    ///
+    /// NOTE: `account_id`, `order_type`, `quantity`, `symbol`,
+    /// `time_in_force`, and `trade_action` are all required.
+    pub fn build(self) -> Result<OrderRequest, Error> {
+        Ok(OrderRequest {
+            account_id: self.account_id.ok_or(Error::AccountIdNotSet)?,
+            advanced_options: self.advanced_options,
+            buying_power_warning: self.buying_power_warning,
+            legs: self.legs,
+            osos: self.osos,
+            order_confirm_id: self.order_confirm_id,
+            route: self.route,
+            trade_action: self.trade_action.ok_or(Error::TradeActionNotSet)?,
+            time_in_force: self.time_in_force.ok_or(Error::TimeInForceNotSet)?,
+            symbol: self.symbol.ok_or(Error::SymbolNotSet)?,
+            order_type: self.order_type.ok_or(Error::OrderTypeNotSet)?,
+            quantity: self.quantity.ok_or(Error::QuantityNotSet)?,
+            stop_price: self.stop_price,
+            limit_price: self.limit_price,
+        })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -190,7 +397,7 @@ pub struct OrderTimeInForce {
     pub duration: Duration,
 
     /// The expiration timestamp for the order.
-    pub expiration: String,
+    pub expiration: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -281,14 +488,17 @@ pub enum Duration {
 
     /// 1 Minute, expires after one minute of
     /// being placed.
+    #[serde(rename = "1")]
     OneMinute,
 
     /// 3 Minute, expires after three minutes of
     /// being placed.
+    #[serde(rename = "3")]
     ThreeMinute,
 
     /// 5 Minute, expires after five minutes of
     /// being placed.
+    #[serde(rename = "5")]
     FiveMinute,
 }
 
@@ -594,4 +804,73 @@ pub enum ActivationTriggerKey {
     /// * Sell/Short Orders: Two Ask ticks must print within your
     ///   stop price to trigger your stop.
     TAB,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct OrderConfirmation {
+    /// The route of the order.
+    ///
+    /// NOTE: For Stocks and Options, Route value will
+    /// default to Intelligent if no value is set.
+    pub route: String,
+
+    /// Defines the duration or expiration timestamp of an Order.
+    pub time_in_force: OrderTimeInForce,
+
+    #[serde(rename = "AccountID")]
+    /// The ID of the Account the order belongs to.
+    pub account_id: String,
+
+    /// A short text summary / description of the order.
+    pub summary_message: String,
+
+    #[serde(rename = "OrderConfirmID")]
+    /// The ID of the order confirm.
+    pub order_confirm_id: String,
+
+    /// The estimated price of the order.
+    pub estimated_price: String,
+
+    /// The estimated display price of the order.
+    pub estimated_price_display: Option<String>,
+
+    /// The estimated cost of the order.
+    pub estimated_cost: String,
+
+    /// The estimated display cost of the order.
+    pub estimated_cost_display: Option<String>,
+
+    /// The estimated commission cost for the order.
+    pub estimated_commission: String,
+
+    /// The estimated commission cost display for the order.
+    pub estimated_commission_display: Option<String>,
+
+    /// The estimated debit or credit cost of the the order.
+    ///
+    /// NOTE: Debit costs will have a positive cost, and credit
+    /// costs will have a negative cost.
+    pub debit_credit_estimated_cost: Option<String>,
+
+    /// The estimated debit or credit display cost of the the order.
+    ///
+    /// NOTE: Debit costs will have a positive cost, and credit
+    /// costs will have a negative cost.
+    pub debit_credit_estimated_cost_display: Option<String>,
+
+    /// The currency the product is based on.
+    ///
+    /// NOTE: Only valid for futures orders.
+    pub product_currency: Option<String>,
+
+    /// The currency the account is based on.
+    ///
+    /// NOTE: Only valid for futures orders.
+    pub account_currency: Option<String>,
+
+    /// The initial margin display cost of the order.
+    ///
+    /// NOTE: Only valid for futures orders.
+    pub initial_margin_display: Option<String>,
 }

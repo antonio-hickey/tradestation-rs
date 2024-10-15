@@ -18,6 +18,16 @@ pub enum Error {
     Json(serde_json::Error),
     /// No symbol set when one was required.
     SymbolNotSet,
+    /// Account Id not set when one was required.
+    AccountIdNotSet,
+    /// Trade Action not set when one was required.
+    TradeActionNotSet,
+    /// Time In Force not set when one was required.
+    TimeInForceNotSet,
+    /// Order Type not set when one was required.
+    OrderTypeNotSet,
+    /// Quantity not set when one was required.
+    QuantityNotSet,
     /// No Option legs set when they were required.
     OptionLegsNotSet,
     /// TradeStation API Error for a bad request
@@ -78,6 +88,13 @@ impl std::fmt::Display for Error {
             Self::UnknownTradeStationAPIError => {
                 write!(f, "TradeStation API ERROR: Unknown Error.")
             }
+            Self::AccountIdNotSet => write!(f, "ERROR: account_id not set when it's required."),
+            Self::TradeActionNotSet => write!(f, "ERROR: trade_action not set when it's required."),
+            Self::OrderTypeNotSet => write!(f, "ERROR: order_type not set when it's required."),
+            Self::TimeInForceNotSet => {
+                write!(f, "ERROR: time_in_force not set when it's required.")
+            }
+            Self::QuantityNotSet => write!(f, "ERROR: quantity not set when it's required."),
         }
     }
 }

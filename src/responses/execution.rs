@@ -1,6 +1,49 @@
-use crate::execution::ActivationTrigger;
+use crate::execution::{ActivationTrigger, OrderConfirmation};
 use crate::{Error, Route};
 use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The TradeStation API Response for confirming
+/// an order, but not actually placing it.
+pub struct ConfirmOrderRespRaw {
+    /// The order confirmations.
+    confirmations: Option<Vec<OrderConfirmation>>,
+    /// The error type from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    error: Option<String>,
+    /// The error message from TradeStation's API
+    ///
+    /// NOTE: Will be None if there was no error
+    message: Option<String>,
+}
+#[derive(Debug)]
+/// The TradeStation API Response for confirming
+/// an order, but not actually placing it.
+pub struct ConfirmOrderResp {
+    /// The order confirmations.
+    pub confirmations: Option<Vec<OrderConfirmation>>,
+    /// The error from TradeStation's API.
+    ///
+    /// NOTE: Will be None if there was no error.
+    pub error: Option<Error>,
+}
+impl From<ConfirmOrderRespRaw> for ConfirmOrderResp {
+    fn from(raw: ConfirmOrderRespRaw) -> Self {
+        let error_enum =
+            if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
+                Error::from_tradestation_api_error(err, msg)
+            } else {
+                None
+            };
+
+        ConfirmOrderResp {
+            confirmations: raw.confirmations,
+            error: error_enum,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
