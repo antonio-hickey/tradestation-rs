@@ -1,22 +1,19 @@
 //! Example file on basic usage for order execution endpoints
 
-use tradestation::{ClientBuilder, Error, Token};
+use tradestation::account::OrderType;
+use tradestation::execution::{Duration, OrderRequestBuilder, OrderTimeInForce, TradeAction};
+use tradestation::{ClientBuilder, Error};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // Create client
     let mut client = ClientBuilder::new()?
         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-        .set_token(Token {
-            access_token: String::from("YOUR_ACCESS_TOKEN"),
-            refresh_token: String::from("YOUR_REFRESH_TOKEN"),
-            id_token: String::from("YOUR_ID_TOKEN"),
-            token_type: String::from("Bearer"),
-            scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
-            expires_in: 1200,
-        })?
+        .authorize("YOUR_AUTHORIZATION_CODE")
+        .await?
         .build()
         .await?;
+    println!("Your TradeStation API Bearer Token: {:?}", client.token);
 
     //--
     // Example: Fetch a list of routes to send orders for execution.
@@ -29,6 +26,29 @@ async fn main() -> Result<(), Error> {
     let triggers = client.get_activation_triggers().await?;
     println!("Valid activation triggers for order execution: {triggers:?}");
     //---
+
+    //--
+    // Example: Place an order to buy 100 shares of JP Morgan (`"JPM"`)
+    // using a limit order with the limit price of $`"220.50"`, with
+    // a order duration of Good Till Closed.
+    let order_req = OrderRequestBuilder::new()
+        .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+        .symbol("JPM")
+        .trade_action(TradeAction::Buy)
+        .quantity("100")
+        .order_type(OrderType::Limit)
+        .limit_price("220.50")
+        .time_in_force(OrderTimeInForce {
+            duration: Duration::GTC,
+            expiration: None,
+        })
+        .build()?;
+
+    match order_req.place(&mut client).await {
+        Ok(resp) => println!("Order Response: {resp:?}"),
+        Err(e) => println!("Order Response: {e:?}"),
+    }
+    //--
 
     Ok(())
 }

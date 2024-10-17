@@ -2,7 +2,8 @@ use crate::{
     account::{AssetType, MarketActivationRule, OrderType, TimeActivationRule, TrailingStop},
     responses::execution::{
         ConfirmOrderResp, ConfirmOrderRespRaw, GetActivationTriggersResp,
-        GetActivationTriggersRespRaw, GetExecutionRoutesResp, GetExecutionRoutesRespRaw,
+        GetActivationTriggersRespRaw, GetExecutionRoutesResp, GetExecutionRoutesRespRaw, OrderResp,
+        OrderRespRaw,
     },
     Client, Error,
 };
@@ -127,6 +128,50 @@ impl OrderRequest {
 
         if let Some(confirmations) = resp.confirmations {
             Ok(confirmations)
+        } else {
+            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        }
+    }
+
+    /// Place the `OrderRequest` getting back the result of the Order Request.
+    ///
+    /// # Example
+    /// ---
+    /// Place an order to buy 100 shares of JP Morgan (`"JPM"`)
+    /// using a limit order with the limit price of $`"220.50"`, with
+    /// a order duration of Good Till Closed.
+    ///
+    ///```ignore
+    /// let order_req = OrderRequestBuilder::new()
+    ///     .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///     .symbol("JPM")
+    ///     .trade_action(TradeAction::Buy)
+    ///     .quantity("100")
+    ///     .order_type(OrderType::Limit)
+    ///     .limit_price("220.50")
+    ///     .time_in_force(OrderTimeInForce {
+    ///         duration: Duration::GTC,
+    ///         expiration: None,
+    ///     })
+    ///     .build()?;
+    ///
+    /// match order_req.place(&mut client).await {
+    ///     Ok(resp) => println!("Order Response: {resp:?}"),
+    ///     Err(e) => println!("Order Response: {e:?}"),
+    /// }
+    /// ```
+    pub async fn place(self, client: &mut Client) -> Result<Vec<OrderResponse>, Error> {
+        let endpoint = String::from("orderexecution/orders");
+
+        let resp: OrderResp = client
+            .post(&endpoint, &self)
+            .await?
+            .json::<OrderRespRaw>()
+            .await?
+            .into();
+
+        if let Some(orders) = resp.orders {
+            Ok(orders)
         } else {
             Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
         }
@@ -873,4 +918,22 @@ pub struct OrderConfirmation {
     ///
     /// NOTE: Only valid for futures orders.
     pub initial_margin_display: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// The result of placing an order.
+///
+/// NOTE: The error that would be here would instead
+/// be returned as an `Error` variant.
+pub struct OrderResponse {
+    /// Short text summary / description of the order.
+    pub message: String,
+
+    #[serde(rename = "OrderID")]
+    /// The id of the order.
+    pub order_id: String,
+
+    /// The error for the order.
+    pub error: Option<String>,
 }
