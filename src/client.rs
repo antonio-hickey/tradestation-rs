@@ -112,6 +112,26 @@ impl Client {
         Ok(resp)
     }
 
+    /// Send a DELETE request from your `Client` to TradeStation's API
+    pub async fn delete(&mut self, endpoint: &str) -> Result<Response, Error> {
+        let url = format!("https://api.tradestation.com/v3/{endpoint}");
+        let resp = self
+            .clone()
+            .send_request(|token| {
+                self.http_client
+                    .delete(&url)
+                    .header("Content-Type", "application/json")
+                    .header(
+                        header::AUTHORIZATION,
+                        format!("Bearer {}", token.access_token),
+                    )
+                    .send()
+            })
+            .await?;
+
+        Ok(resp)
+    }
+
     /// Start a stream from the TradeStation API to the `Client`
     ///
     /// NOTE: You need to provide a processing function for handeling the stream chunks

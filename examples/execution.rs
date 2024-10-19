@@ -52,20 +52,31 @@ async fn main() -> Result<(), Error> {
         })
         .build()?;
 
-    let order = Order::place(&mut client, &order_req).await?;
+    let order = Order::place(&mut client, &order_req)
+        .await?
+        .into_iter()
+        .next();
     //--
 
     //--
     // Example: Replace the order above of 100 shares of JP Morgan
     // to instead be 25 shares at the limit price of $`"222.75"`
-    if let Some(order) = order.first() {
-        order
-            .clone()
+    if let Some(order) = order {
+        let updated_order = order
             .replace(
                 &mut client,
                 OrderUpdate::new().limit_price("222.75").quantity("25"),
             )
-            .await?;
+            .await?
+            .into_iter()
+            .next();
+
+        //--
+        // Example: Cancel the updated order above
+        if let Some(order) = updated_order {
+            order.cancel(&mut client).await?;
+        }
+        //--
     }
     //--
 

@@ -93,9 +93,12 @@ impl Order {
     ///     })
     ///     .build()?;
     ///
-    /// let order = Order::place(&mut client, &order_req).await?;
+    /// let order = Order::place(&mut client, &order_req)
+    ///     .await?
+    ///     .into_iter()
+    ///     .next();
     ///
-    /// if let Some(order) = order.first() {
+    /// if let Some(order) = order {
     ///     order
     ///         .clone()
     ///         .replace(
@@ -114,6 +117,51 @@ impl Order {
 
         let resp: OrderResp = client
             .put(&endpoint, &order_update)
+            .await?
+            .json::<OrderRespRaw>()
+            .await?
+            .into();
+
+        if let Some(orders) = resp.orders {
+            Ok(orders)
+        } else {
+            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        }
+    }
+
+    /// Cancel an active `Order`.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// ```ignore
+    /// let order_req = OrderRequestBuilder::new()
+    ///     .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///     .symbol("JPM")
+    ///     .trade_action(TradeAction::Buy)
+    ///     .quantity("100")
+    ///     .order_type(OrderType::Limit)
+    ///     .limit_price("220.50")
+    ///     .time_in_force(OrderTimeInForce {
+    ///         duration: Duration::GTC,
+    ///         expiration: None,
+    ///     })
+    ///     .build()?;
+    ///
+    /// let order = Order::place(&mut client, &order_req)
+    ///     .await?
+    ///     .into_iter()
+    ///     .next();
+    ///
+    /// if let Some(order) = order {
+    ///     order.cancel(&mut client).await?;
+    /// }
+    /// ```
+    pub async fn cancel(self, client: &mut Client) -> Result<Vec<Order>, Error> {
+        let endpoint = format!("orderexecution/orders/{}", self.order_id);
+
+        let resp: OrderResp = client
+            .delete(&endpoint)
             .await?
             .json::<OrderRespRaw>()
             .await?
