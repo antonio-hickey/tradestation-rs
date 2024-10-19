@@ -9,6 +9,180 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+/// An Active Order
+pub struct Order {
+    /// Short text summary / description of the order.
+    pub message: String,
+
+    #[serde(rename = "OrderID")]
+    /// The id of the order.
+    pub order_id: String,
+
+    /// The error for the order.
+    pub error: Option<String>,
+}
+impl Order {
+    /// Place the `OrderRequest` getting back the result of the Order Request.
+    ///
+    /// # Example
+    /// ---
+    /// Place an order to buy 100 shares of JP Morgan (`"JPM"`)
+    /// using a limit order with the limit price of $`"220.50"`, with
+    /// a order duration of Good Till Closed.
+    ///
+    ///```ignore
+    /// let order_req = OrderRequestBuilder::new()
+    ///     .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///     .symbol("JPM")
+    ///     .trade_action(TradeAction::Buy)
+    ///     .quantity("100")
+    ///     .order_type(OrderType::Limit)
+    ///     .limit_price("220.50")
+    ///     .time_in_force(OrderTimeInForce {
+    ///         duration: Duration::GTC,
+    ///         expiration: None,
+    ///     })
+    ///     .build()?;
+    ///
+    /// match Order::place(&mut client, order_req).await {
+    ///     Ok(resp) => println!("Order Response: {resp:?}"),
+    ///     Err(e) => println!("Order Response: {e:?}"),
+    /// }
+    /// ```
+    pub async fn place(
+        client: &mut Client,
+        order_request: &OrderRequest,
+    ) -> Result<Vec<Order>, Error> {
+        let endpoint = String::from("orderexecution/orders");
+
+        let resp: OrderResp = client
+            .post(&endpoint, &order_request)
+            .await?
+            .json::<OrderRespRaw>()
+            .await?
+            .into();
+
+        if let Some(orders) = resp.orders {
+            Ok(orders)
+        } else {
+            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        }
+    }
+
+    /// Replace an `Order` with an Order Update.
+    ///
+    /// # Example
+    /// ---
+    /// Replace an order to buy 100 shares of Palantir `"PLTR"`
+    /// at the limit price of $`"40.00"` to instead be 25 shares
+    /// at the limit price of $`"42.50"`.
+    ///
+    /// ```ignore
+    /// let order_req = OrderRequestBuilder::new()
+    ///     .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///     .symbol("PLTR")
+    ///     .trade_action(TradeAction::Buy)
+    ///     .quantity("100")
+    ///     .order_type(OrderType::Limit)
+    ///     .limit_price("40.00")
+    ///     .time_in_force(OrderTimeInForce {
+    ///         duration: Duration::GTC,
+    ///         expiration: None,
+    ///     })
+    ///     .build()?;
+    ///
+    /// let order = Order::place(&mut client, &order_req).await?;
+    ///
+    /// if let Some(order) = order.first() {
+    ///     order
+    ///         .clone()
+    ///         .replace(
+    ///             &mut client,
+    ///             OrderUpdate::new().limit_price("42.50").quantity("25"),
+    ///         )
+    ///         .await?;
+    /// }
+    /// ```
+    pub async fn replace(
+        self,
+        client: &mut Client,
+        order_update: OrderUpdate,
+    ) -> Result<Vec<Order>, Error> {
+        let endpoint = format!("orderexecution/orders/{}", self.order_id);
+
+        let resp: OrderResp = client
+            .put(&endpoint, &order_update)
+            .await?
+            .json::<OrderRespRaw>()
+            .await?
+            .into();
+
+        if let Some(orders) = resp.orders {
+            Ok(orders)
+        } else {
+            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
+#[serde(rename_all = "PascalCase")]
+pub struct OrderUpdate {
+    /// The limit price for this updated `Order`.
+    pub limit_price: Option<String>,
+    /// The stop price for this updated `Order`.
+    pub stop_price: Option<String>,
+    /// The order type for this updated `Order`.
+    pub order_type: Option<OrderType>,
+    /// The quantity for this updated `Order`.
+    pub quantity: Option<String>,
+    /// The advanced options of this updated `Order`.
+    pub advanced_options: Option<AdvancedOrderOptions>,
+}
+impl OrderUpdate {
+    /// Create a new default `OrderUpdate`.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the limit price of the updated `Order`.
+    pub fn limit_price(mut self, price: impl Into<String>) -> Self {
+        self.limit_price = Some(price.into());
+
+        self
+    }
+
+    /// Set the stop price of the updated `Order`.
+    pub fn stop_price(mut self, price: impl Into<String>) -> Self {
+        self.stop_price = Some(price.into());
+
+        self
+    }
+
+    /// Set the order type of the updated `Order`.
+    pub fn order_type(mut self, order_type: OrderType) -> Self {
+        self.order_type = Some(order_type);
+
+        self
+    }
+
+    /// Set the quantity for the updated `Order`.
+    pub fn quantity(mut self, qty: impl Into<String>) -> Self {
+        self.quantity = Some(qty.into());
+
+        self
+    }
+
+    /// Set the advanced options of the updated `Order`.
+    pub fn advanced_options(mut self, opts: AdvancedOrderOptions) -> Self {
+        self.advanced_options = Some(opts);
+
+        self
+    }
+}
+
 // TODO: Support builder pattern's for `OrderRequest`
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -128,50 +302,6 @@ impl OrderRequest {
 
         if let Some(confirmations) = resp.confirmations {
             Ok(confirmations)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
-        }
-    }
-
-    /// Place the `OrderRequest` getting back the result of the Order Request.
-    ///
-    /// # Example
-    /// ---
-    /// Place an order to buy 100 shares of JP Morgan (`"JPM"`)
-    /// using a limit order with the limit price of $`"220.50"`, with
-    /// a order duration of Good Till Closed.
-    ///
-    ///```ignore
-    /// let order_req = OrderRequestBuilder::new()
-    ///     .account_id("YOUR_EQUITIES_ACCOUNT_ID")
-    ///     .symbol("JPM")
-    ///     .trade_action(TradeAction::Buy)
-    ///     .quantity("100")
-    ///     .order_type(OrderType::Limit)
-    ///     .limit_price("220.50")
-    ///     .time_in_force(OrderTimeInForce {
-    ///         duration: Duration::GTC,
-    ///         expiration: None,
-    ///     })
-    ///     .build()?;
-    ///
-    /// match order_req.place(&mut client).await {
-    ///     Ok(resp) => println!("Order Response: {resp:?}"),
-    ///     Err(e) => println!("Order Response: {e:?}"),
-    /// }
-    /// ```
-    pub async fn place(self, client: &mut Client) -> Result<Vec<OrderResponse>, Error> {
-        let endpoint = String::from("orderexecution/orders");
-
-        let resp: OrderResp = client
-            .post(&endpoint, &self)
-            .await?
-            .json::<OrderRespRaw>()
-            .await?
-            .into();
-
-        if let Some(orders) = resp.orders {
-            Ok(orders)
         } else {
             Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
         }
@@ -918,22 +1048,4 @@ pub struct OrderConfirmation {
     ///
     /// NOTE: Only valid for futures orders.
     pub initial_margin_display: Option<String>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
-/// The result of placing an order.
-///
-/// NOTE: The error that would be here would instead
-/// be returned as an `Error` variant.
-pub struct OrderResponse {
-    /// Short text summary / description of the order.
-    pub message: String,
-
-    #[serde(rename = "OrderID")]
-    /// The id of the order.
-    pub order_id: String,
-
-    /// The error for the order.
-    pub error: Option<String>,
 }

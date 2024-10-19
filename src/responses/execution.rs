@@ -1,5 +1,5 @@
 use crate::{
-    execution::{ActivationTrigger, OrderConfirmation, OrderResponse},
+    execution::{ActivationTrigger, Order, OrderConfirmation},
     Error, Route,
 };
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 /// an order, but not actually placing it.
 pub struct OrderRespRaw {
     /// The orders modified, placed, or canceled.
-    orders: Option<Vec<OrderResponse>>,
+    orders: Option<Vec<Order>>,
 
     /// The error type from TradeStation's API
     ///
@@ -27,7 +27,7 @@ pub struct OrderRespRaw {
 /// an order, but not actually placing it.
 pub struct OrderResp {
     /// The order confirmations.
-    pub orders: Option<Vec<OrderResponse>>,
+    pub orders: Option<Vec<Order>>,
 
     /// The error from TradeStation's API.
     ///

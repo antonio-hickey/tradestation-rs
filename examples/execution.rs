@@ -1,16 +1,24 @@
 //! Example file on basic usage for order execution endpoints
 
 use tradestation::account::OrderType;
-use tradestation::execution::{Duration, OrderRequestBuilder, OrderTimeInForce, TradeAction};
-use tradestation::{ClientBuilder, Error};
+use tradestation::execution::{
+    Duration, Order, OrderRequestBuilder, OrderTimeInForce, OrderUpdate, TradeAction,
+};
+use tradestation::{ClientBuilder, Error, Token};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // Create client
     let mut client = ClientBuilder::new()?
         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-        .authorize("YOUR_AUTHORIZATION_CODE")
-        .await?
+        .set_token(Token {
+            access_token: String::from("YOUR_ACCESS_TOKEN"),
+            refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+            id_token: String::from("YOUR_ID_TOKEN"),
+            token_type: String::from("Bearer"),
+            scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+            expires_in: 1200,
+        })?
         .build()
         .await?;
     println!("Your TradeStation API Bearer Token: {:?}", client.token);
@@ -44,9 +52,20 @@ async fn main() -> Result<(), Error> {
         })
         .build()?;
 
-    match order_req.place(&mut client).await {
-        Ok(resp) => println!("Order Response: {resp:?}"),
-        Err(e) => println!("Order Response: {e:?}"),
+    let order = Order::place(&mut client, &order_req).await?;
+    //--
+
+    //--
+    // Example: Replace the order above of 100 shares of JP Morgan
+    // to instead be 25 shares at the limit price of $`"222.75"`
+    if let Some(order) = order.first() {
+        order
+            .clone()
+            .replace(
+                &mut client,
+                OrderUpdate::new().limit_price("222.75").quantity("25"),
+            )
+            .await?;
     }
     //--
 
