@@ -30,6 +30,10 @@ pub enum Error {
     QuantityNotSet,
     /// No Option legs set when they were required.
     OptionLegsNotSet,
+    /// Order Requests not set when they're required.
+    OrderRequestsNotSet,
+    /// Order Group Type not set when it's required.
+    OrderGroupTypeNotSet,
     /// TradeStation API Error for a bad request
     BadRequest(String),
     /// TradeStation API Error for an unauthorized request.
@@ -95,6 +99,12 @@ impl std::fmt::Display for Error {
                 write!(f, "ERROR: time_in_force not set when it's required.")
             }
             Self::QuantityNotSet => write!(f, "ERROR: quantity not set when it's required."),
+            Self::OrderRequestsNotSet => {
+                write!(f, "ERROR: order requests not set when they're required.")
+            }
+            Self::OrderGroupTypeNotSet => {
+                write!(f, "ERROR: order group type not set when it's required.")
+            }
         }
     }
 }

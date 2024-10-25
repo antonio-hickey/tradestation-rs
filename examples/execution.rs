@@ -2,7 +2,8 @@
 
 use tradestation::account::OrderType;
 use tradestation::execution::{
-    Duration, Order, OrderRequestBuilder, OrderTimeInForce, OrderUpdate, TradeAction,
+    Duration, Order, OrderGroupType, OrderRequestBuilder, OrderRequestGroupBuilder,
+    OrderTimeInForce, OrderUpdate, TradeAction,
 };
 use tradestation::{ClientBuilder, Error, Token};
 
@@ -78,6 +79,63 @@ async fn main() -> Result<(), Error> {
         }
         //--
     }
+    //--
+
+    //--
+    // Example: Place a trade involving a bracket group of orders
+    // with one order for opening the position, one order for closing
+    // the position at a take profit price, and one order for closing
+    // the position at a stop loss price. A total of 3 orders making
+    // up this position.
+    let entry_order_req = OrderRequestBuilder::new()
+        .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+        .symbol("XLRE")
+        .trade_action(TradeAction::SellShort)
+        .quantity("1000")
+        .order_type(OrderType::Market)
+        .time_in_force(OrderTimeInForce {
+            duration: Duration::GTC,
+            expiration: None,
+        })
+        .build()?;
+
+    let take_profit_order_req = OrderRequestBuilder::new()
+        .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+        .symbol("XLRE")
+        .trade_action(TradeAction::BuyToCover)
+        .quantity("1000")
+        .order_type(OrderType::Limit)
+        .limit_price("35.75")
+        .time_in_force(OrderTimeInForce {
+            duration: Duration::GTC,
+            expiration: None,
+        })
+        .build()?;
+
+    let stop_loss_order_req = OrderRequestBuilder::new()
+        .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+        .symbol("XLRE")
+        .trade_action(TradeAction::BuyToCover)
+        .quantity("1000")
+        .order_type(OrderType::StopMarket)
+        .stop_price("46.50")
+        .time_in_force(OrderTimeInForce {
+            duration: Duration::GTC,
+            expiration: None,
+        })
+        .build()?;
+
+    let order_group = OrderRequestGroupBuilder::new()
+        .order_requests(Vec::from([
+            entry_order_req,
+            take_profit_order_req,
+            stop_loss_order_req,
+        ]))
+        .group_type(OrderGroupType::BRK)
+        .build()?;
+
+    let orders = order_group.place(&mut client).await?;
+    println!("Place Orders Result: {orders:?}");
     //--
 
     Ok(())

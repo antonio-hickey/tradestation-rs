@@ -24,6 +24,74 @@ pub struct Order {
     pub error: Option<String>,
 }
 impl Order {
+    /// Confirm an order getting back an estimated cost
+    /// and commission information for the order without
+    /// actually placing the order.
+    ///
+    /// NOTE: Only valid for `Market Limit`, `Stop Market`,
+    /// `Options`, and `Order Sends Order (OSO)` order types.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Confirm a limit buy order for 3 Month SOFR Futures at the
+    /// March 2025 contract @ 96.0725 with a quantity of 50 contracts
+    /// and a duration of Good Till Close (GTC).
+    ///
+    /// ```ignore
+    /// use tradestation::{
+    ///     ClientBuilder, Error, Token,
+    ///     execution::{Duration, OrderRequestBuilder, Order},
+    /// };
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Error> {
+    ///     // Create client
+    ///     let mut client = ClientBuilder::new()?
+    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .build()
+    ///         .await?;
+    ///
+    ///     let order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_FUTURES_ACCOUNT_ID")
+    ///         .symbol("SR3H25")
+    ///         .trade_action(TradeAction::Buy)
+    ///         .quantity("50")
+    ///         .order_type(OrderType::Limit)
+    ///         .limit_price("96.0725")
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     match Order::confirm(&mut client, &order_req).await {
+    ///         Ok(confirmation) => println!("Confirmed Order: {confirmation:?}"),
+    ///         Err(e) => println!("Issue Confirming Order: {e:?}"),
+    ///     };
+    ///     Ok(())
+    /// }
+    ///```
+    pub async fn confirm(
+        client: &mut Client,
+        order_request: &OrderRequest,
+    ) -> Result<Vec<OrderConfirmation>, Error> {
+        let endpoint = String::from("orderexecution/orderconfirm");
+        let resp: ConfirmOrderResp = client
+            .post(&endpoint, order_request)
+            .await?
+            .json::<ConfirmOrderRespRaw>()
+            .await?
+            .into();
+
+        if let Some(confirmations) = resp.confirmations {
+            Ok(confirmations)
+        } else {
+            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        }
+    }
+
     /// Place the `OrderRequest` getting back the result of the Order Request.
     ///
     /// # Example
@@ -59,6 +127,260 @@ impl Order {
 
         let resp: OrderResp = client
             .post(&endpoint, &order_request)
+            .await?
+            .json::<OrderRespRaw>()
+            .await?
+            .into();
+
+        if let Some(orders) = resp.orders {
+            Ok(orders)
+        } else {
+            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        }
+    }
+
+    /// Creates an Order Confirmation for a group order. Request valid for
+    /// Order Cancels Order (OCO) and Bracket (BRK) order types as well as
+    /// grouped orders of other types (NORMAL).
+    ///
+    /// # Order Cancels Order (OCO)
+    ///
+    /// An OCO order is a group of orders whereby if one of the orders is
+    /// filled or partially-filled, then all of the other orders in the
+    /// group are cancelled.
+    ///
+    /// # Bracket OCO Orders
+    ///
+    /// A bracket order is a special instance of an OCO (Order Cancel Order).
+    /// Bracket orders are used to exit an existing position. They are designed
+    /// to limit loss and lock in profit by “bracketing” an order with a simultaneous
+    /// stop and limit order.
+    ///
+    /// Bracket orders are limited so that the orders are all for the same symbol
+    /// and are on the same side of the market (either all to sell or all to cover),
+    /// and they are restricted to closing transactions.
+    ///
+    /// The reason that they follow these rules is because the orders need to be
+    /// able to auto decrement when a partial fill occurs with one of the orders.
+    /// For example, if the customer has a sell limit order for 1000 shares and
+    /// a sell stop order for 1000 shares, and the limit order is partially filled
+    /// for 500 shares, then the customer would want the stop to remain open, but
+    /// it should automatically decrement the order to 500 shares to match the
+    /// remaining open position.
+    ///
+    /// NOTE: When a group order is submitted, the order execution system treats
+    /// each sibling order as an individual order. Thus, the system does not validate
+    /// that each order has the same Quantity, and currently it is not able to update
+    /// a bracket order as one transaction, instead you must update each order within
+    /// a bracket.
+    ///
+    /// # Example
+    /// ---
+    /// Confirm a trade involving a bracket group of orders with one order
+    /// for opening the position, one order for closing the position at a
+    /// take profit price, and one order for closing the position at a stop
+    /// loss price. A total of 3 orders making up this position.
+    /// ```ignore
+    /// use tradestation::{
+    ///     execution::{Duration, Order, OrderRequestBuilder},
+    ///     ClientBuilder, Error, Token,
+    /// };
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Error> {
+    ///     // Create client
+    ///     let mut client = ClientBuilder::new()?
+    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .build()
+    ///         .await?;
+    ///
+    ///     let entry_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::SellShort)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::Market)
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let take_profit_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::BuyToCover)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::Limit)
+    ///         .limit_price("35.75")
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let stop_loss_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::BuyToCover)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::StopMarket)
+    ///         .stop_price("46.50")
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let order_group = OrderRequestGroupBuilder::new()
+    ///         .order_requests(Vec::from([
+    ///             entry_order_req,
+    ///             take_profit_order_req,
+    ///             stop_loss_order_req,
+    ///         ]))
+    ///         .group_type(OrderGroupType::BRK)
+    ///         .build()?;
+    ///
+    ///     let order_confirmations = Order::confirm(&mut client, &order_group).await?;
+    ///     println!("Confirm Orders Result: {order_confirmations:?}");
+    /// }
+    /// ```
+    pub async fn confirm_group(
+        client: &mut Client,
+        order_req_group: &OrderRequestGroup,
+    ) -> Result<Vec<OrderConfirmation>, Error> {
+        let endpoint = String::from("orderexecution/ordergroupconfirm");
+
+        let resp: ConfirmOrderResp = client
+            .post(&endpoint, order_req_group)
+            .await?
+            .json::<ConfirmOrderRespRaw>()
+            .await?
+            .into();
+
+        if let Some(confirmations) = resp.confirmations {
+            Ok(confirmations)
+        } else {
+            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        }
+    }
+
+    /// Submits a group order. Request valid for Order Cancels Order (OCO)
+    /// and Bracket (BRK) order types as well as grouped orders of other
+    /// types (NORMAL).
+    ///
+    /// # Order Cancels Order (OCO)
+    ///
+    /// An OCO order is a group of orders whereby if one of the orders is
+    /// filled or partially-filled, then all of the other orders in the
+    /// group are cancellCreates an Order Confirmation for a group order. Request valid for all account types. Request valid for Order Cancels Order (OCO) and Bracket (BRK) order types as well as grouped orders of other types (NORMAL).ed.
+    ///
+    /// # Bracket OCO Orders
+    ///
+    /// A bracket order is a special instance of an OCO (Order Cancel Order).
+    /// Bracket orders are used to exit an existing position. They are designed
+    /// to limit loss and lock in profit by “bracketing” an order with a simultaneous
+    /// stop and limit order.
+    ///
+    /// Bracket orders are limited so that the orders are all for the same symbol
+    /// and are on the same side of the market (either all to sell or all to cover),
+    /// and they are restricted to closing transactions.
+    ///
+    /// The reason that they follow these rules is because the orders need to be
+    /// able to auto decrement when a partial fill occurs with one of the orders.
+    /// For example, if the customer has a sell limit order for 1000 shares and
+    /// a sell stop order for 1000 shares, and the limit order is partially filled
+    /// for 500 shares, then the customer would want the stop to remain open, but
+    /// it should automatically decrement the order to 500 shares to match the
+    /// remaining open position.
+    ///
+    /// NOTE: When a group order is submitted, the order execution system treats
+    /// each sibling order as an individual order. Thus, the system does not validate
+    /// that each order has the same Quantity, and currently it is not able to update
+    /// a bracket order as one transaction, instead you must update each order within
+    /// a bracket.
+    ///
+    /// # Example
+    /// ---
+    /// Place a trade involving a bracket group of orders with one order
+    /// for opening the position, one order for closing the position at a
+    /// take profit price, and one order for closing the position at a stop
+    /// loss price. A total of 3 orders making up this position.
+    /// ```ignore
+    /// use tradestation::{
+    ///     execution::{Duration, Order, OrderRequestBuilder},
+    ///     ClientBuilder, Error, Token,
+    /// };
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Error> {
+    ///     // Create client
+    ///     let mut client = ClientBuilder::new()?
+    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .build()
+    ///         .await?;
+    ///
+    ///     let entry_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::SellShort)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::Market)
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let take_profit_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::BuyToCover)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::Limit)
+    ///         .limit_price("35.75")
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let stop_loss_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::BuyToCover)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::StopMarket)
+    ///         .stop_price("46.50")
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let order_group = OrderRequestGroupBuilder::new()
+    ///         .order_requests(Vec::from([
+    ///             entry_order_req,
+    ///             take_profit_order_req,
+    ///             stop_loss_order_req,
+    ///         ]))
+    ///         .group_type(OrderGroupType::BRK)
+    ///         .build()?;
+    ///
+    ///     let orders = Order::place_group(&mut client, &order_group).await?;
+    ///     println!("Place Orders Result: {orders:?}");
+    /// }
+    /// ```
+    pub async fn place_group(
+        client: &mut Client,
+        order_req_group: &OrderRequestGroup,
+    ) -> Result<Vec<Order>, Error> {
+        let endpoint = String::from("orderexecution/ordergroups");
+
+        let resp: OrderResp = client
+            .post(&endpoint, order_req_group)
             .await?
             .json::<OrderRespRaw>()
             .await?
@@ -173,6 +495,283 @@ impl Order {
             Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
         }
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct OrderRequestGroup {
+    pub order_requests: Vec<OrderRequest>,
+    pub group_type: OrderGroupType,
+}
+impl OrderRequestGroup {
+    /// Submits a group order. Request valid for Order Cancels Order (OCO)
+    /// and Bracket (BRK) order types as well as grouped orders of other
+    /// types (NORMAL).
+    ///
+    /// # Order Cancels Order (OCO)
+    ///
+    /// An OCO order is a group of orders whereby if one of the orders is
+    /// filled or partially-filled, then all of the other orders in the
+    /// group are cancellCreates an Order Confirmation for a group order. Request valid for all account types. Request valid for Order Cancels Order (OCO) and Bracket (BRK) order types as well as grouped orders of other types (NORMAL).ed.
+    ///
+    /// # Bracket OCO Orders
+    ///
+    /// A bracket order is a special instance of an OCO (Order Cancel Order).
+    /// Bracket orders are used to exit an existing position. They are designed
+    /// to limit loss and lock in profit by “bracketing” an order with a simultaneous
+    /// stop and limit order.
+    ///
+    /// Bracket orders are limited so that the orders are all for the same symbol
+    /// and are on the same side of the market (either all to sell or all to cover),
+    /// and they are restricted to closing transactions.
+    ///
+    /// The reason that they follow these rules is because the orders need to be
+    /// able to auto decrement when a partial fill occurs with one of the orders.
+    /// For example, if the customer has a sell limit order for 1000 shares and
+    /// a sell stop order for 1000 shares, and the limit order is partially filled
+    /// for 500 shares, then the customer would want the stop to remain open, but
+    /// it should automatically decrement the order to 500 shares to match the
+    /// remaining open position.
+    ///
+    /// NOTE: When a group order is submitted, the order execution system treats
+    /// each sibling order as an individual order. Thus, the system does not validate
+    /// that each order has the same Quantity, and currently it is not able to update
+    /// a bracket order as one transaction, instead you must update each order within
+    /// a bracket.
+    ///
+    /// # Example
+    /// ---
+    /// Place a trade involving a bracket group of orders with one order
+    /// for opening the position, one order for closing the position at a
+    /// take profit price, and one order for closing the position at a stop
+    /// loss price. A total of 3 orders making up this position.
+    /// ```ignore
+    /// use tradestation::{
+    ///     execution::{Duration, Order, OrderRequestBuilder},
+    ///     ClientBuilder, Error, Token,
+    /// };
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Error> {
+    ///     // Create client
+    ///     let mut client = ClientBuilder::new()?
+    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .build()
+    ///         .await?;
+    ///
+    ///     let entry_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::SellShort)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::Market)
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let take_profit_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::BuyToCover)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::Limit)
+    ///         .limit_price("35.75")
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let stop_loss_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::BuyToCover)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::StopMarket)
+    ///         .stop_price("46.50")
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let order_group = OrderRequestGroupBuilder::new()
+    ///         .order_requests(Vec::from([
+    ///             entry_order_req,
+    ///             take_profit_order_req,
+    ///             stop_loss_order_req,
+    ///         ]))
+    ///         .group_type(OrderGroupType::BRK)
+    ///         .build()?;
+    ///
+    ///     let orders = order_group.place(&mut client).await?;
+    ///     println!("Place Orders Result: {orders:?}");
+    /// }
+    /// ```
+    pub async fn place(&self, client: &mut Client) -> Result<Vec<Order>, Error> {
+        Order::place_group(client, self).await
+    }
+
+    /// Creates an Order Confirmation for a group order. Request valid for
+    /// Order Cancels Order (OCO) and Bracket (BRK) order types as well as
+    /// grouped orders of other types (NORMAL).
+    ///
+    /// # Order Cancels Order (OCO)
+    ///
+    /// An OCO order is a group of orders whereby if one of the orders is
+    /// filled or partially-filled, then all of the other orders in the
+    /// group are cancelled.
+    ///
+    /// # Bracket OCO Orders
+    ///
+    /// A bracket order is a special instance of an OCO (Order Cancel Order).
+    /// Bracket orders are used to exit an existing position. They are designed
+    /// to limit loss and lock in profit by “bracketing” an order with a simultaneous
+    /// stop and limit order.
+    ///
+    /// Bracket orders are limited so that the orders are all for the same symbol
+    /// and are on the same side of the market (either all to sell or all to cover),
+    /// and they are restricted to closing transactions.
+    ///
+    /// The reason that they follow these rules is because the orders need to be
+    /// able to auto decrement when a partial fill occurs with one of the orders.
+    /// For example, if the customer has a sell limit order for 1000 shares and
+    /// a sell stop order for 1000 shares, and the limit order is partially filled
+    /// for 500 shares, then the customer would want the stop to remain open, but
+    /// it should automatically decrement the order to 500 shares to match the
+    /// remaining open position.
+    ///
+    /// NOTE: When a group order is submitted, the order execution system treats
+    /// each sibling order as an individual order. Thus, the system does not validate
+    /// that each order has the same Quantity, and currently it is not able to update
+    /// a bracket order as one transaction, instead you must update each order within
+    /// a bracket.
+    ///
+    /// # Example
+    /// ---
+    /// Confirm a trade involving a bracket group of orders with one order
+    /// for opening the position, one order for closing the position at a
+    /// take profit price, and one order for closing the position at a stop
+    /// loss price. A total of 3 orders making up this position.
+    /// ```ignore
+    /// use tradestation::{
+    ///     execution::{Duration, Order, OrderRequestBuilder},
+    ///     ClientBuilder, Error, Token,
+    /// };
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Error> {
+    ///     // Create client
+    ///     let mut client = ClientBuilder::new()?
+    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .build()
+    ///         .await?;
+    ///
+    ///     let entry_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::SellShort)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::Market)
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let take_profit_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::BuyToCover)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::Limit)
+    ///         .limit_price("35.75")
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let stop_loss_order_req = OrderRequestBuilder::new()
+    ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
+    ///         .symbol("XLRE")
+    ///         .trade_action(TradeAction::BuyToCover)
+    ///         .quantity("1000")
+    ///         .order_type(OrderType::StopMarket)
+    ///         .stop_price("46.50")
+    ///         .time_in_force(OrderTimeInForce {
+    ///             duration: Duration::GTC,
+    ///             expiration: None,
+    ///         })
+    ///         .build()?;
+    ///
+    ///     let order_group = OrderRequestGroupBuilder::new()
+    ///         .order_requests(Vec::from([
+    ///             entry_order_req,
+    ///             take_profit_order_req,
+    ///             stop_loss_order_req,
+    ///         ]))
+    ///         .group_type(OrderGroupType::BRK)
+    ///         .build()?;
+    ///
+    ///     let order_confirmations = order_group.confirm(&mut client).await?;
+    ///     println!("Confirm Orders Result: {order_confirmations:?}");
+    /// }
+    /// ```
+    pub async fn confirm(self, client: &mut Client) -> Result<Vec<OrderConfirmation>, Error> {
+        Order::confirm_group(client, &self).await
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
+/// `OrderRequestGroup` builder
+pub struct OrderRequestGroupBuilder {
+    order_requests: Option<Vec<OrderRequest>>,
+    group_type: Option<OrderGroupType>,
+}
+impl OrderRequestGroupBuilder {
+    /// Initialize a default builder struct for an `OrderRequestGroup`.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the Order Requests (`Vec<execution::OrderRequest>`) for the group.
+    pub fn order_requests(mut self, order_reqs: Vec<OrderRequest>) -> Self {
+        self.order_requests = Some(order_reqs);
+        self
+    }
+
+    /// Set the Order Group Type (`execution::OrderGroupType`).
+    pub fn group_type(mut self, group_type: OrderGroupType) -> Self {
+        self.group_type = Some(group_type);
+        self
+    }
+
+    /// Finish building the `OrderRequestGroup`.
+    ///
+    /// NOTE: Setting `order_requests` is required before building.
+    ///
+    /// NOTE: Setting `group_type` is required before building.
+    pub fn build(self) -> Result<OrderRequestGroup, Error> {
+        Ok(OrderRequestGroup {
+            order_requests: self.order_requests.ok_or(Error::OrderRequestsNotSet)?,
+            group_type: self.group_type.ok_or(Error::OrderGroupTypeNotSet)?,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The different types of order groups
+pub enum OrderGroupType {
+    /// Bracket Order
+    BRK,
+    /// Order Cancels Order
+    OCO,
+    /// Normal Group of Orders
+    NORMAL,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
@@ -340,19 +939,7 @@ impl OrderRequest {
     /// }
     ///```
     pub async fn confirm(self, client: &mut Client) -> Result<Vec<OrderConfirmation>, Error> {
-        let endpoint = String::from("orderexecution/orderconfirm");
-        let resp: ConfirmOrderResp = client
-            .post(&endpoint, &self)
-            .await?
-            .json::<ConfirmOrderRespRaw>()
-            .await?
-            .into();
-
-        if let Some(confirmations) = resp.confirmations {
-            Ok(confirmations)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
-        }
+        Order::confirm(client, &self).await
     }
 }
 
