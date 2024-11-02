@@ -1,15 +1,14 @@
 //! # Tradestation Rust Client
 //!
-//! `tradestation` provides an ergonomic rust client for the TradeStation API.
+//! Fully featured and ergonomic rust client for the TradeStation API.
 //!
 //! ## Features
 //!
 //! - Accounting
 //! - Market Data
-//! - *Execution* (In Progress)
+//! - Execution
 //!
 //! ## Install
-//! ---
 //!
 //! Use Cargo CLI:
 //! ```ignore
@@ -22,7 +21,6 @@
 //! ```
 //!
 //! ## Usage
-//! ---
 //!
 //! Simple example for streaming 4 hour aggregated
 //! bars of trading activity for Crude Oil Futures:

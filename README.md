@@ -2,7 +2,8 @@
 
 An ergonomic Rust client for the [TradeStation API](https://www.tradestation.com/platforms-and-tools/trading-api/).
 
-[crates.io homepage](https://crates.io/crates/tradestation)
+* [crates.io homepage](https://crates.io/crates/tradestation)
+* [documentation](https://docs.rs/tradestation/latest/tradestation)
 
 Install
 ---
@@ -14,7 +15,7 @@ cargo install tradestation
 Or manually add it into your `Cargo.toml`:
 ```toml
 [dependencies]
-tradestation = "0.0.2"
+tradestation = "0.0.3"
 ```
 
 Usage
