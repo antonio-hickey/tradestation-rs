@@ -11,13 +11,13 @@
 //! ## Install
 //!
 //! Use Cargo CLI:
-//! ```ignore
+//! ```bash
 //! cargo install tradestation
 //! ```
 //! Or manually add it into your `Cargo.toml`:
-//! ```ignore
+//! ```toml
 //! [dependencies]
-//! tradestation = "0.0.2"
+//! tradestation = "0.0.4"
 //! ```
 //!
 //! ## Usage
