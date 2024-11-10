@@ -41,7 +41,7 @@ impl OptionExpiration {
     /// Fetch all expirations for Cloudflare (NET) options.
     ///
     /// ```ignore
-    /// let cloudflare_option_expirations = client.fetch_option_expirations("NET", None).await?;
+    /// let cloudflare_option_expirations = OptionExpiration::fetch("NET", None).await?;
     /// println!("Cloudflare Option Expirations: {cloudflare_option_expirations:?}");
     /// ```
     pub async fn fetch(
@@ -49,7 +49,7 @@ impl OptionExpiration {
         underlying_symbol: &str,
         strike_price: Option<f64>,
     ) -> Result<Vec<OptionExpiration>, Error> {
-        let mut endpoint = format!("marketdata/symbols/{}", underlying_symbol);
+        let mut endpoint = format!("marketdata/options/expirations/{}", underlying_symbol);
         if let Some(strike) = strike_price {
             let query_param = format!("?strikePrice={}", strike);
             endpoint.push_str(&query_param);
@@ -85,10 +85,10 @@ impl Client {
     /// Fetch all expirations for Cloudflare (NET) options.
     ///
     /// ```ignore
-    /// let cloudflare_option_expirations = client.fetch_option_expirations("NET", None).await?;
+    /// let cloudflare_option_expirations = client.get_option_expirations("NET", None).await?;
     /// println!("Cloudflare Option Expirations: {cloudflare_option_expirations:?}");
     /// ```
-    pub async fn fetch_option_expirations(
+    pub async fn get_option_expirations(
         &mut self,
         underlying_symbol: &str,
         strike_price: Option<f64>,

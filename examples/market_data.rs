@@ -30,12 +30,12 @@ async fn main() -> Result<(), Error> {
 
     //--
     // Example: Get all the available option expirations for Cloudflare (NET).
-    let cloudflare_option_expirations = client.fetch_option_expirations("NET", None).await?;
+    let cloudflare_option_expirations = client.get_option_expirations("NET", None).await?;
     println!("Cloudflare Option Expirations: {cloudflare_option_expirations:?}");
 
     // Example: Get all the available option expirations for Cloudflare (NET) at the $100 strike.
     let cloudflare_option_expirations_at_strike_100 =
-        client.fetch_option_expirations("NET", Some(100.00)).await?;
+        client.get_option_expirations("NET", Some(100.00)).await?;
     println!(
         "Cloudflare Option Expirations At The $100 strike price: {:?}",
         cloudflare_option_expirations_at_strike_100,
