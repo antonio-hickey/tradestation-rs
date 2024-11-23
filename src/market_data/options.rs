@@ -342,7 +342,7 @@ impl OptionRiskRewardAnalysis {
     /// use tradestation::{ClientBuilder, Error, MarketData::options::{OptionsLeg, OptionTradeAction}};
     ///
     /// let mut client = ClientBuilder::new()?
-    ///     .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .authorize("YOUR_AUTHORIZATION_CODE")
     ///     .await?
     ///     .build()
@@ -415,7 +415,7 @@ impl Client {
     /// use tradestation::{ClientBuilder, Error, MarketData::options::{OptionsLeg, OptionTradeAction}};
     ///
     /// let mut client = ClientBuilder::new()?
-    ///     .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .authorize("YOUR_AUTHORIZATION_CODE")
     ///     .await?
     ///     .build()

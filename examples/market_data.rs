@@ -20,7 +20,7 @@ async fn main() -> Result<(), Error> {
     // NOTE: With the `Client` you can directly interact with all of TradeStation's API endpoints,
     // but it's suggested to use the higher level abstractions provided in the examples below.
     let mut client = ClientBuilder::new()?
-        .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+        .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
         .authorize("YOUR_AUTHORIZATION_CODE")
         .await?
         .build()
@@ -54,9 +54,9 @@ async fn main() -> Result<(), Error> {
     // Example: Stream bars of November 2024 Crude Oil Futures trading activity in
     // 4 hour (240 minute) intervals.
     let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
-        .set_symbol("CLX24")
-        .set_unit(BarUnit::Minute)
-        .set_interval("240")
+        .symbol("CLX24")
+        .unit(BarUnit::Minute)
+        .interval(240)
         .build()?;
 
     let streamed_bars = client

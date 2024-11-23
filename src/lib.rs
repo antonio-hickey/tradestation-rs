@@ -34,7 +34,7 @@
 //! #[tokio::main]
 //! async fn main() -> Result<(), Error> {
 //!     let mut client = ClientBuilder::new()?
-//!         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+//!         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
 //!         .authorize("YOUR_AUTHORIZATION_CODE")
 //!         .await?
 //!         .build()
@@ -42,9 +42,9 @@
 //!     println!("Your TradeStation API Bearer Token: {:?}", client.token);
 //!
 //!     let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
-//!         .set_symbol("CLX24")
-//!         .set_unit(BarUnit::Minute)
-//!         .set_interval("240")
+//!         .symbol("CLX24")
+//!         .unit(BarUnit::Minute)
+//!         .interval("240")
 //!         .build()?;
 //!
 //!     let streamed_bars = client

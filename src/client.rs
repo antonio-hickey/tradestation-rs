@@ -283,7 +283,7 @@ impl ClientBuilder {
 }
 impl ClientBuilderStep<Step1> {
     /// Set your client id/key and secret
-    pub fn set_credentials(
+    pub fn credentials(
         self,
         client_id: &str,
         client_secret: &str,
@@ -336,7 +336,7 @@ impl ClientBuilderStep<Step2> {
     }
 
     /// Set the current `Token` for the `Client` to use
-    pub fn set_token(self, token: Token) -> Result<ClientBuilderStep<Step3>, Error> {
+    pub fn token(self, token: Token) -> Result<ClientBuilderStep<Step3>, Error> {
         Ok(ClientBuilderStep {
             _current_step: Step3,
             http_client: self.http_client,

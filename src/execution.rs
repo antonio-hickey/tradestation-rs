@@ -48,8 +48,8 @@ impl Order {
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
     ///     let mut client = ClientBuilder::new()?
-    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
     ///         .await?;
     ///
@@ -190,8 +190,8 @@ impl Order {
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
     ///     let mut client = ClientBuilder::new()?
-    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
     ///         .await?;
     ///
@@ -317,8 +317,8 @@ impl Order {
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
     ///     let mut client = ClientBuilder::new()?
-    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
     ///         .await?;
     ///
@@ -554,8 +554,8 @@ impl OrderRequestGroup {
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
     ///     let mut client = ClientBuilder::new()?
-    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
     ///         .await?;
     ///
@@ -665,8 +665,8 @@ impl OrderRequestGroup {
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
     ///     let mut client = ClientBuilder::new()?
-    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
     ///         .await?;
     ///
@@ -913,8 +913,8 @@ impl OrderRequest {
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
     ///     let mut client = ClientBuilder::new()?
-    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
     ///         .await?;
     ///
@@ -1364,8 +1364,8 @@ impl Route {
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
     ///     let mut client = ClientBuilder::new()?
-    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
     ///         .await?;
     ///
@@ -1405,8 +1405,8 @@ impl Client {
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
     ///     let mut client = ClientBuilder::new()?
-    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .set_token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
     ///         .await?;
     ///
@@ -1454,8 +1454,8 @@ impl ActivationTrigger {
     /// async fn main() -> Result<(), Error> {
     ///     // Initialize client
     ///     let mut client = ClientBuilder::new()?
-    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .set_token(Token {
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .token(Token {
     ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///             id_token: String::from("YOUR_ID_TOKEN"),
@@ -1506,8 +1506,8 @@ impl Client {
     /// async fn main() -> Result<(), Error> {
     ///     // Initialize client
     ///     let mut client = ClientBuilder::new()?
-    ///         .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .set_token(Token {
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///         .token(Token {
     ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///             id_token: String::from("YOUR_ID_TOKEN"),

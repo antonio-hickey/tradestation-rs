@@ -12,7 +12,7 @@ async fn main() -> Result<(), Error> {
     // NOTE: With the `Client` you can interact with all of TradeStation's API endpoints,
     // but it's suggested to use the higher level abstractions provided in the examples below.
     let mut client = ClientBuilder::new()?
-        .set_credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+        .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
         .authorize("YOUR_AUTHORIZATION_CODE")
         .await?
         .build()

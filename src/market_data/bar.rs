@@ -66,10 +66,10 @@ impl Bar {
     /// activity for November 2024 Crude Oil Futures.
     /// ```ignore
     /// let fetch_bars_query = MarketData::GetBarsQueryBuilder::new()
-    ///     .set_symbol("CLX24")
-    ///     .set_unit(BarUnit::Minute)
-    ///     .set_interval("5")
-    ///     .set_bars_back("10")
+    ///     .symbol("CLX24")
+    ///     .unit(BarUnit::Minute)
+    ///     .interval("5")
+    ///     .bars_back("10")
     ///     .build()?;
     ///
     /// let bars = client.fetch_bars(&fetch_bars_query).await?;
@@ -108,9 +108,9 @@ impl Bar {
     /// in 4 hour (240 minute) intervals.
     /// ```ignore
     /// let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
-    ///     .set_symbol("CLX24")
-    ///     .set_unit(BarUnit::Minute)
-    ///     .set_interval("240")
+    ///     .symbol("CLX24")
+    ///     .unit(BarUnit::Minute)
+    ///     .interval("240")
     ///     .build()?;
     ///
     /// let streamed_bars = client
@@ -220,7 +220,7 @@ pub struct GetBarsQuery {
     ///
     /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
-    pub interval: String,
+    pub interval: i16,
     /// The unit of measurement for time in each bar interval.
     pub unit: BarUnit,
     /// Number of bars back to fetch.
@@ -230,7 +230,7 @@ pub struct GetBarsQuery {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    pub bars_back: String,
+    pub bars_back: i16,
     /// The first date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
     /// NOTE: This parameter is mutually exclusive with the `bars_back` parameter.
@@ -257,9 +257,7 @@ impl GetBarsQuery {
 
         query_string.push_str(&format!("interval={}&", self.interval));
         query_string.push_str(&format!("unit={:?}&", self.unit));
-        if !self.bars_back.is_empty() {
-            query_string.push_str(&format!("barsBack={}&", self.bars_back));
-        }
+        query_string.push_str(&format!("barsBack={}&", self.bars_back));
         if !self.first_date.is_empty() {
             query_string.push_str(&format!("firstDate={}&", self.first_date));
         }
@@ -293,7 +291,7 @@ pub struct StreamBarsQuery {
     ///
     /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
-    pub interval: String,
+    pub interval: i16,
     /// The unit of measurement for time in each bar interval.
     pub unit: BarUnit,
     /// Number of bars back to fetch.
@@ -303,7 +301,7 @@ pub struct StreamBarsQuery {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    pub bars_back: String,
+    pub bars_back: i16,
     /// The United States (US) stock market session template.
     ///
     /// NOTE: Ignored for non U.S equity symbols.
@@ -315,9 +313,7 @@ impl StreamBarsQuery {
 
         query_string.push_str(&format!("interval={}&", self.interval));
         query_string.push_str(&format!("unit={:?}&", self.unit));
-        if !self.bars_back.is_empty() {
-            query_string.push_str(&format!("barsBack={}&", self.bars_back));
-        }
+        query_string.push_str(&format!("barsBack={}&", self.bars_back));
         query_string.push_str(&format!("sessionTemplate={:?}&", self.session_template));
 
         if query_string.ends_with('&') {
@@ -381,7 +377,7 @@ pub struct GetBarsQueryBuilder {
     ///
     /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
-    interval: Option<String>,
+    interval: Option<i16>,
     /// The unit of measurement for time in each bar interval.
     unit: Option<BarUnit>,
     /// Number of bars back to fetch.
@@ -391,7 +387,7 @@ pub struct GetBarsQueryBuilder {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    bars_back: Option<String>,
+    bars_back: Option<i16>,
     /// The first date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
     /// NOTE: This parameter is mutually exclusive with the `bars_back` parameter.
@@ -432,7 +428,7 @@ impl GetBarsQueryBuilder {
     /// E.g: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
     /// or
     /// E.g: `"PLTR"` for bars on the stock Palantir.
-    pub fn set_symbol(mut self, symbol: impl Into<String>) -> Self {
+    pub fn symbol(mut self, symbol: impl Into<String>) -> Self {
         self.symbol = Some(symbol.into());
         self
     }
@@ -444,13 +440,13 @@ impl GetBarsQueryBuilder {
     ///
     /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
-    pub fn set_interval(mut self, interval: impl Into<String>) -> Self {
-        self.interval = Some(interval.into());
+    pub fn interval(mut self, interval: i16) -> Self {
+        self.interval = Some(interval);
         self
     }
 
     /// Set the unit of measurement for time in each bar interval.
-    pub fn set_unit(mut self, unit: BarUnit) -> Self {
+    pub fn unit(mut self, unit: BarUnit) -> Self {
         self.unit = Some(unit);
         self
     }
@@ -462,15 +458,15 @@ impl GetBarsQueryBuilder {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    pub fn set_bars_back(mut self, bars_back: impl Into<String>) -> Self {
-        self.bars_back = Some(bars_back.into());
+    pub fn bars_back(mut self, bars_back: i16) -> Self {
+        self.bars_back = Some(bars_back);
         self
     }
 
     /// Set the first date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
     /// NOTE: This parameter is mutually exclusive with the `bars_back` parameter.
-    pub fn set_first_date(mut self, first_date: impl Into<String>) -> Self {
+    pub fn first_date(mut self, first_date: impl Into<String>) -> Self {
         self.first_date = Some(first_date.into());
         self
     }
@@ -481,7 +477,7 @@ impl GetBarsQueryBuilder {
     ///
     /// NOTE: This parameter is mutually exclusive with the `start_date` parameter
     /// and should be used instead of that parameter, since startdate is deprecated.
-    pub fn set_last_date(mut self, last_date: impl Into<String>) -> Self {
+    pub fn last_date(mut self, last_date: impl Into<String>) -> Self {
         self.last_date = Some(last_date.into());
         self
     }
@@ -489,7 +485,7 @@ impl GetBarsQueryBuilder {
     /// Set the United States (US) stock market session template.
     ///
     /// NOTE: Ignored for non U.S equity symbols.
-    pub fn set_session_template(mut self, session_template: SessionTemplate) -> Self {
+    pub fn session_template(mut self, session_template: SessionTemplate) -> Self {
         self.session_template = Some(session_template);
         self
     }
@@ -497,20 +493,20 @@ impl GetBarsQueryBuilder {
     /// DEPRECATED: Use `last_date` instead of `start_date` !
     ///
     /// Set the last date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
-    pub fn set_start_date(mut self, start_date: impl Into<String>) -> Self {
+    pub fn start_date(mut self, start_date: impl Into<String>) -> Self {
         self.start_date = Some(start_date.into());
         self
     }
 
     /// Finish building, returning a `GetBarsQuery`.
     ///
-    /// NOTE: You must call `set_symbol` before calling `build`.
+    /// NOTE: You must set `symbol` before calling `build`.
     pub fn build(self) -> Result<GetBarsQuery, Error> {
         Ok(GetBarsQuery {
             symbol: self.symbol.ok_or_else(|| Error::SymbolNotSet)?,
-            interval: self.interval.unwrap_or(String::from("1")),
+            interval: self.interval.unwrap_or(1),
             unit: self.unit.unwrap_or(BarUnit::Daily),
-            bars_back: self.bars_back.unwrap_or(String::from("1")),
+            bars_back: self.bars_back.unwrap_or(1),
             first_date: self.first_date.unwrap_or_default(),
             last_date: self.last_date.unwrap_or_default(),
             session_template: self.session_template.unwrap_or(SessionTemplate::Default),
@@ -535,7 +531,7 @@ pub struct StreamBarsQueryBuilder {
     ///
     /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
-    interval: Option<String>,
+    interval: Option<i16>,
     /// The unit of measurement for time in each bar interval.
     unit: Option<BarUnit>,
     /// Number of bars back to fetch.
@@ -545,7 +541,7 @@ pub struct StreamBarsQueryBuilder {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    bars_back: Option<String>,
+    bars_back: Option<i16>,
     /// The United States (US) stock market session template.
     ///
     /// NOTE: Ignored for non U.S equity symbols.
@@ -568,7 +564,7 @@ impl StreamBarsQueryBuilder {
     /// E.g: `"SR3Z24"` for bars on Three Month SOFR Futures December 2024 Contract.
     /// or
     /// E.g: `"PLTR"` for bars on the stock Palantir.
-    pub fn set_symbol(mut self, symbol: impl Into<String>) -> Self {
+    pub fn symbol(mut self, symbol: impl Into<String>) -> Self {
         self.symbol = Some(symbol.into());
         self
     }
@@ -580,13 +576,13 @@ impl StreamBarsQueryBuilder {
     ///
     /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
-    pub fn set_interval(mut self, interval: impl Into<String>) -> Self {
-        self.interval = Some(interval.into());
+    pub fn interval(mut self, interval: i16) -> Self {
+        self.interval = Some(interval);
         self
     }
 
     /// Set the unit of measurement for time in each bar interval.
-    pub fn set_unit(mut self, unit: BarUnit) -> Self {
+    pub fn unit(mut self, unit: BarUnit) -> Self {
         self.unit = Some(unit);
         self
     }
@@ -598,28 +594,28 @@ impl StreamBarsQueryBuilder {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    pub fn set_bars_back(mut self, bars_back: impl Into<String>) -> Self {
-        self.bars_back = Some(bars_back.into());
+    pub fn bars_back(mut self, bars_back: i16) -> Self {
+        self.bars_back = Some(bars_back);
         self
     }
 
     /// Set the United States (US) stock market session template.
     ///
     /// NOTE: Ignored for non U.S equity symbols.
-    pub fn set_session_template(mut self, session_template: SessionTemplate) -> Self {
+    pub fn session_template(mut self, session_template: SessionTemplate) -> Self {
         self.session_template = Some(session_template);
         self
     }
 
     /// Finish building, returning a `StreamBarsQuery`.
     ///
-    /// NOTE: You must call `set_symbol` before calling `build`.
+    /// NOTE: You must set `symbol` before calling `build`.
     pub fn build(self) -> Result<StreamBarsQuery, Error> {
         Ok(StreamBarsQuery {
             symbol: self.symbol.ok_or_else(|| Error::SymbolNotSet)?,
-            interval: self.interval.unwrap_or(String::from("1")),
+            interval: self.interval.unwrap_or(1),
             unit: self.unit.unwrap_or(BarUnit::Daily),
-            bars_back: self.bars_back.unwrap_or(String::from("1")),
+            bars_back: self.bars_back.unwrap_or(1),
             session_template: self.session_template.unwrap_or(SessionTemplate::Default),
         })
     }
