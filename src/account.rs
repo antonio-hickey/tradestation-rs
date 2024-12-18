@@ -172,6 +172,175 @@ impl Account {
         Ok(resp.orders)
     }
 
+    /// Fetches orders for the given `Account`.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab all the orders for a specific account. Say you need to go
+    /// through all the orders your algorithm placed today and filter out
+    /// only the orders that were filled for data storage purposes.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// // Grab your accounts and specify an account the orders were placed in
+    /// let accounts = client.get_accounts().await?;
+    /// if let Some(specific_account) = accounts.find_by_id("YOUR_ACCOUNT_ID") {
+    ///     // Get all the orders from today for a specific account
+    ///     let orders = specific_account.get_orders( &mut client).await?;
+    ///
+    ///     // Filter out only filled orders
+    ///     let filled_orders: Vec<Order> = orders
+    ///         .into_iter()
+    ///         .filter(|order| order.status == "FLL")
+    ///         .collect();
+    ///
+    ///     // Do something with your filled orders
+    ///     for order in filled_orders {
+    ///         println!("Filled Order: {order:?}");
+    ///     }
+    /// }
+    /// ```
+    pub async fn get_orders(&self, client: &mut Client) -> Result<Vec<Order>, Error> {
+        let endpoint = format!("brokerage/accounts/{}/orders", self.account_id);
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetOrdersResp>()
+            .await?;
+
+        Ok(resp.orders)
+    }
+
+    /// NOTE: Same as `get_orders` but for multiple accounts
+    /// NOTE: For internal use only. Use `Account::get_orders_by_id()`
+    /// to access this functionality.
+    async fn get_orders_for_accounts<S: Into<String>>(
+        account_ids: Vec<S>,
+        client: &mut Client,
+    ) -> Result<Vec<Order>, Error> {
+        let account_ids: Vec<String> = account_ids
+            .into_iter()
+            .map(|account_id| account_id.into())
+            .collect();
+
+        let endpoint = format!("brokerage/accounts/{}/orders", account_ids.join(","));
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetOrdersResp>()
+            .await?;
+
+        Ok(resp.orders)
+    }
+
+    /// Fetches orders by order id for the given `Account`.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab 2 specific orders by their id's, say you have a stop loss order
+    /// and a take profit order you want to check the status on, this is how.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// // Grab your accounts and specify an account the orders were placed in
+    /// let accounts = client.get_accounts().await?;
+    /// if let Some(specific_account) = accounts.find_by_id("YOUR_ACCOUNT_ID") {
+    ///     // Get some specific orders by their order id's
+    ///     let orders = specific_account.
+    ///         get_orders_by_id(vec!["1115661503", "1115332365"], &mut client)
+    ///         .await?;
+    ///
+    ///     // Log the status of the order's
+    ///     for order in orders {
+    ///         println!("Order ID ({}) status: {}", order.order_id, order.status);
+    ///     }
+    /// }
+    /// ```
+    pub async fn get_orders_by_id<S: Into<String>>(
+        &self,
+        order_ids: Vec<S>,
+        client: &mut Client,
+    ) -> Result<Vec<Order>, Error> {
+        let order_ids: Vec<String> = order_ids.into_iter().map(|id| id.into()).collect();
+
+        let endpoint = format!(
+            "brokerage/accounts/{}/orders/{}",
+            self.account_id,
+            &order_ids.join(",")
+        );
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetOrdersResp>()
+            .await?;
+
+        Ok(resp.orders)
+    }
+
+    /// NOTE: Same as `get_orders_by_id` but for multiple accounts
+    /// NOTE: For internal use only. Use `Account::get_orders_by_id()`
+    /// to access this functionality.
+    async fn get_orders_by_id_for_accounts<S: Into<String>>(
+        account_ids: Vec<S>,
+        order_ids: Vec<S>,
+        client: &mut Client,
+    ) -> Result<Vec<Order>, Error> {
+        let account_ids: Vec<String> = account_ids
+            .into_iter()
+            .map(|account_id| account_id.into())
+            .collect();
+
+        let order_ids: Vec<String> = order_ids
+            .into_iter()
+            .map(|order_id| order_id.into())
+            .collect();
+
+        let endpoint = format!(
+            "brokerage/accounts/{}/orders/{}",
+            account_ids.join(","),
+            &order_ids.join(",")
+        );
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetOrdersResp>()
+            .await?;
+
+        Ok(resp.orders)
+    }
+
     /// Fetches positions for the given `Account`.
     pub async fn get_positions(&self, client: &mut Client) -> Result<Vec<Position>, Error> {
         let endpoint = format!("brokerage/accounts/{}/positions", self.account_id);
@@ -821,6 +990,98 @@ pub trait MultipleAccounts {
     /// Find an `Account` by it's id.
     fn find_by_id(&self, id: &str) -> Option<Account>;
 
+    type GetOrdersFuture<'a>: Future<Output = Result<Vec<Order>, Box<dyn StdErrorTrait + Send + Sync>>>
+        + Send
+        + 'a
+    where
+        Self: 'a;
+    /// Get `Order`(s) for multiple `Account`(s).
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab all the orders for a specific account. Say you need to go
+    /// through all the orders your algorithm placed today and filter out
+    /// only the orders that were filled for data storage purposes.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// // Grab your accounts and specify an account the orders were placed in
+    /// let accounts = client.get_accounts().await?;
+    /// if let Some(specific_account) = accounts.find_by_id("YOUR_ACCOUNT_ID") {
+    ///     // Get all the orders from today for a specific account
+    ///     let orders = specific_account.get_orders( &mut client).await?;
+    ///
+    ///     // Filter out only filled orders
+    ///     let filled_orders: Vec<Order> = orders
+    ///         .into_iter()
+    ///         .filter(|order| order.status == "FLL")
+    ///         .collect();
+    ///
+    ///     // Do something with your filled orders
+    ///     for order in filled_orders {
+    ///         println!("Filled Order: {order:?}");
+    ///     }
+    /// }
+    /// ```
+    fn get_orders<'a>(&'a self, client: &'a mut Client) -> Self::GetOrdersFuture<'a>;
+
+    /// Get specific `Order`(s) by their id's for multiple `Account`(s).
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab 2 specific orders by their id's, say you have a stop loss order
+    /// and a take profit order you want to check the status on, this is how.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// // Grab your accounts and specify an account the orders were placed in
+    /// let accounts = client.get_accounts().await?;
+    /// if let Some(specific_account) = accounts.find_by_id("YOUR_ACCOUNT_ID") {
+    ///     // Get some specific orders by their order id's
+    ///     let orders = specific_account.
+    ///         get_orders_by_id(vec!["1115661503", "1115332365"], &mut client)
+    ///         .await?;
+    ///
+    ///     // Log the status of the order's
+    ///     for order in orders {
+    ///         println!("Order ID ({}) status: {}", order.order_id, order.status);
+    ///     }
+    /// }
+    /// ```
+    fn get_orders_by_id<'a>(
+        &'a self,
+        order_ids: &'a [&str],
+        client: &'a mut Client,
+    ) -> Self::GetOrdersFuture<'a>;
+
     type GetBalanceFuture<'a>: Future<Output = Result<Vec<Balance>, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
         + 'a
@@ -1108,6 +1369,44 @@ impl MultipleAccounts for Vec<Account> {
             .collect::<Vec<&Account>>()
             .pop()
             .cloned()
+    }
+
+    type GetOrdersFuture<'a> = Pin<
+        Box<
+            dyn Future<Output = Result<Vec<Order>, Box<dyn StdErrorTrait + Send + Sync>>>
+                + Send
+                + 'a,
+        >,
+    >;
+    fn get_orders<'a>(&'a self, client: &'a mut Client) -> Self::GetOrdersFuture<'a> {
+        let account_ids: Vec<&str> = self
+            .iter()
+            .map(|account| account.account_id.as_str())
+            .collect();
+
+        Box::pin(async move {
+            let orders = Account::get_orders_for_accounts(account_ids, client).await?;
+            Ok(orders)
+        })
+    }
+
+    fn get_orders_by_id<'a>(
+        &'a self,
+        order_ids: &'a [&str],
+        client: &'a mut Client,
+    ) -> Self::GetOrdersFuture<'a> {
+        let account_ids: Vec<&str> = self
+            .iter()
+            .map(|account| account.account_id.as_str())
+            .collect();
+
+        Box::pin(async move {
+            let orders =
+                Account::get_orders_by_id_for_accounts(account_ids, order_ids.to_vec(), client)
+                    .await?;
+
+            Ok(orders)
+        })
     }
 
     type GetBalanceFuture<'a> = Pin<
@@ -1868,7 +2167,9 @@ pub struct Order {
     pub price_used_for_buying_power: String,
     /// Identifies the routing selection made by the customer when
     /// placing the `Order`.
-    pub routing: String,
+    ///
+    /// NOTE: ONLY valid for Equities.
+    pub routing: Option<String>,
     /// Hides the true number of shares intended to be bought or sold.
     ///
     /// NOTE: ONLY valid for `OrderType::Limit` or `Order::Type::StopLimit`
