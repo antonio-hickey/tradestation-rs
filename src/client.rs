@@ -13,6 +13,12 @@ pub struct Client {
     client_secret: String,
     /// Bearer Token for TradeStation's API
     pub token: Token,
+    /// The base url used for all endpoints.
+    ///
+    /// NOTE: You should leave this default unless you
+    /// specifically want to use a custom address for
+    /// testing or mocking purposes.
+    pub base_url: String,
 }
 impl Client {
     /// Send an HTTP request to TradeStation's API, with automatic
@@ -49,7 +55,7 @@ impl Client {
         endpoint: &str,
         payload: &T,
     ) -> Result<Response, Error> {
-        let url = format!("https://api.tradestation.com/v3/{endpoint}");
+        let url = format!("https://{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
             .send_request(|token| {
@@ -70,7 +76,7 @@ impl Client {
 
     /// Send a GET request from your `Client` to TradeStation's API
     pub async fn get(&mut self, endpoint: &str) -> Result<Response, Error> {
-        let url = format!("https://api.tradestation.com/v3/{endpoint}");
+        let url = format!("https://{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
             .send_request(|token| {
@@ -93,7 +99,7 @@ impl Client {
         endpoint: &str,
         payload: &T,
     ) -> Result<Response, Error> {
-        let url = format!("https://api.tradestation.com/v3/{endpoint}");
+        let url = format!("https://{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
             .send_request(|token| {
@@ -114,7 +120,7 @@ impl Client {
 
     /// Send a DELETE request from your `Client` to TradeStation's API
     pub async fn delete(&mut self, endpoint: &str) -> Result<Response, Error> {
-        let url = format!("https://api.tradestation.com/v3/{endpoint}");
+        let url = format!("https://{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
             .send_request(|token| {
@@ -139,7 +145,8 @@ impl Client {
     where
         F: FnMut(Value) -> Result<(), Error>,
     {
-        let url = format!("https://api.tradestation.com/v3/{endpoint}");
+        let url = format!("https://{}/{}", self.base_url, endpoint);
+
         let mut resp = self
             .clone()
             .send_request(|token| {
@@ -268,6 +275,7 @@ pub struct ClientBuilderStep<CurrentStep> {
     client_id: Option<String>,
     client_secret: Option<String>,
     token: Option<Token>,
+    testing_url: Option<String>,
 }
 
 impl ClientBuilder {
@@ -295,6 +303,24 @@ impl ClientBuilderStep<Step1> {
             client_secret: Some(client_secret.into()),
             ..Default::default()
         })
+    }
+
+    /// Set the testing url for the client to use for sending
+    /// ALL the requests to your test/mock server instead of
+    /// the default TradeStation API url.
+    ///
+    /// NOTE: This should ONLY be set for testing and
+    /// mocking purposes. This should NOT be set used
+    /// with a production `Client`.
+    pub fn testing_url(self, url: &str) -> ClientBuilderStep<Step3> {
+        ClientBuilderStep {
+            _current_step: Step3,
+            http_client: self.http_client,
+            client_id: self.client_id,
+            client_secret: self.client_secret,
+            token: self.token,
+            testing_url: Some(url.into()),
+        }
     }
 }
 impl ClientBuilderStep<Step2> {
@@ -332,6 +358,7 @@ impl ClientBuilderStep<Step2> {
             client_id: self.client_id,
             client_secret: self.client_secret,
             token: Some(token),
+            testing_url: self.testing_url,
         })
     }
 
@@ -343,6 +370,7 @@ impl ClientBuilderStep<Step2> {
             client_id: self.client_id,
             client_secret: self.client_secret,
             token: Some(token),
+            testing_url: self.testing_url,
         })
     }
 }
@@ -350,15 +378,42 @@ impl ClientBuilderStep<Step3> {
     /// Finish building into a `Client`.
     pub async fn build(self) -> Result<Client, Error> {
         let http_client = self.http_client.unwrap();
-        let client_id = self.client_id.unwrap();
-        let client_secret = self.client_secret.unwrap();
-        let token = self.token.unwrap();
 
-        Ok(Client {
-            http_client,
-            client_id,
-            client_secret,
-            token,
-        })
+        if self.testing_url.is_none() {
+            let client_id = self.client_id.unwrap();
+            let client_secret = self.client_secret.unwrap();
+            let token = self.token.unwrap();
+            let base_url = "api.tradestation.com/v3".to_string();
+
+            Ok(Client {
+                http_client,
+                client_id,
+                client_secret,
+                token,
+                base_url,
+            })
+        } else {
+            let client_id = "NO_CLIENT_ID_IN_TEST_MODE".to_string();
+            let client_secret = "NO_CLIENT_SECRET_IN_TEST_MODE".to_string();
+            let token = Token {
+                access_token: String::from("NO_ACCESS_TOKEN_IN_TEST_MODE"),
+                refresh_token: String::from("NO_REFRESH_TOKEN_IN_TEST_MODE"),
+                id_token: String::from("NO_ID_TOKEN_IN_TEST_MODE"),
+                token_type: String::from("TESTING"),
+                scope: String::from("NO SCOPES IN TEST MODE"),
+                expires_in: 9999,
+            };
+            let base_url = self
+                .testing_url
+                .expect("Some `Client::testing_url` to be set due to invariant check.");
+
+            Ok(Client {
+                http_client,
+                client_id,
+                client_secret,
+                token,
+                base_url,
+            })
+        }
     }
 }
