@@ -230,7 +230,7 @@ pub struct GetBarsQuery {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    pub bars_back: i16,
+    pub bars_back: u32,
     /// The first date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
     /// NOTE: This parameter is mutually exclusive with the `bars_back` parameter.
@@ -301,7 +301,7 @@ pub struct StreamBarsQuery {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    pub bars_back: i16,
+    pub bars_back: u32,
     /// The United States (US) stock market session template.
     ///
     /// NOTE: Ignored for non U.S equity symbols.
@@ -387,7 +387,7 @@ pub struct GetBarsQueryBuilder {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    bars_back: Option<i16>,
+    bars_back: Option<u32>,
     /// The first date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
     /// NOTE: This parameter is mutually exclusive with the `bars_back` parameter.
@@ -458,7 +458,7 @@ impl GetBarsQueryBuilder {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    pub fn bars_back(mut self, bars_back: i16) -> Self {
+    pub fn bars_back(mut self, bars_back: u32) -> Self {
         self.bars_back = Some(bars_back);
         self
     }
@@ -541,7 +541,7 @@ pub struct StreamBarsQueryBuilder {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    bars_back: Option<i16>,
+    bars_back: Option<u32>,
     /// The United States (US) stock market session template.
     ///
     /// NOTE: Ignored for non U.S equity symbols.
@@ -594,7 +594,7 @@ impl StreamBarsQueryBuilder {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    pub fn bars_back(mut self, bars_back: i16) -> Self {
+    pub fn bars_back(mut self, bars_back: u32) -> Self {
         self.bars_back = Some(bars_back);
         self
     }
