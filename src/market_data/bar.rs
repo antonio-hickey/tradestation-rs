@@ -463,6 +463,16 @@ impl GetBarsQueryBuilder {
         self
     }
 
+    /// Fetch the maximum (57,600) bars back to fetch.
+    ///
+    /// NOTE: This parameter is mutually exclusive with the `first_date` and `bars_back`
+    /// parameters. If using this method `max_bars_back` then you should not use either
+    /// `first_date` or `bars_back` methods as they can overwrite this parameter.
+    pub fn max_bars_back(mut self) -> Self {
+        self.bars_back = Some(57_600);
+        self
+    }
+
     /// Set the first date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
     /// NOTE: This parameter is mutually exclusive with the `bars_back` parameter.
@@ -593,9 +603,21 @@ impl StreamBarsQueryBuilder {
     /// is 57,600. There is no limit on `BarUnit::Daily`, `BarUnit::Weekly`,
     /// or `BarUnit::Monthly` unit.
     ///
-    /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
+    /// NOTE: This parameter is mutually exclusive with the `max_bars_back` parameter.
+    /// If using this method `bars_back` then you should not use the `max_bars_back`
+    /// method as it can overwrite this parameter.
     pub fn bars_back(mut self, bars_back: u32) -> Self {
         self.bars_back = Some(bars_back);
+        self
+    }
+
+    /// Fetch the maximum (57,600) bars back to fetch with the stream.
+    ///
+    /// NOTE: This parameter is mutually exclusive with the `bars_back` parameter.
+    /// If using this method `max_bars_back` then you should not use the `bars_back`
+    /// method as it can overwrite this parameter.
+    pub fn max_bars_back(mut self) -> Self {
+        self.bars_back = Some(57_600);
         self
     }
 
