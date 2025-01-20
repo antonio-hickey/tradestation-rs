@@ -205,7 +205,7 @@ impl Account {
     ///     // Filter out only filled orders
     ///     let filled_orders: Vec<Order> = orders
     ///         .into_iter()
-    ///         .filter(|order| order.status == "FLL")
+    ///         .filter(|order| order.status == OrderStatus::FLL)
     ///         .collect();
     ///
     ///     // Do something with your filled orders
@@ -524,7 +524,7 @@ impl Account {
     /// Do something until all order's in a trade are filled.
     ///
     /// ```ignore
-    /// let mut some_trades_order_statuses: HashMap<String, String> = HashMap::new();
+    /// let mut some_trades_order_statuses: HashMap<String, OrderStatus> = HashMap::new();
     /// specific_account
     ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
     ///     .stream_orders_by_id(&mut client, "1111,1112,1113,1114", |stream_data| {
@@ -539,7 +539,7 @@ impl Account {
     ///                 some_trades_order_statuses.insert(order.order_id, order.status);
     ///                 if some_trades_order_statuses
     ///                     .values()
-    ///                     .all(|order_status| order_status.eq("FLL"))
+    ///                     .all(|order_status| order_status == OrderStatus::FLL)
     ///                 {
     ///                     // When all order's are filled stop the stream
     ///                     return Err(Error::StopStream);
@@ -709,7 +709,7 @@ impl Account {
     ///
     /// Do something until all order's in a trade are filled.
     /// ```ignore
-    /// let mut some_trades_order_statuses: HashMap<String, String> = HashMap::new();
+    /// let mut some_trades_order_statuses: HashMap<String, OrderStatus> = HashMap::new();
     /// specific_account
     ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
     ///     .stream_orders_by_id(&mut client, "1111,1112,1113,1114", |stream_data| {
@@ -724,7 +724,7 @@ impl Account {
     ///                 some_trades_order_statuses.insert(order.order_id, order.status);
     ///                 if some_trades_order_statuses
     ///                     .values()
-    ///                     .all(|order_status| order_status.eq("FLL"))
+    ///                     .all(|order_status| order_status == OrderStatus::FLL)
     ///                 {
     ///                     // When all order's are filled stop the stream
     ///                     return Err(Error::StopStream);
@@ -1220,7 +1220,7 @@ pub trait MultipleAccounts {
     ///
     /// Do something until all order's in a trade are filled.
     /// ```ignore
-    /// let mut some_trades_order_statuses: HashMap<String, String> = HashMap::new();
+    /// let mut some_trades_order_statuses: HashMap<String, OrderStatus> = HashMap::new();
     /// specific_account
     ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
     ///     .stream_orders_by_id(&mut client, "1111,1112,1113,1114", |stream_data| {
@@ -1235,7 +1235,7 @@ pub trait MultipleAccounts {
     ///                 some_trades_order_statuses.insert(order.order_id, order.status);
     ///                 if some_trades_order_statuses
     ///                     .values()
-    ///                     .all(|order_status| order_status.eq("FLL"))
+    ///                     .all(|order_status| order_status == OrderStatus::FLL)
     ///                 {
     ///                     // When all order's are filled stop the stream
     ///                     return Err(Error::StopStream);
@@ -1620,7 +1620,7 @@ impl MultipleAccounts for Vec<Account> {
     ///
     /// Do something until all order's in a trade are filled.
     /// ```ignore
-    /// let mut some_trades_order_statuses: HashMap<String, String> = HashMap::new();
+    /// let mut some_trades_order_statuses: HashMap<String, OrderStatus> = HashMap::new();
     /// specific_account
     ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
     ///     .stream_orders_by_id(&mut client, "1111,1112,1113,1114", |stream_data| {
@@ -1635,7 +1635,7 @@ impl MultipleAccounts for Vec<Account> {
     ///                 some_trades_order_statuses.insert(order.order_id, order.status);
     ///                 if some_trades_order_statuses
     ///                     .values()
-    ///                     .all(|order_status| order_status.eq("FLL"))
+    ///                     .all(|order_status| order_status == OrderStatus::FLL)
     ///                 {
     ///                     // When all order's are filled stop the stream
     ///                     return Err(Error::StopStream);
@@ -2180,8 +2180,7 @@ pub struct Order {
     /// The spread type for an option `Order`
     pub spread: Option<String>,
     /// The status of an `Order`
-    // TODO: make enum for this.
-    pub status: String,
+    pub status: OrderStatus,
     /// Description of the `Order` status
     pub status_description: String,
     /// The stop price for `OrderType::StopLimit` and
@@ -2195,6 +2194,86 @@ pub struct Order {
     ///
     /// NOTE: Will contain a value if the order has received a routing fee.
     pub unbundled_route_fee: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub enum OrderStatus {
+    /// Acknowledged (Received)
+    ACK,
+    /// Option Assignment
+    ASS,
+    /// Bracket Canceled
+    BRC,
+    /// Bracket Filled
+    BRF,
+    /// Broken
+    BRO,
+    /// Change
+    CHG,
+    /// Condition Met
+    CND,
+    /// Fill Corrected
+    COR,
+    /// Cancel Sent
+    CSN,
+    /// Dispatched
+    DIS,
+    /// Dead
+    DOA,
+    /// Queued
+    DON,
+    /// Expiration Cancel Request
+    ECN,
+    /// Option Excercise
+    EXE,
+    /// Partial Fill (Alive)
+    FPR,
+    /// Too Late to Cancel
+    LAT,
+    /// Sent
+    OPN,
+    /// Order Sends Order
+    OSO,
+    /// Sending
+    PLA,
+    /// Big Brother Recall Request
+    REC,
+    /// Cancel Request Rejected
+    RJC,
+    /// Replace Pending
+    RPD,
+    /// Replace Sent
+    RSN,
+    /// Stop Hit
+    STP,
+    /// OrderStatus Message
+    STT,
+    /// Suspended
+    SUS,
+    /// Cancel Sent
+    UCN,
+    /// Canceled
+    CAN,
+    /// Expired
+    EXP,
+    /// UROut
+    OUT,
+    /// Change Request Rejected
+    RJR,
+    /// Big Brother Recall
+    SCN,
+    /// Trade Server Canceled
+    TSC,
+    /// Replaced
+    UCH,
+    /// Rejected
+    REJ,
+    /// Filled
+    FLL,
+    /// Partial Fill (UROut)
+    FLP,
+    /// Unmapped OrderStatus
+    OTHER,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
