@@ -3,6 +3,9 @@ use crate::{responses::account as responses, Client, Error};
 use serde::{Deserialize, Serialize};
 use std::{error::Error as StdErrorTrait, future::Future, pin::Pin};
 
+// TODO: This file is 3,000+ lines of code, seperate this out into
+// a directory named account, which contains more specific files.
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// TradeStation Account
@@ -354,6 +357,186 @@ impl Account {
         Ok(resp.positions)
     }
 
+    /// Fetches a specific `Position` by it's id for the `Account`.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab a specific position, say you need to check for updates on some
+    /// position and you already know it's position id, here's how you would do it.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// // Grab the account where the position exists
+    /// let account = client
+    ///     .get_accounts()
+    ///     .await?
+    ///     .find_by_id("YOUR_ACCOUNT_ID")
+    ///     .unwrap();
+    ///
+    /// let position = account.get_position("YOUR_POSITION_ID").await?;
+    /// println!("Position: {position:?}");
+    /// ```
+    pub async fn get_position<S: Into<String>>(
+        &self,
+        position_id: S,
+        client: &mut Client,
+    ) -> Result<Position, Error> {
+        let endpoint = format!("brokerage/accounts/{}/positions", self.account_id);
+
+        let position_id = position_id.into();
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        if let Some(position) = resp
+            .positions
+            .iter()
+            .find(|position| position.position_id == position_id)
+        {
+            Ok(position.clone())
+        } else {
+            Err(Error::PositionNotFound(
+                position_id,
+                self.account_id.clone(),
+            ))
+        }
+    }
+
+    /// NOTE: Same as `Account::get_position` but for multiple accounts
+    /// NOTE: For internal use only. Use `MultipleAccounts::get_position()`
+    /// instead to access this functionality.
+    async fn get_position_for_accounts(
+        account_ids: String,
+        position_id: String,
+        client: &mut Client,
+    ) -> Result<Position, Error> {
+        let endpoint = format!("brokerage/accounts/{account_ids}/positions");
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        if let Some(position) = resp
+            .positions
+            .into_iter()
+            .find(|position| position.position_id == position_id)
+        {
+            Ok(position)
+        } else {
+            Err(Error::PositionNotFound(position_id, account_ids))
+        }
+    }
+
+    /// Fetches specific `Position`(s) by their id for the `Account`.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab specific positions, say you need to check for updates on 2 specific
+    /// positions and you already know their position ids, here's how you would do it.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// // Grab the account where the position exists
+    /// let account = client
+    ///     .get_accounts()
+    ///     .await?
+    ///     .find_by_id("YOUR_ACCOUNT_ID")
+    ///     .unwrap();
+    ///
+    /// let positions = account
+    ///     .get_positions_by_ids(
+    ///         vec!["YOUR_POSITION_ID_1", "YOUR_POSITION_ID_2"]
+    ///     )
+    ///     .await?;
+    /// println!("Positions: {positions:?}");
+    /// ```
+    pub async fn get_positions_by_id<S: Into<String>>(
+        &self,
+        position_ids: Vec<S>,
+        client: &mut Client,
+    ) -> Result<Vec<Position>, Error> {
+        let endpoint = format!("brokerage/accounts/{}/positions", self.account_id);
+
+        let position_ids: Vec<String> = position_ids.into_iter().map(|id| id.into()).collect();
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        let positions: Vec<Position> = resp
+            .positions
+            .into_iter()
+            .filter(|position| position_ids.contains(&position.position_id))
+            .collect();
+
+        Ok(positions)
+    }
+
+    /// NOTE: Same as `get_positions_by_id` but for multiple accounts
+    /// NOTE: For internal use only. Use `Account::get_positions_by_id()`
+    /// instead to access this functionality.
+    async fn get_positions_by_id_for_accounts<S: Into<String>>(
+        account_ids: String,
+        position_ids: Vec<S>,
+        client: &mut Client,
+    ) -> Result<Vec<Position>, Error> {
+        let endpoint = format!("brokerage/accounts/{account_ids}/positions");
+
+        let resp = client
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        let position_ids: Vec<String> = position_ids
+            .into_iter()
+            .map(|position_id| position_id.into())
+            .collect();
+
+        let positions = resp
+            .positions
+            .into_iter()
+            .filter(|position| position_ids.contains(&position.position_id))
+            .collect();
+
+        Ok(positions)
+    }
+
     /// Fetches positions for the given `Account`.
     ///
     /// NOTE: symbol should be a str of valid symbols in comma separated format;
@@ -383,7 +566,7 @@ impl Account {
     ///
     /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_positions()`
     /// this method should only be used if you ONLY have account id's.
-    pub async fn get_positions_by_ids(
+    pub async fn get_positions_by_accounts(
         client: &mut Client,
         account_ids: Vec<&str>,
     ) -> Result<Vec<Position>, Error> {
@@ -1115,6 +1298,50 @@ pub trait MultipleAccounts {
         since_date: &'a str,
     ) -> Self::GetHistoricOrdersFuture<'a>;
 
+    type GetPositionFuture<'a>: Future<Output = Result<Position, Box<dyn StdErrorTrait + Send + Sync>>>
+        + Send
+        + 'a
+    where
+        Self: 'a;
+    /// Fetches a specific `Position` by it's id for multiple `Account`(s).
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab a specific position, say you need to check for updates on some
+    /// position and you already know it's position id but maybe not which account
+    /// so you want to search for the position through all accounts, here's how you
+    /// would do it.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// // Grab the account where the position exists
+    /// let accounts = client
+    ///     .get_accounts()
+    ///     .await?;
+    ///
+    /// let position = accounts.get_position("YOUR_POSITION_ID").await?;
+    /// println!("Position: {position:?}");
+    /// ```
+    fn get_position<'a, S: Into<String>>(
+        &'a self,
+        position_id: S,
+        client: &'a mut Client,
+    ) -> Self::GetPositionFuture<'a>;
+
     type GetPositionsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
         + 'a
@@ -1122,6 +1349,48 @@ pub trait MultipleAccounts {
         Self: 'a;
     /// Get the `Position`(s) for multiple `Account`(s).
     fn get_positions<'a>(&'a self, client: &'a mut Client) -> Self::GetPositionsFuture<'a>;
+
+    /// Fetches specific `Position`(s) by their id for multiple `Account`(s).
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab specific positions, say you need to check for updates on 2 specific
+    /// positions within different accounts and you already know their position ids,
+    /// but maybe not the account ids, here's how you would do it.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// // Grab all accounts
+    /// let accounts = client
+    ///     .get_accounts()
+    ///     .await?;
+    ///
+    /// let positions = accounts
+    ///     .get_positions_by_ids(
+    ///         vec!["YOUR_POSITION_ID_1", "YOUR_POSITION_ID_2"]
+    ///     )
+    ///     .await?;
+    /// println!("Positions: {positions:?}");
+    /// ```
+    fn get_positions_by_ids<'a>(
+        &'a self,
+        position_ids: Vec<String>,
+        client: &'a mut Client,
+    ) -> Self::GetPositionsFuture<'a>;
 
     type GetPositionsInSymbolsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
@@ -1474,6 +1743,64 @@ impl MultipleAccounts for Vec<Account> {
         })
     }
 
+    type GetPositionFuture<'a> = Pin<
+        Box<
+            dyn Future<Output = Result<Position, Box<dyn StdErrorTrait + Send + Sync>>> + Send + 'a,
+        >,
+    >;
+    /// Fetches a specific `Position` by it's id for multiple `Account`(s).
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab a specific position, say you need to check for updates on some
+    /// position and you already know it's position id but maybe not which account
+    /// so you want to search for the position through all accounts, here's how you
+    /// would do it.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// // Grab the account where the position exists
+    /// let accounts = client
+    ///     .get_accounts()
+    ///     .await?;
+    ///
+    /// let position = accounts.get_position("YOUR_POSITION_ID").await?;
+    /// println!("Position: {position:?}");
+    /// ```
+    fn get_position<'a, S: Into<String>>(
+        &'a self,
+        position_id: S,
+        client: &'a mut Client,
+    ) -> Self::GetPositionFuture<'a> {
+        let account_ids = self
+            .iter()
+            .map(|account| account.account_id.clone())
+            .collect::<Vec<String>>()
+            .join(",");
+
+        let position_id = position_id.into();
+
+        Box::pin(async move {
+            let positions =
+                Account::get_position_for_accounts(account_ids, position_id, client).await?;
+            Ok(positions)
+        })
+    }
+
     type GetPositionsFuture<'a> = Pin<
         Box<
             dyn Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -1489,7 +1816,62 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(async move {
-            let positions = Account::get_positions_by_ids(client, account_ids).await?;
+            let positions = Account::get_positions_by_accounts(client, account_ids).await?;
+            Ok(positions)
+        })
+    }
+    /// Fetches specific `Position`(s) by their id for multiple `Account`(s).
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab specific positions, say you need to check for updates on 2 specific
+    /// positions within different accounts and you already know their position ids,
+    /// but maybe not the account ids, here's how you would do it.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// // Grab all accounts
+    /// let accounts = client
+    ///     .get_accounts()
+    ///     .await?;
+    ///
+    /// let positions = accounts
+    ///     .get_positions_by_ids(
+    ///         vec!["YOUR_POSITION_ID_1", "YOUR_POSITION_ID_2"],
+    ///         &mut client,
+    ///     )
+    ///     .await?;
+    /// println!("Positions: {positions:?}");
+    /// ```
+    fn get_positions_by_ids<'a>(
+        &'a self,
+        position_ids: Vec<String>,
+        client: &'a mut Client,
+    ) -> Self::GetPositionsFuture<'a> {
+        let account_ids = self
+            .iter()
+            .map(|account| account.account_id.clone())
+            .collect::<Vec<String>>()
+            .join(",");
+
+        Box::pin(async move {
+            let positions =
+                Account::get_positions_by_id_for_accounts(account_ids, position_ids, client)
+                    .await?;
             Ok(positions)
         })
     }
@@ -2619,5 +3001,335 @@ impl Client {
         account_ids: Vec<&str>,
     ) -> Result<Vec<Balance>, Error> {
         Account::get_balances_by_ids(self, account_ids).await
+    }
+
+    /// Fetches a specific `Position` by it's id for a given `Account` id.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab a specific position, say you need to check for updates on some
+    /// position and you already know it's position id and account id, here's
+    /// how you would do it.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// let position = client.get_position("YOUR_POSITION_ID", "YOUR_ACCOUNT_ID").await?;
+    /// println!("Position: {position:?}");
+    /// ```
+    pub async fn get_position<S: Into<String>>(
+        &mut self,
+        position_id: S,
+        account_id: S,
+    ) -> Result<Position, Error> {
+        let account_id = account_id.into();
+
+        let endpoint = format!("brokerage/accounts/{}/positions", &account_id);
+
+        let position_id = position_id.into();
+
+        let resp = self
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        if let Some(position) = resp
+            .positions
+            .iter()
+            .find(|position| position.position_id == position_id)
+        {
+            Ok(position.clone())
+        } else {
+            Err(Error::PositionNotFound(position_id, account_id))
+        }
+    }
+
+    /// Fetches a specific `Position` by it's id for given `Account` id's.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab a specific position, say you need to check for updates on some
+    /// position and you already know it's position id but not the account id,
+    /// here's how you would do it.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// let position = client
+    ///     .get_position_in_accounts(
+    ///         "YOUR_POSITION_ID",
+    ///         vec!["YOUR_ACCOUNT_ID_1", "YOUR_ACCOUNT_ID_N"]
+    ///     ).await?;
+    /// println!("Position: {position:?}");
+    /// ```
+    pub async fn get_position_in_accounts<S: Into<String>>(
+        &mut self,
+        position_id: S,
+        account_ids: Vec<S>,
+    ) -> Result<Position, Error> {
+        let account_ids = account_ids
+            .into_iter()
+            .map(|id| id.into())
+            .collect::<Vec<String>>()
+            .join(",");
+
+        let endpoint = format!("brokerage/accounts/{account_ids}/positions");
+
+        let resp = self
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        let position_id = position_id.into();
+
+        if let Some(position) = resp
+            .positions
+            .into_iter()
+            .find(|position| position.position_id == position_id)
+        {
+            Ok(position)
+        } else {
+            Err(Error::PositionNotFound(position_id, account_ids))
+        }
+    }
+
+    /// Fetches all `Position`(s) for a given `Account` id.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab a specific position, say you need to check for updates on some
+    /// position and you already know it's position id and account id, here's
+    /// how you would do it.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// let positions = client.get_positions("YOUR_ACCOUNT_ID").await?;
+    /// println!("Position: {position:?}");
+    /// ```
+    pub async fn get_positions<S: Into<String>>(
+        &mut self,
+        account_id: S,
+    ) -> Result<Vec<Position>, Error> {
+        let account_id = account_id.into();
+
+        let endpoint = format!("brokerage/accounts/{}/positions", &account_id);
+
+        let resp = self
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        Ok(resp.positions)
+    }
+
+    /// Fetches all `Position`(s) for the given `Account` id's.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab all the positions in 2 different accounts.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// let positions = client
+    ///     .get_positions_in_accounts(vec!["YOUR_ACCOUNT_ID_1", "YOUR_ACCOUNT_ID_2"])
+    ///     .await?;
+    /// println!("Positions: {positions:?}");
+    /// ```
+    pub async fn get_positions_in_accounts<S: Into<String>>(
+        &mut self,
+        account_ids: Vec<S>,
+    ) -> Result<Vec<Position>, Error> {
+        let account_ids = account_ids
+            .into_iter()
+            .map(|id| id.into())
+            .collect::<Vec<String>>()
+            .join(",");
+
+        let endpoint = format!("brokerage/accounts/{account_ids}/positions");
+
+        let resp = self
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        Ok(resp.positions)
+    }
+
+    /// Fetches specific `Position`(s) by their id for the given `Account` id.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab specific positions, say you need to check for updates on 2 specific
+    /// positions and you already know their position ids, here's how you would do it.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// let positions = client
+    ///     .get_positions_by_id(
+    ///         vec!["YOUR_POSITION_ID_1", "YOUR_POSITION_ID_2"],
+    ///         "YOUR_ACCOUNT_ID",
+    ///     )
+    ///     .await?;
+    /// println!("Positions: {positions:?}");
+    /// ```
+    pub async fn get_positions_by_id<S: Into<String>>(
+        &mut self,
+        position_ids: Vec<S>,
+        account_id: S,
+    ) -> Result<Vec<Position>, Error> {
+        let account_id = account_id.into();
+
+        let endpoint = format!("brokerage/accounts/{}/positions", &account_id);
+
+        let position_ids: Vec<String> = position_ids.into_iter().map(|id| id.into()).collect();
+
+        let resp = self
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        let positions: Vec<Position> = resp
+            .positions
+            .into_iter()
+            .filter(|position| position_ids.contains(&position.position_id))
+            .collect();
+
+        Ok(positions)
+    }
+
+    /// Fetches specific `Position`(s) by their id for the given `Account` id's.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Grab specific positions for specific accounts.
+    ///
+    /// ```ignore
+    /// // Initialize the client
+    /// let mut client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
+    ///
+    /// let positions = client
+    ///     .get_positions_by_id(
+    ///         vec!["YOUR_POSITION_ID_1", "YOUR_POSITION_ID_2"],
+    ///         "YOUR_ACCOUNT_ID",
+    ///     )
+    ///     .await?;
+    /// println!("Positions: {positions:?}");
+    /// ```
+    pub async fn get_positions_by_id_in_accounts<S: Into<String>>(
+        &mut self,
+        account_ids: Vec<S>,
+        position_ids: Vec<S>,
+    ) -> Result<Vec<Position>, Error> {
+        let account_ids = account_ids
+            .into_iter()
+            .map(|id| id.into())
+            .collect::<Vec<String>>()
+            .join(",");
+
+        let endpoint = format!("brokerage/accounts/{account_ids}/positions");
+
+        let resp = self
+            .get(&endpoint)
+            .await?
+            .json::<responses::GetPositionsResp>()
+            .await?;
+
+        let position_ids: Vec<String> = position_ids
+            .into_iter()
+            .map(|position_id| position_id.into())
+            .collect();
+
+        let positions = resp
+            .positions
+            .into_iter()
+            .filter(|position| position_ids.contains(&position.position_id))
+            .collect();
+
+        Ok(positions)
     }
 }

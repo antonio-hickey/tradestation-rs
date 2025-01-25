@@ -7,6 +7,8 @@ pub enum Error {
     InvalidToken,
     /// An `Account` was not found for a given account id.
     AccountNotFound,
+    /// A `Position` was not found for a given position id.
+    PositionNotFound(String, String),
     /// An HTTP request error.
     Request(reqwest::Error),
     BoxedError(Box<dyn StdErrorTrait + Send + Sync>),
@@ -75,6 +77,13 @@ impl std::fmt::Display for Error {
             Self::InvalidToken => write!(f, "Invalid `Token` may be expired, bad, or `None`"),
             Self::AccountNotFound => {
                 write!(f, "Couldn't find an account registered to you with that id")
+            }
+            Self::PositionNotFound(position_id, account_id) => {
+                write!(
+                    f,
+                    "Couldn't find a position with id: {} in account with id: {}",
+                    position_id, account_id
+                )
             }
             Self::Request(e) => write!(f, "{e:?}"),
             Self::BoxedError(e) => write!(f, "{e:?}"),
