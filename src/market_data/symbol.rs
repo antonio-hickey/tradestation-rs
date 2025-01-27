@@ -69,8 +69,8 @@ impl SymbolDetails {
     /// println!("Symbol Details: {details:?}");
     /// ```
     pub async fn fetch(
-        client: &mut Client,
         symbols: Vec<&str>,
+        client: &mut Client,
     ) -> Result<Vec<SymbolDetails>, Error> {
         let endpoint = format!("marketdata/symbols/{}", symbols.join(","));
 
@@ -109,7 +109,7 @@ impl Client {
         &mut self,
         symbols: Vec<&str>,
     ) -> Result<Vec<SymbolDetails>, Error> {
-        SymbolDetails::fetch(self, symbols).await
+        SymbolDetails::fetch(symbols, self).await
     }
 }
 

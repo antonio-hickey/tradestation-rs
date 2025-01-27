@@ -41,13 +41,13 @@ impl OptionExpiration {
     /// Fetch all expirations for Cloudflare (NET) options.
     ///
     /// ```ignore
-    /// let cloudflare_option_expirations = OptionExpiration::fetch("NET", None).await?;
+    /// let cloudflare_option_expirations = OptionExpiration::fetch("NET", None, &mut client).await?;
     /// println!("Cloudflare Option Expirations: {cloudflare_option_expirations:?}");
     /// ```
     pub async fn fetch(
-        client: &mut Client,
         underlying_symbol: &str,
         strike_price: Option<f64>,
+        client: &mut Client,
     ) -> Result<Vec<OptionExpiration>, Error> {
         let mut endpoint = format!("marketdata/options/expirations/{}", underlying_symbol);
         if let Some(strike) = strike_price {
@@ -93,7 +93,7 @@ impl Client {
         underlying_symbol: &str,
         strike_price: Option<f64>,
     ) -> Result<Vec<OptionExpiration>, Error> {
-        OptionExpiration::fetch(self, underlying_symbol, strike_price).await
+        OptionExpiration::fetch(underlying_symbol, strike_price, self).await
     }
 }
 
@@ -372,9 +372,9 @@ impl OptionRiskRewardAnalysis {
     /// );
     /// ```
     pub async fn run(
-        client: &mut Client,
         price: f64,
         legs: Vec<OptionsLeg>,
+        client: &mut Client,
     ) -> Result<Self, Error> {
         let payload = json!({"SpreadPrice": price, "Legs": legs});
 
@@ -449,7 +449,7 @@ impl Client {
         price: f64,
         legs: Vec<OptionsLeg>,
     ) -> Result<OptionRiskRewardAnalysis, Error> {
-        OptionRiskRewardAnalysis::run(self, price, legs).await
+        OptionRiskRewardAnalysis::run(price, legs, self).await
     }
 }
 
@@ -513,8 +513,8 @@ impl OptionSpreadStrikes {
     /// println!("Amazon Dec 20th Iron Condor Strikes Availble: {availble_strikes:?}");
     /// ```
     pub async fn fetch(
-        client: &mut Client,
         query: OptionSpreadStrikesQuery,
+        client: &mut Client,
     ) -> Result<OptionSpreadStrikes, Error> {
         let mut endpoint = format!(
             "marketdata/options/strikes/{}?spreadType={:?}&strikeInterval={}",
@@ -570,7 +570,7 @@ impl Client {
         &mut self,
         query: OptionSpreadStrikesQuery,
     ) -> Result<OptionSpreadStrikes, Error> {
-        OptionSpreadStrikes::fetch(self, query).await
+        OptionSpreadStrikes::fetch(query, self).await
     }
 }
 

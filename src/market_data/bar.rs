@@ -77,7 +77,7 @@ impl Bar {
     /// // Do something with the bars, maybe make a chart?
     /// println!("{bars:?}");
     /// ```
-    pub async fn fetch(client: &mut Client, query: &GetBarsQuery) -> Result<Vec<Bar>, Error> {
+    pub async fn fetch(query: &GetBarsQuery, client: &mut Client) -> Result<Vec<Bar>, Error> {
         let endpoint = format!(
             "marketdata/barcharts/{}{}",
             query.symbol,
@@ -190,7 +190,7 @@ impl Bar {
 impl Client {
     /// Fetch `Vec<Bar>` for a given query `GetBarsQuery`
     pub async fn fetch_bars(&mut self, query: &GetBarsQuery) -> Result<Vec<Bar>, Error> {
-        Bar::fetch(self, query).await
+        Bar::fetch(query, self).await
     }
 
     /// Stream bars of market activity for a q given query `StreamBarsQuery`

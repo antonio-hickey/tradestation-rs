@@ -2,8 +2,7 @@
 
 use tradestation::{
     responses::MarketData::{
-        StreamBarsResp, StreamMarketDepthAggregatesResp, StreamMarketDepthQuotesResp,
-        StreamOptionChainResp, StreamQuotesResp,
+        StreamBarsResp, StreamMarketDepthQuotesResp, StreamOptionChainResp, StreamQuotesResp,
     },
     ClientBuilder, Error,
     MarketData::{
@@ -11,7 +10,6 @@ use tradestation::{
         options::{OptionSpreadType, OptionTradeAction, OptionsLeg},
         BarUnit,
     },
-    Token,
 };
 
 #[tokio::main]

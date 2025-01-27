@@ -66,7 +66,7 @@ impl Order {
     ///         })
     ///         .build()?;
     ///
-    ///     match Order::confirm(&mut client, &order_req).await {
+    ///     match Order::confirm(&order_req, &mut client).await {
     ///         Ok(confirmation) => println!("Confirmed Order: {confirmation:?}"),
     ///         Err(e) => println!("Issue Confirming Order: {e:?}"),
     ///     };
@@ -74,8 +74,8 @@ impl Order {
     /// }
     ///```
     pub async fn confirm(
-        client: &mut Client,
         order_request: &OrderRequest,
+        client: &mut Client,
     ) -> Result<Vec<OrderConfirmation>, Error> {
         let endpoint = String::from("orderexecution/orderconfirm");
         let resp: ConfirmOrderResp = client
@@ -114,14 +114,14 @@ impl Order {
     ///     })
     ///     .build()?;
     ///
-    /// match Order::place(&mut client, order_req).await {
+    /// match Order::place(order_req, &mut client,).await {
     ///     Ok(resp) => println!("Order Response: {resp:?}"),
     ///     Err(e) => println!("Order Response: {e:?}"),
     /// }
     /// ```
     pub async fn place(
-        client: &mut Client,
         order_request: &OrderRequest,
+        client: &mut Client,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = String::from("orderexecution/orders");
 
@@ -242,13 +242,13 @@ impl Order {
     ///         .group_type(OrderGroupType::BRK)
     ///         .build()?;
     ///
-    ///     let order_confirmations = Order::confirm(&mut client, &order_group).await?;
+    ///     let order_confirmations = Order::confirm(&order_group, &mut client).await?;
     ///     println!("Confirm Orders Result: {order_confirmations:?}");
     /// }
     /// ```
     pub async fn confirm_group(
-        client: &mut Client,
         order_req_group: &OrderRequestGroup,
+        client: &mut Client,
     ) -> Result<Vec<OrderConfirmation>, Error> {
         let endpoint = String::from("orderexecution/ordergroupconfirm");
 
@@ -274,7 +274,10 @@ impl Order {
     ///
     /// An OCO order is a group of orders whereby if one of the orders is
     /// filled or partially-filled, then all of the other orders in the
-    /// group are cancellCreates an Order Confirmation for a group order. Request valid for all account types. Request valid for Order Cancels Order (OCO) and Bracket (BRK) order types as well as grouped orders of other types (NORMAL).ed.
+    /// group are cancellCreates an Order Confirmation for a group order.
+    /// Request valid for all account types. Request valid for Order Cancels
+    /// Order (OCO) and Bracket (BRK) order types as well as grouped orders of
+    /// other types (NORMAL).ed.
     ///
     /// # Bracket OCO Orders
     ///
@@ -369,13 +372,13 @@ impl Order {
     ///         .group_type(OrderGroupType::BRK)
     ///         .build()?;
     ///
-    ///     let orders = Order::place_group(&mut client, &order_group).await?;
+    ///     let orders = Order::place_group(&order_group, &mut client).await?;
     ///     println!("Place Orders Result: {orders:?}");
     /// }
     /// ```
     pub async fn place_group(
-        client: &mut Client,
         order_req_group: &OrderRequestGroup,
+        client: &mut Client,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = String::from("orderexecution/ordergroups");
 
@@ -415,7 +418,7 @@ impl Order {
     ///     })
     ///     .build()?;
     ///
-    /// let order = Order::place(&mut client, &order_req)
+    /// let order = Order::place(&order_req, &mut client)
     ///     .await?
     ///     .into_iter()
     ///     .next();
@@ -424,16 +427,16 @@ impl Order {
     ///     order
     ///         .clone()
     ///         .replace(
-    ///             &mut client,
     ///             OrderUpdate::new().limit_price("42.50").quantity("25"),
+    ///             &mut client,
     ///         )
     ///         .await?;
     /// }
     /// ```
     pub async fn replace(
         self,
-        client: &mut Client,
         order_update: OrderUpdate,
+        client: &mut Client,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
@@ -470,7 +473,7 @@ impl Order {
     ///     })
     ///     .build()?;
     ///
-    /// let order = Order::place(&mut client, &order_req)
+    /// let order = Order::place(&order_req, &mut client)
     ///     .await?
     ///     .into_iter()
     ///     .next();
@@ -611,7 +614,7 @@ impl OrderRequestGroup {
     /// }
     /// ```
     pub async fn place(&self, client: &mut Client) -> Result<Vec<Order>, Error> {
-        Order::place_group(client, self).await
+        Order::place_group(self, client).await
     }
 
     /// Creates an Order Confirmation for a group order. Request valid for
@@ -722,7 +725,7 @@ impl OrderRequestGroup {
     /// }
     /// ```
     pub async fn confirm(self, client: &mut Client) -> Result<Vec<OrderConfirmation>, Error> {
-        Order::confirm_group(client, &self).await
+        Order::confirm_group(&self, client).await
     }
 }
 
@@ -939,7 +942,7 @@ impl OrderRequest {
     /// }
     ///```
     pub async fn confirm(self, client: &mut Client) -> Result<Vec<OrderConfirmation>, Error> {
-        Order::confirm(client, &self).await
+        Order::confirm(&self, client).await
     }
 }
 

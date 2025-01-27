@@ -25,7 +25,7 @@ pub struct Account {
 }
 impl Account {
     /// Get a specific TradeStation `Account` by it's account id.
-    pub async fn get(client: &mut Client, account_id: &str) -> Result<Account, Error> {
+    pub async fn get(account_id: &str, client: &mut Client) -> Result<Account, Error> {
         if let Some(account) = Account::get_all(client)
             .await?
             .iter()
@@ -72,9 +72,9 @@ impl Account {
     ///
     /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_balances()`
     /// this method should only be used in cases where you ONLY have account id's.
-    pub async fn get_balances_by_ids(
-        client: &mut Client,
+    pub async fn get_balances_by_accounts(
         account_ids: Vec<&str>,
+        client: &mut Client,
     ) -> Result<Vec<Balance>, Error> {
         let endpoint = format!("brokerage/accounts/{}/balances", account_ids.join(","));
 
@@ -109,9 +109,9 @@ impl Account {
     ///
     /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_bod_balances()`
     /// this method should only be used if you ONLY have account id's.
-    pub async fn get_bod_balances_by_ids(
-        client: &mut Client,
+    pub async fn get_bod_balances_by_accounts(
         account_ids: Vec<&str>,
+        client: &mut Client,
     ) -> Result<Vec<BODBalance>, Error> {
         let endpoint = format!("brokerage/accounts/{}/bodbalances", account_ids.join(","));
 
@@ -132,8 +132,8 @@ impl Account {
     /// NOTE: Excludes open `Order`(s) and is sorted in descending order of time closed.
     pub async fn get_historic_orders(
         &self,
-        client: &mut Client,
         since_date: &str,
+        client: &mut Client,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/historicalorders?since={}",
@@ -155,10 +155,10 @@ impl Account {
     /// days prior to the current date.
     ///
     /// NOTE: Excludes open `Order`(s) and is sorted in descending order of time closed.
-    pub async fn get_historic_orders_by_ids(
-        client: &mut Client,
+    pub async fn get_historic_orders_by_accounts(
         account_ids: Vec<&str>,
         since_date: &str,
+        client: &mut Client,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/historicalorders?since={}",
@@ -562,13 +562,13 @@ impl Account {
         Ok(resp.positions)
     }
 
-    /// Fetches positions for the given `Account`.
+    /// Fetches positions for the given `Account`(s).
     ///
     /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_positions()`
     /// this method should only be used if you ONLY have account id's.
     pub async fn get_positions_by_accounts(
-        client: &mut Client,
         account_ids: Vec<&str>,
+        client: &mut Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!("brokerage/accounts/{}/positions", account_ids.join(","));
 
@@ -581,7 +581,7 @@ impl Account {
         Ok(resp.positions)
     }
 
-    /// Fetches positions for the given `Account`.
+    /// Fetches positions for the given `Account`(s).
     ///
     /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_positions_in_symbols()`
     /// this method should only be used if you ONLY have account id's.
@@ -590,10 +590,10 @@ impl Account {
     /// for example: `"MSFT,MSFT *,AAPL"`.
     ///
     /// NOTE: You can use an * as wildcard to make more complex filters.
-    pub async fn get_positions_in_symbols_by_ids(
-        client: &mut Client,
+    pub async fn get_positions_in_symbols_by_accounts(
         symbols: &str,
         account_ids: Vec<&str>,
+        client: &mut Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/positions?symbol={}",
@@ -1206,7 +1206,7 @@ pub trait MultipleAccounts {
     /// let accounts = client.get_accounts().await?;
     /// if let Some(specific_account) = accounts.find_by_id("YOUR_ACCOUNT_ID") {
     ///     // Get all the orders from today for a specific account
-    ///     let orders = specific_account.get_orders( &mut client).await?;
+    ///     let orders = specific_account.get_orders(&mut client).await?;
     ///
     ///     // Filter out only filled orders
     ///     let filled_orders: Vec<Order> = orders
@@ -1294,8 +1294,8 @@ pub trait MultipleAccounts {
     /// NOTE: Excludes open `Order`(s) and is sorted in descending order of time closed.
     fn get_historic_orders<'a>(
         &'a self,
-        client: &'a mut Client,
         since_date: &'a str,
+        client: &'a mut Client,
     ) -> Self::GetHistoricOrdersFuture<'a>;
 
     type GetPositionFuture<'a>: Future<Output = Result<Position, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -1693,7 +1693,7 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(async move {
-            let balances = Account::get_balances_by_ids(client, account_ids).await?;
+            let balances = Account::get_balances_by_accounts(account_ids, client).await?;
             Ok(balances)
         })
     }
@@ -1713,7 +1713,7 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(async move {
-            let balances = Account::get_bod_balances_by_ids(client, account_ids).await?;
+            let balances = Account::get_bod_balances_by_accounts(account_ids, client).await?;
             Ok(balances)
         })
     }
@@ -1728,8 +1728,8 @@ impl MultipleAccounts for Vec<Account> {
     /// Get the historical `Order`(s) for multiple `Account`(s).
     fn get_historic_orders<'a>(
         &'a self,
-        client: &'a mut Client,
         since_date: &'a str,
+        client: &'a mut Client,
     ) -> Self::GetHistoricOrdersFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
@@ -1738,7 +1738,7 @@ impl MultipleAccounts for Vec<Account> {
 
         Box::pin(async move {
             let balances =
-                Account::get_historic_orders_by_ids(client, account_ids, since_date).await?;
+                Account::get_historic_orders_by_accounts(account_ids, since_date, client).await?;
             Ok(balances)
         })
     }
@@ -1816,10 +1816,11 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(async move {
-            let positions = Account::get_positions_by_accounts(client, account_ids).await?;
+            let positions = Account::get_positions_by_accounts(account_ids, client).await?;
             Ok(positions)
         })
     }
+
     /// Fetches specific `Position`(s) by their id for multiple `Account`(s).
     ///
     /// # Example
@@ -1896,7 +1897,7 @@ impl MultipleAccounts for Vec<Account> {
 
         Box::pin(async move {
             let positions =
-                Account::get_positions_in_symbols_by_ids(client, symbols, account_ids).await?;
+                Account::get_positions_in_symbols_by_accounts(symbols, account_ids, client).await?;
             Ok(positions)
         })
     }
@@ -2980,12 +2981,12 @@ impl Client {
 
     /// Get a specific TradeStation `Account` by it's account id
     pub async fn get_account(&mut self, account_id: &str) -> Result<Account, Error> {
-        Account::get(self, account_id).await
+        Account::get(account_id, self).await
     }
 
     /// Get the current balance of a specific `Account` by it's account id
     pub async fn get_account_balance(&mut self, account_id: &str) -> Result<Balance, Error> {
-        let mut balances = Account::get_balances_by_ids(self, vec![account_id]).await?;
+        let mut balances = Account::get_balances_by_accounts(vec![account_id], self).await?;
         if balances.len() == 1 {
             // NOTE: This unwrap is panic safe due to invariant above
             let balance = balances.pop().unwrap();
@@ -3000,7 +3001,7 @@ impl Client {
         &mut self,
         account_ids: Vec<&str>,
     ) -> Result<Vec<Balance>, Error> {
-        Account::get_balances_by_ids(self, account_ids).await
+        Account::get_balances_by_accounts(account_ids, self).await
     }
 
     /// Fetches a specific `Position` by it's id for a given `Account` id.
