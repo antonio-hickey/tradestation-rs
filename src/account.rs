@@ -1,7 +1,7 @@
 use crate::responses::account::{StreamOrdersResp, StreamPositionsResp};
 use crate::{responses::account as responses, Client, Error};
 use serde::{Deserialize, Serialize};
-use std::{error::Error as StdErrorTrait, future::Future, pin::Pin};
+use std::{convert::TryFrom, error::Error as StdErrorTrait, future::Future, pin::Pin};
 
 // TODO: This file is 3,000+ lines of code, seperate this out into
 // a directory named account, which contains more specific files.
@@ -16,8 +16,7 @@ pub struct Account {
     /// The currency the account is based on.
     currency: String,
     /// The type of account, examples: "Cash" or "Margin"
-    // TODO: Make enum for this
-    account_type: String,
+    account_type: AccountType,
     /// The account details, stuff like options level and day trading approval
     ///
     /// NOTE: This will always be `None` if it's a Futures `Account`
@@ -2215,8 +2214,7 @@ pub struct AccountDetail {
     /// Level 5: Level 4 + Writing of Naked Puts (Index Options), Writing of Naked Calls (Stock Options), Writing of Naked Calls (Index Options).
     ///
     /// These levels vary depending on the funding and type of account.
-    // TODO: Make enum for this
-    option_approval_level: u8,
+    option_approval_level: OptionApprovalLevel,
     /// Is the `Account` a Pattern Day Trader?
     ///
     /// As per FINRA rules, an `Account` will be considered a pattern day trader
@@ -2236,6 +2234,74 @@ pub struct AccountDetail {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// The different types of accounts.
+pub enum AccountType {
+    /// Cash Account
+    Cash,
+    /// Margin Account
+    Margin,
+    /// Futures Account
+    Futures,
+    /// Delivery Vs Payment Account
+    DVP,
+}
+
+#[derive(Clone, Debug, Serialize)]
+/// The different levels of options approval an account can have.
+pub enum OptionApprovalLevel {
+    /// Options Approval Level 0: No options trading allowed.
+    Zero,
+    /// Options Approval Level 1: Writing of Covered Calls, Buying Protective Puts.
+    One,
+    /// Options Approval Level 2: Level 1 + Buying Calls, Buying Puts, Writing Covered Puts.
+    Two,
+    /// Options Approval Level 3: Level 2 + Stock Option Spreads, Index Option Spreads,
+    /// Butterfly Spreads, Condor Spreads, Iron Butterfly Spreads, Iron Condor Spreads.
+    Three,
+    /// Options Approval Level 4: Level 3 + Writing of Naked Puts (Stock Options).
+    Four,
+    /// Options Approval Level 5: Level 4 + Writing of Naked Puts (Index Options),
+    /// Writing of Naked Calls (Stock Options), Writing of Naked Calls (Index Options).
+    Five,
+}
+impl TryFrom<u8> for OptionApprovalLevel {
+    type Error = String;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(OptionApprovalLevel::Zero),
+            1 => Ok(OptionApprovalLevel::One),
+            2 => Ok(OptionApprovalLevel::Two),
+            3 => Ok(OptionApprovalLevel::Three),
+            4 => Ok(OptionApprovalLevel::Four),
+            5 => Ok(OptionApprovalLevel::Five),
+            _ => Err(format!("Invalid OptionApprovalLevel: {}", value)),
+        }
+    }
+}
+impl From<OptionApprovalLevel> for u8 {
+    fn from(level: OptionApprovalLevel) -> Self {
+        match level {
+            OptionApprovalLevel::Zero => 0,
+            OptionApprovalLevel::One => 1,
+            OptionApprovalLevel::Two => 2,
+            OptionApprovalLevel::Three => 3,
+            OptionApprovalLevel::Four => 4,
+            OptionApprovalLevel::Five => 5,
+        }
+    }
+}
+impl<'de> Deserialize<'de> for OptionApprovalLevel {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = u8::deserialize(deserializer)?;
+        OptionApprovalLevel::try_from(value).map_err(serde::de::Error::custom)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The real time balance of an `Account`.
 pub struct Balance {
@@ -2243,7 +2309,7 @@ pub struct Balance {
     /// The main identifier for a TradeStation account
     pub account_id: String,
     /// The type of account, examples: "Cash" or "Margin"
-    pub account_type: String,
+    pub account_type: AccountType,
     /// The real time Cash Balance value for the `Account`
     pub cash_balance: String,
     /// The real time Buying Power value for the `Account`
@@ -2373,7 +2439,7 @@ pub struct BODBalance {
     /// The main identifier for a TradeStation account.
     pub account_id: String,
     /// The type of account, examples: "Cash" or "Margin".
-    pub account_type: String,
+    pub account_type: AccountType,
     /// Deeper details on the `Balance` of an `Account`.
     pub balance_detail: BODBalanceDetail,
     /// Deeper details on the `Currency` local of an `Account`.
