@@ -78,7 +78,7 @@
 //! }
 //! ```
 
-pub mod account;
+pub mod accounting;
 pub mod responses;
 
 pub mod client;

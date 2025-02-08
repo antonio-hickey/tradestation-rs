@@ -1,7 +1,10 @@
 // Example file on basic usage for account endoints
 
 use tradestation::{
-    account::{MultipleAccounts, OrderStatus, Position, PositionType},
+    accounting::{
+        accounts::MultipleAccounts,
+        positions::{Position, PositionType},
+    },
     responses::account::{StreamOrdersResp, StreamPositionsResp},
     ClientBuilder, Error,
 };

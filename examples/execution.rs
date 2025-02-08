@@ -1,6 +1,6 @@
 //! Example file on basic usage for order execution endpoints
 
-use tradestation::account::OrderType;
+use tradestation::accounting::orders::OrderType;
 use tradestation::execution::{
     Duration, Order, OrderGroupType, OrderRequestBuilder, OrderRequestGroupBuilder,
     OrderTimeInForce, OrderUpdate, TradeAction,

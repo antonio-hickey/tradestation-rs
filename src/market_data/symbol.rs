@@ -1,5 +1,5 @@
 use crate::{
-    account::{AssetType, OptionType},
+    accounting::{AssetType, OptionType},
     responses::market_data::{GetSymbolDetailsResp, GetSymbolDetailsRespRaw},
     Client, Error,
 };
