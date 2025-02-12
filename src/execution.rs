@@ -1141,12 +1141,11 @@ pub struct AdvancedOrderOptions {
     /// NOTE: Only valid for Equities.
     pub non_display: bool,
 
-    // TODO: I think I can enum this
     /// This order type is useful to achieve a fair price in
     /// a fast or volatile market.
     ///
     /// NOTE: Only valid for Equities.
-    pub peg_value: String,
+    pub peg_value: PegValue,
 
     /// Hides the true number of shares or contracts intended
     /// to be bought or sold.
@@ -1163,6 +1162,20 @@ pub struct AdvancedOrderOptions {
 
     /// Trailing Stop offeset, amount or percent.
     pub trailing_stop: TrailingStop,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The different types of valid peg values.
+pub enum PegValue {
+    /// The best Bid for a buy order and
+    /// the best Ask for a sell order.
+    #[serde(rename = "BEST")]
+    Best,
+
+    /// The mid-point price between the
+    /// best bid and the best ask.
+    #[serde(rename = "MID")]
+    Mid,
 }
 
 // TODO: There is a similar enum in `crate::account`
