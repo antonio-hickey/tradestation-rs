@@ -341,6 +341,7 @@ impl ClientBuilderStep<Step2> {
             ("client_id", client_id),
             ("client_secret", client_secret),
             ("code", authorization_code),
+            // TODO: The redirect uri should be forced to passed in as a parameter.
             ("redirect_uri", "http://localhost:8080/"),
         ]);
         let token = http_client
@@ -400,7 +401,7 @@ impl ClientBuilderStep<Step3> {
                 refresh_token: String::from("NO_REFRESH_TOKEN_IN_TEST_MODE"),
                 id_token: String::from("NO_ID_TOKEN_IN_TEST_MODE"),
                 token_type: String::from("TESTING"),
-                scope: String::from("NO SCOPES IN TEST MODE"),
+                scope: vec![],
                 expires_in: 9999,
             };
             let base_url = self

@@ -1,11 +1,14 @@
 //! Example file on basic usage for order execution endpoints
 
-use tradestation::accounting::orders::OrderType;
-use tradestation::execution::{
-    Duration, Order, OrderGroupType, OrderRequestBuilder, OrderRequestGroupBuilder,
-    OrderTimeInForce, OrderUpdate, TradeAction,
+use tradestation::{
+    accounting::orders::OrderType,
+    execution::{
+        Duration, Order, OrderGroupType, OrderRequestBuilder, OrderRequestGroupBuilder,
+        OrderTimeInForce, OrderUpdate, TradeAction,
+    },
+    token::{Scope, Token},
+    ClientBuilder, Error,
 };
-use tradestation::{ClientBuilder, Error, Token};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -17,7 +20,11 @@ async fn main() -> Result<(), Error> {
             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
             id_token: String::from("YOUR_ID_TOKEN"),
             token_type: String::from("Bearer"),
-            scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+            scope: vec![
+                Scope::OpenId,
+                Scope::OfflineAccess,
+                /* ... Your Other Desired Scopes */
+            ],
             expires_in: 1200,
         })?
         .build()
