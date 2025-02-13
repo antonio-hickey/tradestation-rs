@@ -2,7 +2,7 @@ use crate::{
     responses::account::{GetOrdersResp, StreamOrdersResp},
     Client, Error,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -54,13 +54,12 @@ pub struct Order {
 
     /// Allows you to specify when an order will be placed based on
     /// the price action of one or more symbols.
-    // TODO: Should I convert None to empty vector ?
-    pub market_activation_rules: Option<Vec<MarketActivationRule>>,
+    #[serde(default, deserialize_with = "empty_vec_from_null")]
+    pub market_activation_rules: Vec<MarketActivationRule>,
 
     /// Allows you to specify a time that an `Order` will be placed.
-    ///
-    /// TODO: Convert None to empty vector, more idiomatic imo.
-    pub time_activation_rules: Option<Vec<TimeActivationRule>>,
+    #[serde(default, deserialize_with = "empty_vec_from_null")]
+    pub time_activation_rules: Vec<TimeActivationRule>,
 
     /// The limit price for Limit and Stop Limit `Order`(s).
     pub limit_price: Option<String>,
@@ -310,6 +309,16 @@ impl Order {
 
         Ok(collected_orders)
     }
+}
+
+/// Serialize null values into empty vectors.
+fn empty_vec_from_null<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    let opt = Option::<Vec<T>>::deserialize(deserializer)?;
+    Ok(opt.unwrap_or_default())
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
