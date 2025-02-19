@@ -1,5 +1,10 @@
-use crate::responses::account::{StreamOrdersResp, StreamPositionsResp};
-use crate::{responses::account as responses, Client, Error};
+use crate::{
+    responses::{
+        account::{GetAccountsResp, GetOrdersResp, StreamOrdersResp, StreamPositionsResp},
+        ApiResponse,
+    },
+    Client, Error,
+};
 use serde::{Deserialize, Serialize};
 use std::{convert::TryFrom, error::Error as StdErrorTrait, future::Future, pin::Pin};
 
@@ -42,13 +47,15 @@ impl Account {
     pub async fn get_all(client: &mut Client) -> Result<Vec<Account>, Error> {
         let endpoint = "brokerage/accounts";
 
-        let resp = client
+        match client
             .get(endpoint)
             .await?
-            .json::<responses::GetAccountsResp>()
-            .await?;
-
-        Ok(resp.accounts)
+            .json::<ApiResponse<GetAccountsResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.accounts),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Get the current balance of an `Account`.
@@ -171,13 +178,15 @@ impl Account {
 
         let endpoint = format!("brokerage/accounts/{}/orders", account_ids.join(","));
 
-        let resp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<responses::GetOrdersResp>()
-            .await?;
-
-        Ok(resp.orders)
+            .json::<ApiResponse<GetOrdersResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.orders),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Fetches orders by order id for the given `Account`.
@@ -249,13 +258,15 @@ impl Account {
             &order_ids.join(",")
         );
 
-        let resp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<responses::GetOrdersResp>()
-            .await?;
-
-        Ok(resp.orders)
+            .json::<ApiResponse<GetOrdersResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.orders),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Fetches positions for the given `Account`.

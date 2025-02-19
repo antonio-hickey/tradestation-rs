@@ -1,5 +1,8 @@
 use crate::{
-    responses::MarketData::{GetBarsResp, GetBarsRespRaw, StreamBarsResp},
+    responses::{
+        ApiResponse,
+        MarketData::{GetBarsResp, GetBarsRespRaw, StreamBarsResp},
+    },
     Client, Error,
 };
 use serde::{Deserialize, Serialize};
@@ -84,18 +87,24 @@ impl Bar {
             query.as_query_string()
         );
 
-        let resp_raw = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetBarsRespRaw>()
-            .await?;
+            .json::<ApiResponse<GetBarsRespRaw>>()
+            .await?
+        {
+            ApiResponse::Success(resp_raw) => {
+                let resp: GetBarsResp = resp_raw.clone().into();
 
-        let resp: GetBarsResp = resp_raw.into();
-
-        if let Some(bars) = resp.bars {
-            Ok(bars)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+                if let Some(bars) = resp.bars {
+                    Ok(bars)
+                } else {
+                    Err(Error::UnknownTradeStationAPIError(
+                        resp_raw.message.unwrap_or_default(),
+                    ))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 

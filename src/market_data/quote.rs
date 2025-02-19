@@ -1,6 +1,7 @@
 use crate::responses::market_data::{
     GetQuoteSnapshotsResp, GetQuoteSnapshotsRespRaw, StreamQuotesResp,
 };
+use crate::responses::ApiResponse;
 use crate::{Client, Error};
 use serde::{Deserialize, Serialize};
 
@@ -142,17 +143,25 @@ impl Quote {
     pub async fn fetch(symbols: Vec<&str>, client: &mut Client) -> Result<Vec<Quote>, Error> {
         let endpoint = format!("marketdata/quotes/{}", symbols.join(","));
 
-        let resp: GetQuoteSnapshotsResp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetQuoteSnapshotsRespRaw>()
+            .json::<ApiResponse<GetQuoteSnapshotsRespRaw>>()
             .await?
-            .into();
+        {
+            ApiResponse::Success(resp_raw) => {
+                let err_msg = resp_raw.message.clone().unwrap_or_default();
 
-        if let Some(quotes) = resp.quotes {
-            Ok(quotes)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+                let resp: GetQuoteSnapshotsResp = resp_raw.into();
+                if let Some(quotes) = resp.quotes {
+                    Ok(quotes)
+                } else {
+                    Err(resp
+                        .error
+                        .unwrap_or(Error::UnknownTradeStationAPIError(err_msg)))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 

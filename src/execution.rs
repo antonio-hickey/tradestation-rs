@@ -2,10 +2,13 @@ use crate::{
     accounting::orders::{
         AssetType, MarketActivationRule, OrderType, TimeActivationRule, TrailingStop,
     },
-    responses::execution::{
-        ConfirmOrderResp, ConfirmOrderRespRaw, GetActivationTriggersResp,
-        GetActivationTriggersRespRaw, GetExecutionRoutesResp, GetExecutionRoutesRespRaw, OrderResp,
-        OrderRespRaw,
+    responses::{
+        execution::{
+            ConfirmOrderResp, ConfirmOrderRespRaw, GetActivationTriggersResp,
+            GetActivationTriggersRespRaw, GetExecutionRoutesResp, GetExecutionRoutesRespRaw,
+            OrderResp, OrderRespRaw,
+        },
+        ApiResponse,
     },
     Client, Error,
 };
@@ -80,17 +83,24 @@ impl Order {
         client: &mut Client,
     ) -> Result<Vec<OrderConfirmation>, Error> {
         let endpoint = String::from("orderexecution/orderconfirm");
-        let resp: ConfirmOrderResp = client
+
+        match client
             .post(&endpoint, order_request)
             .await?
-            .json::<ConfirmOrderRespRaw>()
+            .json::<ApiResponse<ConfirmOrderRespRaw>>()
             .await?
-            .into();
-
-        if let Some(confirmations) = resp.confirmations {
-            Ok(confirmations)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        {
+            ApiResponse::Success(resp_raw) => {
+                let resp: ConfirmOrderResp = resp_raw.into();
+                if let Some(confirmations) = resp.confirmations {
+                    Ok(confirmations)
+                } else {
+                    Err(resp
+                        .error
+                        .unwrap_or(Error::UnknownTradeStationAPIError(String::new())))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 
@@ -127,17 +137,23 @@ impl Order {
     ) -> Result<Vec<Order>, Error> {
         let endpoint = String::from("orderexecution/orders");
 
-        let resp: OrderResp = client
+        match client
             .post(&endpoint, &order_request)
             .await?
-            .json::<OrderRespRaw>()
+            .json::<ApiResponse<OrderRespRaw>>()
             .await?
-            .into();
-
-        if let Some(orders) = resp.orders {
-            Ok(orders)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        {
+            ApiResponse::Success(resp_raw) => {
+                let resp: OrderResp = resp_raw.into();
+                if let Some(orders) = resp.orders {
+                    Ok(orders)
+                } else {
+                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
+                        "Unknown TradeStation API Error While Placing Order.".into(),
+                    )))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 
@@ -254,17 +270,23 @@ impl Order {
     ) -> Result<Vec<OrderConfirmation>, Error> {
         let endpoint = String::from("orderexecution/ordergroupconfirm");
 
-        let resp: ConfirmOrderResp = client
+        match client
             .post(&endpoint, order_req_group)
             .await?
-            .json::<ConfirmOrderRespRaw>()
+            .json::<ApiResponse<ConfirmOrderRespRaw>>()
             .await?
-            .into();
-
-        if let Some(confirmations) = resp.confirmations {
-            Ok(confirmations)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        {
+            ApiResponse::Success(resp_raw) => {
+                let resp: ConfirmOrderResp = resp_raw.into();
+                if let Some(confirmations) = resp.confirmations {
+                    Ok(confirmations)
+                } else {
+                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
+                        "Unknown TradeStation Error While Confirming Group Order.".into(),
+                    )))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 
@@ -384,17 +406,23 @@ impl Order {
     ) -> Result<Vec<Order>, Error> {
         let endpoint = String::from("orderexecution/ordergroups");
 
-        let resp: OrderResp = client
+        match client
             .post(&endpoint, order_req_group)
             .await?
-            .json::<OrderRespRaw>()
+            .json::<ApiResponse<OrderRespRaw>>()
             .await?
-            .into();
-
-        if let Some(orders) = resp.orders {
-            Ok(orders)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        {
+            ApiResponse::Success(resp_raw) => {
+                let resp: OrderResp = resp_raw.into();
+                if let Some(orders) = resp.orders {
+                    Ok(orders)
+                } else {
+                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
+                        "Unknown TradeStation Error While Placing Group Order.".into(),
+                    )))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 
@@ -442,17 +470,24 @@ impl Order {
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
-        let resp: OrderResp = client
+        match client
             .put(&endpoint, &order_update)
             .await?
-            .json::<OrderRespRaw>()
+            .json::<ApiResponse<OrderRespRaw>>()
             .await?
-            .into();
+        {
+            ApiResponse::Success(resp_raw) => {
+                let resp: OrderResp = resp_raw.into();
 
-        if let Some(orders) = resp.orders {
-            Ok(orders)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+                if let Some(orders) = resp.orders {
+                    Ok(orders)
+                } else {
+                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
+                        "Unknown TradeStation Error While Replacing Order.".into(),
+                    )))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 
@@ -487,17 +522,24 @@ impl Order {
     pub async fn cancel(self, client: &mut Client) -> Result<Vec<Order>, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
-        let resp: OrderResp = client
+        match client
             .delete(&endpoint)
             .await?
-            .json::<OrderRespRaw>()
+            .json::<ApiResponse<OrderRespRaw>>()
             .await?
-            .into();
+        {
+            ApiResponse::Success(resp_raw) => {
+                let resp: OrderResp = resp_raw.into();
 
-        if let Some(orders) = resp.orders {
-            Ok(orders)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+                if let Some(orders) = resp.orders {
+                    Ok(orders)
+                } else {
+                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
+                        "Unknown TradeStation Error While Canceling Order.".into(),
+                    )))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 }
@@ -835,7 +877,6 @@ impl OrderUpdate {
     }
 }
 
-// TODO: Support builder pattern's for `OrderRequest`
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The initial stage of an `Order`, this is what
@@ -1396,17 +1437,25 @@ impl Route {
     /// ```
     pub async fn fetch(client: &mut Client) -> Result<Vec<Route>, Error> {
         let endpoint = String::from("orderexecution/routes");
-        let resp: GetExecutionRoutesResp = client
+
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetExecutionRoutesRespRaw>()
+            .json::<ApiResponse<GetExecutionRoutesRespRaw>>()
             .await?
-            .into();
+        {
+            ApiResponse::Success(resp_raw) => {
+                let resp: GetExecutionRoutesResp = resp_raw.into();
 
-        if let Some(routes) = resp.routes {
-            Ok(routes)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+                if let Some(routes) = resp.routes {
+                    Ok(routes)
+                } else {
+                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
+                        "Unknown TradeStation Error While Fetching Execution Routes.".into(),
+                    )))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 }
@@ -1493,17 +1542,25 @@ impl ActivationTrigger {
     /// ```
     pub async fn fetch(client: &mut Client) -> Result<Vec<ActivationTrigger>, Error> {
         let endpoint = String::from("orderexecution/activationtriggers");
-        let resp: GetActivationTriggersResp = client
+
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetActivationTriggersRespRaw>()
+            .json::<ApiResponse<GetActivationTriggersRespRaw>>()
             .await?
-            .into();
+        {
+            ApiResponse::Success(resp_raw) => {
+                let resp: GetActivationTriggersResp = resp_raw.into();
 
-        if let Some(triggers) = resp.activation_triggers {
-            Ok(triggers)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+                if let Some(triggers) = resp.activation_triggers {
+                    Ok(triggers)
+                } else {
+                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
+                        "Unknown TradeStation Error While Fetching Activation Triggers.".into(),
+                    )))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 }

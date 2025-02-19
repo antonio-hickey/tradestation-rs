@@ -4,6 +4,8 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
+use super::ApiError;
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for confirming
@@ -38,7 +40,10 @@ impl From<OrderRespRaw> for OrderResp {
     fn from(raw: OrderRespRaw) -> Self {
         let error_enum =
             if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
-                Error::from_tradestation_api_error(err, msg)
+                Some(Error::from_api_error(ApiError {
+                    error: err.into(),
+                    message: msg.into(),
+                }))
             } else {
                 None
             };
@@ -81,7 +86,10 @@ impl From<ConfirmOrderRespRaw> for ConfirmOrderResp {
     fn from(raw: ConfirmOrderRespRaw) -> Self {
         let error_enum =
             if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
-                Error::from_tradestation_api_error(err, msg)
+                Some(Error::from_api_error(ApiError {
+                    error: err.into(),
+                    message: msg.into(),
+                }))
             } else {
                 None
             };
@@ -122,7 +130,10 @@ impl From<GetExecutionRoutesRespRaw> for GetExecutionRoutesResp {
     fn from(raw: GetExecutionRoutesRespRaw) -> Self {
         let error_enum =
             if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
-                Error::from_tradestation_api_error(err, msg)
+                Some(Error::from_api_error(ApiError {
+                    error: err.into(),
+                    message: msg.into(),
+                }))
             } else {
                 None
             };
@@ -167,7 +178,10 @@ impl From<GetActivationTriggersRespRaw> for GetActivationTriggersResp {
     fn from(raw: GetActivationTriggersRespRaw) -> Self {
         let error_enum =
             if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
-                Error::from_tradestation_api_error(err, msg)
+                Some(Error::from_api_error(ApiError {
+                    error: err.into(),
+                    message: msg.into(),
+                }))
             } else {
                 None
             };

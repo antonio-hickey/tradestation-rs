@@ -4,6 +4,7 @@ use crate::{
             OptionSpreadStrikesResp, OptionSpreadStrikesRespRaw, StreamOptionChainResp,
             StreamOptionQuotesResp,
         },
+        ApiResponse,
         MarketData::{
             GetOptionExpirationsResp, GetOptionExpirationsRespRaw, GetOptionsRiskRewardResp,
             GetOptionsRiskRewardRespRaw,
@@ -55,17 +56,23 @@ impl OptionExpiration {
             endpoint.push_str(&query_param);
         }
 
-        let resp: GetOptionExpirationsResp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetOptionExpirationsRespRaw>()
+            .json::<ApiResponse<GetOptionExpirationsRespRaw>>()
             .await?
-            .into();
+        {
+            ApiResponse::Success(resp_raw) => {
+                let err_msg = resp_raw.message.clone().unwrap_or_default();
 
-        if let Some(expirations) = resp.expirations {
-            Ok(expirations)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+                let resp: GetOptionExpirationsResp = resp_raw.into();
+                if let Some(expirations) = resp.expirations {
+                    Ok(expirations)
+                } else {
+                    Err(Error::UnknownTradeStationAPIError(err_msg))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 }
@@ -378,17 +385,24 @@ impl OptionRiskRewardAnalysis {
     ) -> Result<Self, Error> {
         let payload = json!({"SpreadPrice": price, "Legs": legs});
 
-        let resp: GetOptionsRiskRewardResp = client
+        match client
             .post("marketdata/options/riskreward", &payload)
             .await?
-            .json::<GetOptionsRiskRewardRespRaw>()
+            .json::<ApiResponse<GetOptionsRiskRewardRespRaw>>()
             .await?
-            .into();
-
-        if let Some(analysis) = resp.analysis {
-            Ok(analysis)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+        {
+            ApiResponse::Success(resp_raw) => {
+                let err_msg = resp_raw.message.clone().unwrap_or_default();
+                let resp: GetOptionsRiskRewardResp = resp_raw.into();
+                if let Some(analysis) = resp.analysis {
+                    Ok(analysis)
+                } else {
+                    Err(resp
+                        .error
+                        .unwrap_or(Error::UnknownTradeStationAPIError(err_msg)))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 }
@@ -531,18 +545,25 @@ impl OptionSpreadStrikes {
             }
         }
 
-        let resp: OptionSpreadStrikesResp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<OptionSpreadStrikesRespRaw>()
+            .json::<ApiResponse<OptionSpreadStrikesRespRaw>>()
             .await?
-            .into();
+        {
+            ApiResponse::Success(resp_raw) => {
+                let err_msg = resp_raw.message.clone().unwrap_or_default();
 
-        if let Some(spread_strikes) = resp.spread_strikes {
-            Ok(spread_strikes)
-        } else {
-            eprintln!("{:?}", resp.error);
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+                let resp: OptionSpreadStrikesResp = resp_raw.into();
+                if let Some(spread_strikes) = resp.spread_strikes {
+                    Ok(spread_strikes)
+                } else {
+                    Err(resp
+                        .error
+                        .unwrap_or(Error::UnknownTradeStationAPIError(err_msg)))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 }

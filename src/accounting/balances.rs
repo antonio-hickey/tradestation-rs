@@ -1,6 +1,9 @@
 use super::accounts::AccountType;
 use crate::{
-    responses::account::{GetBODBalanceResp, GetBalanceResp},
+    responses::{
+        account::{GetBODBalanceResp, GetBalanceResp},
+        ApiResponse,
+    },
     Client, Error,
 };
 use serde::{Deserialize, Serialize};
@@ -51,17 +54,20 @@ impl Balance {
     ) -> Result<Balance, Error> {
         let endpoint = format!("brokerage/accounts/{}/balances", account_id.into());
 
-        if let Some(balance) = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetBalanceResp>()
+            .json::<ApiResponse<GetBalanceResp>>()
             .await?
-            .balances
-            .pop()
         {
-            Ok(balance)
-        } else {
-            Err(Error::AccountNotFound)
+            ApiResponse::Success(mut resp) => {
+                if let Some(balance) = resp.balances.pop() {
+                    Ok(balance)
+                } else {
+                    Err(Error::AccountNotFound)
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 
@@ -72,13 +78,15 @@ impl Balance {
     ) -> Result<Vec<Balance>, Error> {
         let endpoint = format!("brokerage/accounts/{}/balances", account_ids.join(","));
 
-        let resp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetBalanceResp>()
-            .await?;
-
-        Ok(resp.balances)
+            .json::<ApiResponse<GetBalanceResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.balances),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 }
 
@@ -228,17 +236,20 @@ impl BODBalance {
     ) -> Result<BODBalance, Error> {
         let endpoint = format!("brokerage/accounts/{}/bodbalances", account_id.into());
 
-        if let Some(balance) = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetBODBalanceResp>()
+            .json::<ApiResponse<GetBODBalanceResp>>()
             .await?
-            .bod_balances
-            .pop()
         {
-            Ok(balance)
-        } else {
-            Err(Error::AccountNotFound)
+            ApiResponse::Success(mut resp) => {
+                if let Some(balance) = resp.bod_balances.pop() {
+                    Ok(balance)
+                } else {
+                    Err(Error::AccountNotFound)
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 
@@ -252,13 +263,15 @@ impl BODBalance {
     ) -> Result<Vec<BODBalance>, Error> {
         let endpoint = format!("brokerage/accounts/{}/bodbalances", account_ids.join(","));
 
-        let resp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetBODBalanceResp>()
-            .await?;
-
-        Ok(resp.bod_balances)
+            .json::<ApiResponse<GetBODBalanceResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.bod_balances),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]

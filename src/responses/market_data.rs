@@ -8,6 +8,8 @@ use crate::market_data::{
 use crate::{responses::stream, Error, MarketData::Bar};
 use serde::{de, Deserialize, Serialize};
 
+use super::ApiError;
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for running risk vs reward
@@ -47,7 +49,10 @@ impl From<GetOptionsRiskRewardRespRaw> for GetOptionsRiskRewardResp {
     fn from(raw: GetOptionsRiskRewardRespRaw) -> Self {
         let error_enum =
             if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
-                Error::from_tradestation_api_error(err, msg)
+                Some(Error::from_api_error(super::ApiError {
+                    error: err.into(),
+                    message: msg.into(),
+                }))
             } else {
                 None
             };
@@ -113,7 +118,10 @@ impl From<GetOptionExpirationsRespRaw> for GetOptionExpirationsResp {
     fn from(raw: GetOptionExpirationsRespRaw) -> Self {
         let error_enum =
             if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
-                Error::from_tradestation_api_error(err, msg)
+                Some(Error::from_api_error(ApiError {
+                    error: err.into(),
+                    message: msg.into(),
+                }))
             } else {
                 None
             };
@@ -154,7 +162,10 @@ impl From<GetSymbolDetailsRespRaw> for GetSymbolDetailsResp {
     fn from(raw: GetSymbolDetailsRespRaw) -> Self {
         let error_enum =
             if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
-                Error::from_tradestation_api_error(err, msg)
+                Some(Error::from_api_error(ApiError {
+                    error: err.into(),
+                    message: msg.into(),
+                }))
             } else {
                 None
             };
@@ -201,7 +212,10 @@ impl From<GetBarsRespRaw> for GetBarsResp {
     fn from(raw: GetBarsRespRaw) -> Self {
         let error_enum =
             if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
-                Error::from_tradestation_api_error(err, msg)
+                Some(Error::from_api_error(ApiError {
+                    error: err.into(),
+                    message: msg.into(),
+                }))
             } else {
                 None
             };
@@ -282,10 +296,12 @@ pub struct OptionSpreadStrikesResp {
 }
 impl From<OptionSpreadStrikesRespRaw> for OptionSpreadStrikesResp {
     fn from(raw: OptionSpreadStrikesRespRaw) -> Self {
-        println!("{raw:?}");
         let error_enum =
             if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
-                Error::from_tradestation_api_error(err, msg)
+                Some(Error::from_api_error(ApiError {
+                    error: err.into(),
+                    message: msg.into(),
+                }))
             } else {
                 None
             };
@@ -417,7 +433,10 @@ impl From<GetQuoteSnapshotsRespRaw> for GetQuoteSnapshotsResp {
     fn from(raw: GetQuoteSnapshotsRespRaw) -> Self {
         let error_enum =
             if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
-                Error::from_tradestation_api_error(err, msg)
+                Some(Error::from_api_error(ApiError {
+                    error: err.into(),
+                    message: msg.into(),
+                }))
             } else {
                 None
             };

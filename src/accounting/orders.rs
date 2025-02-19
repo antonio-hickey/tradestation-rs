@@ -1,5 +1,8 @@
 use crate::{
-    responses::account::{GetOrdersResp, StreamOrdersResp},
+    responses::{
+        account::{GetOrdersResp, StreamOrdersResp},
+        ApiResponse,
+    },
     Client, Error,
 };
 use serde::{Deserialize, Deserializer, Serialize};
@@ -122,9 +125,15 @@ impl Order {
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!("brokerage/accounts/{}/orders", account_id.into());
 
-        let resp = client.get(&endpoint).await?.json::<GetOrdersResp>().await?;
-
-        Ok(resp.orders)
+        match client
+            .get(&endpoint)
+            .await?
+            .json::<ApiResponse<GetOrdersResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.orders),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Fetches orders by order id for the given `Account`.
@@ -141,9 +150,15 @@ impl Order {
             &order_ids.join(",")
         );
 
-        let resp = client.get(&endpoint).await?.json::<GetOrdersResp>().await?;
-
-        Ok(resp.orders)
+        match client
+            .get(&endpoint)
+            .await?
+            .json::<ApiResponse<GetOrdersResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.orders),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Fetches Historical `Order`(s) since a specific date for the given `Account`.
@@ -158,9 +173,15 @@ impl Order {
             since_date
         );
 
-        let resp = client.get(&endpoint).await?.json::<GetOrdersResp>().await?;
-
-        Ok(resp.orders)
+        match client
+            .get(&endpoint)
+            .await?
+            .json::<ApiResponse<GetOrdersResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.orders),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Fetches Historical `Order`(s) for the given `Account`(s) by id.
@@ -175,9 +196,15 @@ impl Order {
             since_date,
         );
 
-        let resp = client.get(&endpoint).await?.json::<GetOrdersResp>().await?;
-
-        Ok(resp.orders)
+        match client
+            .get(&endpoint)
+            .await?
+            .json::<ApiResponse<GetOrdersResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.orders),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Stream `Order`(s) for the given `Account`.

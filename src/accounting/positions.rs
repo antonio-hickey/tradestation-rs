@@ -1,6 +1,9 @@
 use crate::{
     accounting::orders::AssetType,
-    responses::account::{GetPositionsResp, StreamPositionsResp},
+    responses::{
+        account::{GetPositionsResp, StreamPositionsResp},
+        ApiResponse,
+    },
     Client, Error,
 };
 use serde::{Deserialize, Serialize};
@@ -117,13 +120,15 @@ impl Position {
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!("brokerage/accounts/{}/positions", account_id.into());
 
-        let resp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetPositionsResp>()
-            .await?;
-
-        Ok(resp.positions)
+            .json::<ApiResponse<GetPositionsResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.positions),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Fetches specific `Position`(s) by their id for the `Account`.
@@ -136,19 +141,23 @@ impl Position {
 
         let position_ids: Vec<String> = position_ids.into_iter().map(|id| id.into()).collect();
 
-        let resp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetPositionsResp>()
-            .await?;
+            .json::<ApiResponse<GetPositionsResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => {
+                let positions: Vec<Position> = resp
+                    .positions
+                    .into_iter()
+                    .filter(|position| position_ids.contains(&position.position_id))
+                    .collect();
 
-        let positions: Vec<Position> = resp
-            .positions
-            .into_iter()
-            .filter(|position| position_ids.contains(&position.position_id))
-            .collect();
-
-        Ok(positions)
+                Ok(positions)
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Fetches specific `Position`(s) by their id for the `Account`(s).
@@ -168,19 +177,23 @@ impl Position {
 
         let position_ids: Vec<String> = position_ids.into_iter().map(|id| id.into()).collect();
 
-        let resp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetPositionsResp>()
-            .await?;
+            .json::<ApiResponse<GetPositionsResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => {
+                let positions: Vec<Position> = resp
+                    .positions
+                    .into_iter()
+                    .filter(|position| position_ids.contains(&position.position_id))
+                    .collect();
 
-        let positions: Vec<Position> = resp
-            .positions
-            .into_iter()
-            .filter(|position| position_ids.contains(&position.position_id))
-            .collect();
-
-        Ok(positions)
+                Ok(positions)
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Fetches positions for the given `Account`.
@@ -195,13 +208,15 @@ impl Position {
             symbols.into()
         );
 
-        let resp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetPositionsResp>()
-            .await?;
-
-        Ok(resp.positions)
+            .json::<ApiResponse<GetPositionsResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.positions),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Fetches positions for the given `Account`(s).
@@ -216,13 +231,15 @@ impl Position {
             symbols
         );
 
-        let resp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetPositionsResp>()
-            .await?;
-
-        Ok(resp.positions)
+            .json::<ApiResponse<GetPositionsResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.positions),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Fetches positions for the given `Account`(s).
@@ -239,13 +256,15 @@ impl Position {
                 .join(",")
         );
 
-        let resp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetPositionsResp>()
-            .await?;
-
-        Ok(resp.positions)
+            .json::<ApiResponse<GetPositionsResp>>()
+            .await?
+        {
+            ApiResponse::Success(resp) => Ok(resp.positions),
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+        }
     }
 
     /// Stream `Position`s for the given `Account`.

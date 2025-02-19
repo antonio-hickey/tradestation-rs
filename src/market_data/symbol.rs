@@ -1,6 +1,9 @@
 use crate::{
     accounting::{AssetType, OptionType},
-    responses::market_data::{GetSymbolDetailsResp, GetSymbolDetailsRespRaw},
+    responses::{
+        market_data::{GetSymbolDetailsResp, GetSymbolDetailsRespRaw},
+        ApiResponse,
+    },
     Client, Error,
 };
 use serde::{Deserialize, Serialize};
@@ -74,17 +77,25 @@ impl SymbolDetails {
     ) -> Result<Vec<SymbolDetails>, Error> {
         let endpoint = format!("marketdata/symbols/{}", symbols.join(","));
 
-        let resp: GetSymbolDetailsResp = client
+        match client
             .get(&endpoint)
             .await?
-            .json::<GetSymbolDetailsRespRaw>()
+            .json::<ApiResponse<GetSymbolDetailsRespRaw>>()
             .await?
-            .into();
+        {
+            ApiResponse::Success(resp_raw) => {
+                let err_msg = resp_raw.message.clone().unwrap_or_default();
 
-        if let Some(symbol_details) = resp.symbols {
-            Ok(symbol_details)
-        } else {
-            Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError))
+                let resp: GetSymbolDetailsResp = resp_raw.into();
+                if let Some(symbol_details) = resp.symbols {
+                    Ok(symbol_details)
+                } else {
+                    Err(resp
+                        .error
+                        .unwrap_or(Error::UnknownTradeStationAPIError(err_msg)))
+                }
+            }
+            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
     }
 }
