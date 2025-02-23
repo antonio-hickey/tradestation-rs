@@ -22,6 +22,7 @@ pub struct OptionExpiration {
     /// Timestamp represented as an `RFC3339` formatted date, a profile of the ISO 8601 date standard.
     /// E.g: `"2021-12-17T00:00:00Z"`.
     pub date: String,
+
     /// The type of expiration for the options contract.
     /// E.g: `OptionExpirationType::Weekly`
     pub r#type: OptionExpirationType,
@@ -109,12 +110,16 @@ impl Client {
 pub enum OptionExpirationType {
     /// An options contract with weekly based expirations.
     Weekly,
+
     /// An options contract with monthly based expirations.
     Monthly,
+
     /// An options contract with quarterly based expirations.
     Quarterly,
+
     /// An options contract with end of month based expirations.
     EOM,
+
     /// An options contract with expirations based on other conditions.
     Other,
 }
@@ -132,22 +137,27 @@ pub enum OptionSpreadType {
     ///
     /// <div class="warning">NOTE: Selling this spread type has the potential for infinite loss.</div>
     Single,
+
     /// A spread involving a call and a put with
     /// the same strike price and expiration date.
     ///
     /// <div class="warning">NOTE: Selling this spread type has the potential for infinite loss.</div>
     Straddle,
+
     /// A spread involving a call and a put at different
     /// strike prices, but the same expiration date.
     Strangle,
+
     /// A spread involving buying and selling two options
     /// of the same type (calls or puts) at different strike
     /// prices, but the same expiration date.
     Vertical,
+
     /// A spread involving buying one option and selling 2
     /// options of the same type as the one bought, but with
     /// different strike prices and the same expiration date.
     RatioBack1x2,
+
     /// A spread involving buying one option and selling 3
     /// options of the same type as the one bought, but with
     /// different strike prices and the same expiration date.
@@ -155,6 +165,7 @@ pub enum OptionSpreadType {
     /// NOTE: Similar to `OptionSpreadType::RatioBack1x2`, but
     /// `RatioBack1x3` offers more leverage.
     RatioBack1x3,
+
     /// A spread involving buying one option and selling 3
     /// options of the same type as the one bought, but with
     /// different strike prices and the same expiration date.
@@ -163,6 +174,7 @@ pub enum OptionSpreadType {
     /// `OptionSpreadType::RatioBack1x3`, but a more balanced
     /// risk reward.
     RatioBack2x3,
+
     /// A spread involving buying an option at one strike price,
     /// and selling 2 options of that same option type bought (call or puts).
     ///
@@ -173,17 +185,21 @@ pub enum OptionSpreadType {
     ///
     /// <div class="warning">NOTE: This spread type has the potential for infinite loss.</div>
     Butterfly,
+
     /// A spread involving selling an At-The-Money straddle `OptionSpreadType::Straddle`,
     /// and buying an Out-of-The-Money call and put to hedge risk. Where all options are
     /// of the same expiration date.
     IronButterfly,
+
     /// A spread involving buying an option at one strike price, selling 2 options
     /// at middle price, and buying one option at a higher strike price. Where all the
     /// options are of the same type (call or put), and the same expiration date.
     Condor,
+
     /// A spread involving selling a call spread and a put spread. Where all options
     /// are of the same expiration date.
     IronCondor,
+
     /// A spread involving the underlying asset and an option.
     ///
     /// E.g: Covered Call involves buying 100 shares (or one contract if futures options)
@@ -195,23 +211,27 @@ pub enum OptionSpreadType {
     /// <div class="warning">NOTE: In a Covered Put, there is potential for infinite loss
     /// if the underlying asset's price rises indefinitely.</div>
     Covered,
+
     /// A spread involving holding a position in the underlying asset, buying a protective
     /// option (opposite of your underlying position, put if long or call if short the
     /// underlying), and selling an option the opposite of the option you bought to reduce
     /// the cost of the protection, but putting a cap on potential reward.
     Collar,
+
     /// A spread involving buying or selling a mix of option types at a mix of strike prices
     /// and expiration dates.
     ///
     /// <div class="warning">NOTE: Depending on the specific positions, this spread can have the
     /// potential for infinite loss, especially if it includes uncovered short options.</div>
     Combo,
+
     /// A spread involving buying and selling 2 options of the same type (calls or puts) with
     /// the same strike price, but different expiration dates.
     ///
     /// NOTE: Similar to diagonal spreads `OptionSpreadType::Diagonal`, but with the same
     /// strike prices allowing for a more neutral position.
     Calendar,
+
     /// A spread involving buying and selling 2 options of the same type (calls or puts), but
     /// with different strike prices, and expiration dates.
     ///
@@ -316,12 +336,16 @@ impl Client {
 pub struct OptionRiskRewardAnalysis {
     /// Indicates whether the maximum gain can be infinite.
     pub max_gain_is_infinite: bool,
+
     /// The adjusted maximum gain (if it is not infinite).
     pub adjusted_max_gain: String,
+
     /// Indicates whether the maximum loss can be infinite.
     pub max_loss_is_infinite: bool,
+
     /// The adjusted maximum loss (if it is not infinite).
     pub adjusted_max_loss: String,
+
     /// Market price that the underlying security must reach
     /// for the trade to avoid a loss.
     pub breakeven_points: Vec<String>,
@@ -475,10 +499,12 @@ pub struct OptionsLeg {
     /// Option contract symbol or underlying symbol
     /// to be traded for this leg.
     pub symbol: String,
+
     /// The number of option contracts to buy or sell for this leg.
     ///
     /// NOTE: The value cannot be zero.
     pub quantity: i32,
+
     /// The kind of options trade (buying or selling).
     pub trade_action: OptionTradeAction,
 }
@@ -489,6 +515,7 @@ pub enum OptionTradeAction {
     #[serde(rename = "BUY")]
     /// Buying an option contract
     Buy,
+
     #[serde(rename = "SELL")]
     /// Selling an option contract
     Sell,
@@ -500,6 +527,7 @@ pub enum OptionTradeAction {
 pub struct OptionSpreadStrikes {
     /// Name of the spread type for these strikes.
     pub spread_type: OptionSpreadType,
+
     /// Vector of the strike prices for this spread type.
     ///
     /// NOTE: Each element in the Strikes vector is a vector
@@ -604,18 +632,22 @@ pub struct OptionSpreadStrikesQuery {
     ///
     /// NOTE: The underlying symbol must be an equity or index.
     pub underlying: String,
+
     /// The type of spread `MarketData::OptionSpreadType`
     pub spread_type: OptionSpreadType,
+
     /// The desired interval between the strike prices
     /// in a spread. It must be greater than or equal to 1.
     /// A value of 1 uses consecutive strikes; a value of 2
     /// skips one between strikes; and so on.
     pub strike_interval: i32,
+
     /// The date on which the option contract expires;
     /// must be a valid expiration date.
     ///
     /// NOTE: Defaults to the next contract expiration date.
     pub expiration: Option<String>,
+
     /// The second contract expiration date required
     /// for Calendar and Diagonal spreads.
     pub expiration2: Option<String>,
@@ -702,50 +734,61 @@ pub struct OptionChain {
     /// The expected change in an option position’s value resulting
     /// from a one point increase in the price of the underlying security.
     pub delta: Option<String>,
+
     /// The expected decline in an option position’s value resulting
     /// from the passage of one day’s time, holding all other variables
     /// (price of the underlying, volatility, etc.) constant.
     pub theta: Option<String>,
+
     /// The expected change in an option position’s delta resulting
     /// from a one point increase in the price of the underlying security.
     pub gamma: Option<String>,
+
     /// The expected change in an option position’s value resulting
     /// from an increase of one percentage point in the risk-free
     /// interest rate (e.g. an increase from 3% to 4%).
     pub rho: Option<String>,
+
     /// The expected change in an option position’s value resulting
     /// from an increase of one percentage point in the volatility of
     /// the underlying security (e.g. an increase from 26% to 27%).
     pub vega: Option<String>,
+
     /// The volatility of the underlying implied by an option
     /// position’s current price.
     pub implied_volatility: Option<String>,
+
     /// The value of an option position exclusive of the position’s
     /// time value. The value of the option position if it were to
     /// expire immediately.
     pub intrinsic_value: String,
+
     /// The time value of an option position.
     ///
     /// NOTE: The market value of an option position minus
     /// the position’s intrinsic value.
     pub extrinsic_value: String,
+
     /// The value of an option position based on a theoretical model
     /// of option prices (the Bjerksund-Stensland model).
     ///
     /// NOTE: Calculated using volatility of the underlying.
     pub theoretical_value: String,
+
     #[serde(rename = "ProbabilityITM")]
     /// The calculated probability that an option position will have
     /// intrinsic value at expiration.
     ///
     /// NOTE: Calculated using volatility of the underlying.
     pub probability_itm: Option<String>,
+
     #[serde(rename = "ProbabilityOTM")]
     /// The calculated probability that an option position will not have
     /// intrinsic value at expiration.
     ///
     /// NOTE: Calculated using volatility of the underlying.
     pub probability_otm: Option<String>,
+
     #[serde(rename = "ProbabilityBE")]
     /// The calculated probability that an option position will have
     /// a value at expiration that is equal to or greater than the
@@ -753,18 +796,21 @@ pub struct OptionChain {
     ///
     /// NOTE: Calculated using volatility of the underlying.
     pub probability_be: Option<String>,
+
     #[serde(rename = "ProbabilityITM_IV")]
     /// The calculated probability that an option position will have
     /// intrinsic value at expiration.
     ///
     /// NOTE: Calculated using implied volatility.
     pub probability_itm_iv: Option<String>,
+
     #[serde(rename = "ProbabilityOTM_IV")]
     /// The calculated probability that an option position will not
     /// have intrinsic value at expiration.
     ///
     /// NOTE: Calculated using implied volatility.
     pub probability_otm_iv: Option<String>,
+
     #[serde(rename = "ProbabilityBE_IV")]
     /// The calculated probability that an option position will have a
     /// value at expiration that is equal to or greater than the position’s
@@ -772,52 +818,71 @@ pub struct OptionChain {
     ///
     /// NOTE: Calculated using implied volatility.
     pub probability_be_iv: Option<String>,
+
     #[serde(rename = "TheoreticalValueIV")]
     /// The value of an option position based on a theoretical model of
     /// option prices (the Bjerksund-Stensland model).
     ///
     /// NOTE: Calculated using implied volatility.
     pub theoretical_value_iv: Option<String>,
+
     /// Total number of open contracts for the option spread.
     ///
     /// NOTE: This value is updated daily.
     pub daily_open_interest: i32,
+
     /// Ask price. The price a seller is willing to accept for the option spread.
     pub ask: String,
+
     /// Bid price. The price a buyer is willing to pay for the option spread.
     pub bid: String,
+
     /// Average between `ask` and `bid`.
     pub mid: String,
+
     /// Amount of contracts at the given `ask` price.
     pub ask_size: i32,
+
     /// Amount of contracts at the given `bid` price.
     pub bid_size: i32,
+
     /// The last traded price for the option spread.
     ///
     /// NOTE: This value only updates during the official market session.
     pub close: String,
+
     /// Today's highest price for the option spread.
     pub high: String,
+
     /// The last traded price for the option spread.
     pub last: String,
+
     /// Today's lowest traded price for the option spread.
     pub low: String,
+
     /// Difference between prior Close price and current Close price for the
     /// option spread.
     pub net_change: String,
+
     /// Percentage changed between prior `close` price and current `close` price
     /// for the option spread.
     pub net_change_pct: String,
+
     /// The initial price for the option spread during the official market session.
     pub open: String,
+
     /// Prior day's Closing price.
     pub previous_close: String,
+
     /// The number of contracts traded today.
     pub volume: i32,
+
     /// The side of the option chain.
     pub side: OptionChainSide,
+
     /// The strike prices for the option contracts in the legs of this spread.
     pub strikes: Vec<String>,
+
     /// The legs of the option spread.
     pub legs: Vec<OptionSpreadLeg>,
 }
@@ -986,29 +1051,36 @@ impl Client {
 pub struct OptionChainQuery {
     /// The symbol for the underlying security on which the option contracts are based.
     pub underlying: String,
+
     /// Date on which the option contract expires; must be a valid expiration date.
     ///
     /// NOTE: Defaults to the next contract expiration date.
     pub expiration: Option<String>,
+
     /// Second contract expiration date required
     /// for Calendar and Diagonal spreads.
     pub expiration2: Option<String>,
+
     /// Specifies the number of spreads to display above and below the price center.
     ///
     /// NOTE: Defaults to a proximity of `5` strikes above and below the price center.
     pub strike_proximity: i32,
+
     /// Specifies the name of the spread type to use.
     pub spread_type: OptionSpreadType,
+
     /// The theoretical rate of return of an investment with zero risk.
     /// NOTE: Defaults to the current quote for `$IRX.X`.
     ///
     /// NOTE: The percentage rate should be specified as a decimal value.
     /// E.g, to use 2% for the rate, pass in `0.02`.
     pub risk_free_rate: Option<f64>,
+
     /// Specifies the strike price center.
     ///
     /// NOTE: Defaults to the last quoted price for the underlying security.
     pub price_center: Option<f64>,
+
     /// Specifies the desired interval between the strike prices in a spread.
     ///
     /// NOTE: It must be greater than or equal to 1. A value of 1 uses consecutive strikes;
@@ -1016,10 +1088,12 @@ pub struct OptionChainQuery {
     ///
     /// NOTE: Defaults to `1`.
     pub strike_interval: i32,
+
     /// Specifies whether or not greeks properties are returned.
     ///
     /// NOTE: Defaults to `true`.
     pub enable_greeks: bool,
+
     /// Set the option chain filter for specific range of options.
     ///
     /// NOTE: Defaults to all `OptionStrikeRange::All`.
@@ -1027,6 +1101,7 @@ pub struct OptionChainQuery {
     /// E.g: Filter the chain for out of the money options:
     /// `OptionStrikeRange::OTM`.
     pub strike_range: OptionStrikeRange,
+
     /// Filters the spreads by a specific option type.
     pub option_type: OptionType,
 }
@@ -1068,29 +1143,36 @@ impl OptionChainQuery {
 pub struct OptionChainQueryBuilder {
     /// The symbol for the underlying security on which the option contracts are based.
     underlying: Option<String>,
+
     /// Date on which the option contract expires; must be a valid expiration date.
     ///
     /// NOTE: Defaults to the next contract expiration date.
     expiration: Option<String>,
+
     /// Second contract expiration date required
     /// for Calendar and Diagonal spreads.
     expiration2: Option<String>,
+
     /// Specifies the number of spreads to display above and below the price center.
     ///
     /// NOTE: Defaults to a proximity of `5` strikes above and below the price center.
     strike_proximity: Option<i32>,
+
     /// Specifies the name of the spread type to use.
     spread_type: Option<OptionSpreadType>,
+
     /// The theoretical rate of return of an investment with zero risk.
     /// NOTE: Defaults to the current quote for `$IRX.X`.
     ///
     /// NOTE: The percentage rate should be specified as a decimal value.
     /// E.g, to use 2% for the rate, pass in `0.02`.
     risk_free_rate: Option<f64>,
+
     /// Specifies the strike price center.
     ///
     /// NOTE: Defaults to the last quoted price for the underlying security.
     price_center: Option<f64>,
+
     /// Specifies the desired interval between the strike prices in a spread.
     ///
     /// NOTE: It must be greater than or equal to 1. A value of 1 uses consecutive strikes;
@@ -1098,10 +1180,12 @@ pub struct OptionChainQueryBuilder {
     ///
     /// NOTE: Defaults to `1`.
     strike_interval: Option<i32>,
+
     /// Specifies whether or not greeks properties are returned.
     ///
     /// NOTE: Defaults to `true`.
     enable_greeks: Option<bool>,
+
     /// Set the option chain filter for specific range of options.
     ///
     /// NOTE: Defaults to all `OptionStrikeRange::All`.
@@ -1109,6 +1193,7 @@ pub struct OptionChainQueryBuilder {
     /// E.g: Filter the chain for out of the money options:
     /// `OptionStrikeRange::OTM`.
     strike_range: Option<OptionStrikeRange>,
+
     /// Filters the spreads by a specific option type.
     option_type: Option<OptionType>,
 }
@@ -1226,8 +1311,10 @@ impl OptionChainQueryBuilder {
 pub enum OptionStrikeRange {
     /// A range containing all strikes
     All,
+
     /// A range containing In-The-Money strikes
     ITM,
+
     /// A range containing Out-of-The-Money strikes
     OTM,
 }
@@ -1238,6 +1325,7 @@ pub enum OptionStrikeRange {
 pub struct OptionSpreadLeg {
     /// Option contract symbol or underlying symbol to be traded for this leg.
     pub symbol: String,
+
     /// The number of option contracts or underlying shares for this leg,
     /// relative to the other legs. A positive number represents a buy trade
     /// and a negative number represents a sell trade.
@@ -1246,13 +1334,17 @@ pub struct OptionSpreadLeg {
     /// buy 1 contract of the first leg, sell 2 contracts of the second leg, and
     /// buy 1 contract of the third leg.
     pub ratio: i32,
+
     /// The strike price of the option contract for this leg.
     pub strike_price: String,
+
     /// Date on which the contract expires.
     /// E.g: `2021-12-17T00:00:00Z`.
     pub expiration: String,
+
     /// The option type `MarketData::OptionType`
     pub option_type: OptionType,
+
     /// The asset category for this leg.
     pub asset_type: String,
 }
@@ -1262,8 +1354,10 @@ pub struct OptionSpreadLeg {
 pub enum OptionChainSide {
     /// The side of the option chain with call options.
     Call,
+
     /// The side of the option chain with put options.
     Put,
+
     /// The side of the option chain with
     /// both call and put options.
     Both,
@@ -1274,8 +1368,10 @@ pub enum OptionChainSide {
 pub enum OptionType {
     /// Call Option
     Call,
+
     /// Put Option
     Put,
+
     /// All Options (Calls, and Puts)
     All,
 }
@@ -1286,50 +1382,61 @@ pub struct OptionQuote {
     /// The expected change in an option position’s value resulting
     /// from a one point increase in the price of the underlying security.
     pub delta: Option<String>,
+
     /// The expected decline in an option position’s value resulting
     /// from the passage of one day’s time, holding all other variables
     /// (price of the underlying, volatility, etc.) constant.
     pub theta: Option<String>,
+
     /// The expected change in an option position’s delta resulting
     /// from a one point increase in the price of the underlying security.
     pub gamma: Option<String>,
+
     /// The expected change in an option position’s value resulting
     /// from an increase of one percentage point in the risk-free
     /// interest rate (e.g. an increase from 3% to 4%).
     pub rho: Option<String>,
+
     /// The expected change in an option position’s value resulting
     /// from an increase of one percentage point in the volatility of
     /// the underlying security (e.g. an increase from 26% to 27%).
     pub vega: Option<String>,
+
     /// The volatility of the underlying implied by an option
     /// position’s current price.
     pub implied_volatility: Option<String>,
+
     /// The value of an option position exclusive of the position’s
     /// time value. The value of the option position if it were to
     /// expire immediately.
     pub intrinsic_value: String,
+
     /// The time value of an option position.
     ///
     /// NOTE: The market value of an option position minus
     /// the position’s intrinsic value.
     pub extrinsic_value: String,
+
     /// The value of an option position based on a theoretical model
     /// of option prices (the Bjerksund-Stensland model).
     ///
     /// NOTE: Calculated using volatility of the underlying.
     pub theoretical_value: String,
+
     #[serde(rename = "ProbabilityITM")]
     /// The calculated probability that an option position will have
     /// intrinsic value at expiration.
     ///
     /// NOTE: Calculated using volatility of the underlying.
     pub probability_itm: Option<String>,
+
     #[serde(rename = "ProbabilityOTM")]
     /// The calculated probability that an option position will not have
     /// intrinsic value at expiration.
     ///
     /// NOTE: Calculated using volatility of the underlying.
     pub probability_otm: Option<String>,
+
     #[serde(rename = "ProbabilityBE")]
     /// The calculated probability that an option position will have
     /// a value at expiration that is equal to or greater than the
@@ -1337,18 +1444,21 @@ pub struct OptionQuote {
     ///
     /// NOTE: Calculated using volatility of the underlying.
     pub probability_be: Option<String>,
+
     #[serde(rename = "ProbabilityITM_IV")]
     /// The calculated probability that an option position will have
     /// intrinsic value at expiration.
     ///
     /// NOTE: Calculated using implied volatility.
     pub probability_itm_iv: Option<String>,
+
     #[serde(rename = "ProbabilityOTM_IV")]
     /// The calculated probability that an option position will not
     /// have intrinsic value at expiration.
     ///
     /// NOTE: Calculated using implied volatility.
     pub probability_otm_iv: Option<String>,
+
     #[serde(rename = "ProbabilityBE_IV")]
     /// The calculated probability that an option position will have a
     /// value at expiration that is equal to or greater than the position’s
@@ -1356,52 +1466,71 @@ pub struct OptionQuote {
     ///
     /// NOTE: Calculated using implied volatility.
     pub probability_be_iv: Option<String>,
+
     #[serde(rename = "TheoreticalValueIV")]
     /// The value of an option position based on a theoretical model of
     /// option prices (the Bjerksund-Stensland model).
     ///
     /// NOTE: Calculated using implied volatility.
     pub theoretical_value_iv: Option<String>,
+
     /// Total number of open contracts for the option spread.
     ///
     /// NOTE: This value is updated daily.
     pub daily_open_interest: i32,
+
     /// Ask price. The price a seller is willing to accept for the option spread.
     pub ask: String,
+
     /// Bid price. The price a buyer is willing to pay for the option spread.
     pub bid: String,
+
     /// Average between `ask` and `bid`.
     pub mid: String,
+
     /// Amount of contracts at the given `ask` price.
     pub ask_size: i32,
+
     /// Amount of contracts at the given `bid` price.
     pub bid_size: i32,
+
     /// The last traded price for the option spread.
     ///
     /// NOTE: This value only updates during the official market session.
     pub close: String,
+
     /// Today's highest price for the option spread.
     pub high: String,
+
     /// The last traded price for the option spread.
     pub last: String,
+
     /// Today's lowest traded price for the option spread.
     pub low: String,
+
     /// Difference between prior Close price and current Close price for the
     /// option spread.
     pub net_change: String,
+
     /// Percentage changed between prior `close` price and current `close` price
     /// for the option spread.
     pub net_change_pct: String,
+
     /// The initial price for the option spread during the official market session.
     pub open: String,
+
     /// Prior day's Closing price.
     pub previous_close: String,
+
     /// The number of contracts traded today.
     pub volume: i32,
+
     /// The side of the option chain.
     pub side: OptionChainSide,
+
     /// The strike prices for the option contracts in the legs of this spread.
     pub strikes: Vec<String>,
+
     /// The legs of the option spread.
     pub legs: Vec<OptionSpreadLeg>,
 }
@@ -1626,6 +1755,7 @@ impl Client {
 pub struct OptionQuoteQuery {
     /// The individual positions making up a larger trade.
     pub legs: Vec<OptionQouteLeg>,
+
     /// The theoretical rate of return of an
     /// investment with zero risk.
     ///
@@ -1635,6 +1765,7 @@ pub struct OptionQuoteQuery {
     /// NOTE: The percentage rate should be specified as a decimal value.
     /// E.g: 2% = `0.02`.
     pub risk_free_rate: Option<f64>,
+
     /// Specifies whether or not greeks properties are returned.
     ///
     /// NOTE: Defaults to `true`.
@@ -1675,6 +1806,7 @@ pub struct OptionQouteLeg {
     /// Option contract symbol or underlying
     /// symbol to be traded for this leg.
     pub symbol: String,
+
     /// The number of option contracts or underlying
     /// shares for this leg, relative to the other legs.
     ///

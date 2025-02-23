@@ -8,11 +8,18 @@ use std::collections::HashMap;
 #[derive(Clone, Debug)]
 /// TradeStation API Client
 pub struct Client {
+    /// The HTTP Client for sending requests
     http_client: reqwest::Client,
+
+    /// The TradeStation API Client ID
     client_id: String,
+
+    /// The TradeStation API Client Secret Key
     client_secret: String,
+
     /// Bearer Token for TradeStation's API
     pub token: Token,
+
     /// The base url used for all endpoints.
     ///
     /// NOTE: You should leave this default unless you

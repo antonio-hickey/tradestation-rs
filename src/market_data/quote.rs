@@ -335,10 +335,13 @@ impl Client {
 pub struct MarketFlag {
     /// Is using BATS
     pub is_bats: bool,
+
     /// Is market data delayed
     pub is_delayed: bool,
+
     /// Is security halted
     pub is_halted: bool,
+
     /// Is security hard to borrow
     pub is_hard_to_borrow: bool,
 }

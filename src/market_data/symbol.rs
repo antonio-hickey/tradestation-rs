@@ -14,41 +14,54 @@ use serde::{Deserialize, Serialize};
 pub struct SymbolDetails {
     /// The type of financial instrument that a symbol represents.
     pub asset_type: AssetType,
+
     /// The country of the exchange where the symbol is listed.
     pub country: String,
+
     /// Displays the type of base currency for the selected symbol.
     pub currency: String,
+
     /// Displays the full name of the symbol.
     ///
     /// NOTE: Special characters may be formatted in unicode.
     pub description: String,
+
     /// Name of exchange where this symbol is traded.
     pub exchange: String,
+
     /// The UTC formatted expiration date of a future or option symbol,
     /// in the country the contract is traded in. The time portion of
     /// the value should be ignored.
     ///
     /// NOTE: Only for options and futures symbols.
     pub expiration_date: Option<String>,
+
     /// Displays the type of future contract the symbol represents.
     ///
     /// NOTE: Only for futures symbols.
     pub future_type: Option<String>,
+
     /// Defines whether an option is a call or a put.
     pub option_type: Option<OptionType>,
+
     /// Conveys number formatting information for symbol price fields.
     pub price_format: PriceFormat,
+
     /// Conveys number formatting information for symbol quantity fields.
     pub quantity_format: QuantityFormat,
+
     /// Displays the symbol root, e.g. `ES` for Futures symbol `@ESH25`,
     /// `OEX` for option `OEX 210129C1750`.
     pub root: String,
+
     /// The Strike Price for the Put or Call option.
     ///
     /// NOTE: Only for options symbols.
     pub strike_price: String,
+
     /// The Symbol name or abbreviation.
     pub symbol: String,
+
     /// The financial instrument on which an Options contract is
     /// based or derived. Can also apply to some Futures symbols,
     /// like continuous Futures contracts, e.g. `TYZ24` for `@TY`.
@@ -130,26 +143,33 @@ impl Client {
 pub struct PriceFormat {
     /// The format of the price values.
     pub format: Format,
+
     /// The number of decimals precision.
     ///
     /// NOTE: Only applies to the format `Format::Decimals`.
     pub decimals: Option<String>,
+
     /// The denominator of the single fraction.
     ///
     /// NOTE: Only applies to the format `Format::Fraction`.
     pub fraction: Option<String>,
+
     /// The additional fraction of a fraction denominator.
     ///
     /// NOTE: Only applies to the format `Format::Fraction`.
     pub sub_fraction: Option<String>,
+
     /// The style of increment for price movements.
     pub increment_style: IncrementStyle,
+
     /// The decimal increment for all price movements.
     ///
     /// NOTE: Only applies to the simple increment style `IncrementStyle::Simple`.
     pub increment: Option<String>,
+
     /// The scheduling of increments.
     pub increment_schedule: Option<Vec<IncrementSchedule>>,
+
     /// The symbol's point value.
     pub point_value: String,
 }
@@ -162,12 +182,14 @@ pub enum Format {
     ///
     /// E.g: `123.20`
     Decimal,
+
     /// Fraction values.
     ///
     /// E.g: `534 4/8`
     ///
     /// NOTE: Common in interest rate derivatives.
     Fraction,
+
     /// Sub Fractional values.
     ///
     /// E.g: `125'29.7`
@@ -181,6 +203,7 @@ pub enum Format {
 pub enum IncrementStyle {
     /// Simple Increments
     Simple,
+
     /// Scheduled Increments
     Schedule,
 }
@@ -191,6 +214,7 @@ pub enum IncrementStyle {
 pub struct IncrementSchedule {
     /// The incremental value.
     pub increment: String,
+
     /// The initial value to start incrementing from.
     pub starts_at: String,
 }
@@ -203,16 +227,21 @@ pub struct QuantityFormat {
     ///
     /// NOTE: `QuantityFormat` is always decimal format `Format::Decimal`
     pub format: Format,
+
     /// The number of decimals precision.
     pub decimals: String,
+
     /// The incremental style.
     pub increment_style: IncrementStyle,
+
     /// The decimal increment for all quantity movements.
     ///
     /// NOTE: Only applies to the simple increment style `IncrementStyle::Simple`.
     pub increment: Option<String>,
+
     /// The scheduling of increments.
     pub increment_schedule: Option<Vec<IncrementSchedule>>,
+
     /// The minimum quantity of an asset that can be traded.
     pub minimum_trade_quantity: String,
 }

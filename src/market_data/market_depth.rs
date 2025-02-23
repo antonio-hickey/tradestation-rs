@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 pub struct MarketDepthQuotes {
     /// Contains bid quotes, ordered from high to low price.
     bids: Vec<MarketDepthQuote>,
+
     /// Contains ask quotes, ordered from high to low price.
     asks: Vec<MarketDepthQuote>,
 }
@@ -195,15 +196,20 @@ pub struct MarketDepthQuote {
     /// date, a profile of the ISO 8601 date standard.
     /// E.g. `"2026-06-28T12:34:01Z"`.
     pub time_stamp: String,
+
     /// The side of the quote in the order book (Bid or Ask).
     pub side: MarketDepthSide,
+
     /// The price of the quote.
     pub price: String,
+
     /// The total number of shares offered/requested by participants.
     pub size: String,
+
     /// The number of orders aggregated together for this quote by the
     /// participant (market maker or ECN).
     pub order_count: i32,
+
     /// The name of the participant associated with this quote.
     pub name: String,
 }
@@ -213,6 +219,7 @@ pub struct MarketDepthQuote {
 pub struct MarketDepthAggregates {
     /// Aggregated bid quotes, ordered from high to low price.
     bids: Vec<MarketDepthAggregate>,
+
     /// Aggregated ask quotes, ordered from low to high price.
     asks: Vec<MarketDepthAggregate>,
 }
@@ -401,22 +408,30 @@ pub struct MarketDepthAggregate {
     /// RFC3339 formatted date, a profile of the ISO 8601 date standard.
     /// E.g. `"2022-06-28T12:34:01Z"`.
     pub earliest_time: String,
+
     /// The latest participant timestamp for this quote, represented as an
     /// RFC3339 formatted date, a profile of the ISO 8601 date standard.
     /// E.g. `"2022-06-28T12:34:56Z"`.
     pub latest_time: String,
+
     /// The side of the quote on the order book (bid or ask).
     pub side: MarketDepthSide,
+
     /// The price of the quote.
     pub price: String,
+
     /// The total number of shares, or contracts offered/requested by all participants.
     pub total_size: String,
+
     /// The largest number of shares, or contracts offered/requested by any participant.
     pub biggest_size: String,
+
     /// The smallest number of shares, or contracts offered/requested by any participant.
     pub smallest_size: String,
+
     /// The number of participants offering/requesting this price.
     pub num_participants: i32,
+
     /// The sum of the order counts for all participants offering/requesting
     /// this price.
     pub total_order_count: i32,
@@ -427,6 +442,7 @@ pub struct MarketDepthAggregate {
 pub enum MarketDepthSide {
     /// Represents the bid side of the order book.
     Bid,
+
     /// Represents the ask side of the order book.
     Ask,
 }

@@ -815,8 +815,10 @@ impl OrderRequestGroupBuilder {
 pub enum OrderGroupType {
     /// Bracket Order
     BRK,
+
     /// Order Cancels Order
     OCO,
+
     /// Normal Group of Orders
     NORMAL,
 }
@@ -826,12 +828,16 @@ pub enum OrderGroupType {
 pub struct OrderUpdate {
     /// The limit price for this updated `Order`.
     pub limit_price: Option<String>,
+
     /// The stop price for this updated `Order`.
     pub stop_price: Option<String>,
+
     /// The order type for this updated `Order`.
     pub order_type: Option<OrderType>,
+
     /// The quantity for this updated `Order`.
     pub quantity: Option<String>,
+
     /// The advanced options of this updated `Order`.
     pub advanced_options: Option<AdvancedOrderOptions>,
 }
@@ -1276,8 +1282,10 @@ pub struct OrderTimeInForce {
 pub struct OrderRequestLeg {
     /// The quantity of the order.
     pub quantity: String,
+
     /// The symbol used for this leg of the order.
     pub symbol: String,
+
     /// The intent of the order.
     pub trade_action: TradeAction,
 }
@@ -1288,9 +1296,11 @@ pub enum BPWarningStatus {
     /// Enforce, this status indicates that a buying
     /// power warning should be enforced.
     Enforce,
+
     /// Preconfirmed, this status indicates that a buying
     /// power warning has been displayed but not yet confirmed.
     Preconfirmed,
+
     /// Confirmed, this status indicates that a buying power
     /// warning has been displayed and is confirmed.
     Confirmed,
@@ -1377,6 +1387,7 @@ pub enum Duration {
 pub struct Oso {
     /// Other orders in the OSO
     pub orders: Vec<OrderRequest>,
+
     /// The type of OSO Order
     pub r#type: AdvancedOrderType,
 }
@@ -1405,8 +1416,10 @@ pub struct Route {
     /// property of a POST order request, when specifying
     /// a route for an order.
     pub id: String,
+
     /// The name of the route.
     pub name: String,
+
     /// The asset type of the route
     pub asset_types: Vec<AssetType>,
 }

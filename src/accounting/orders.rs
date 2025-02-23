@@ -472,6 +472,7 @@ pub struct TrailingStop {
     ///
     /// NOTE: Mutually exclusive with Percent.
     pub amount: Option<String>,
+
     /// Percentage offset from current price.
     ///
     /// NOTE: Mutually exclusive with Amount.
@@ -534,6 +535,7 @@ pub struct MarketActivationRule {
 /// Logic Operators
 pub enum LogicOp {
     And,
+
     Or,
 }
 
@@ -682,30 +684,39 @@ pub enum OrderAction {
 /// The different types of asset's.
 pub enum AssetType {
     #[serde(rename = "UNKNOWN")]
+    /// An unknown asset type.
     Unknown,
 
     #[serde(rename = "STOCK")]
+    /// An asset in the form of a stock.
     Stock,
 
     #[serde(rename = "STOCKOPTION")]
+    /// An asset in the form of an option on a stock.
     StockOption,
 
     #[serde(rename = "FUTURE")]
+    /// An asset in the form of a futures contract.
     Future,
 
     #[serde(rename = "FUTUREOPTION")]
+    /// An asset in the form of an option on a futures contract.
     FutureOption,
 
     #[serde(rename = "FOREX")]
+    /// An asset in the form of foriegn currency.
     Forex,
 
     #[serde(rename = "CURRENCYOPTION")]
+    /// An asset in the form of an option on foriegn currency.
     CurrencyOption,
 
     #[serde(rename = "INDEX")]
+    /// An asset in the form of an index.
     Index,
 
     #[serde(rename = "INDEXOPTION")]
+    /// An asset in the form of an option on a index.
     IndexOption,
 }
 

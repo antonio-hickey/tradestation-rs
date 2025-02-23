@@ -13,49 +13,66 @@ use serde::{Deserialize, Serialize};
 pub struct Bar {
     /// The closing price of the current bar.
     pub close: String,
+
     /// The number of times a trade was made at a price
     /// less than or equal to the previous trade price.
     pub down_ticks: u64,
+
     /// The number of shares or contracts traded on down ticks.
     pub down_volume: u64,
+
     /// The unix epoch time.
     pub epoch: i64,
+
     /// The highest price traded in the current bar.
     pub high: String,
+
     /// Conveys that all historical bars in the request have been delivered.
     pub is_end_of_history: bool,
+
     /// Set when there is data in the bar and the data
     /// is being built in "real time" from a trade.
     pub is_real_time: Option<bool>,
+
     /// The lowest price traded in the current bar.
     pub low: String,
+
     /// The opening price of the current bar.
     pub open: String,
+
     /// The number of open contracts.
     ///
     /// NOTE: Futures and Options ONLY.
     pub open_interest: Option<String>,
+
     /// Timestamp represented as an RFC3339 formatted date.
     /// E.g: `"2024-09-01T23:30:30Z"`
     pub time_stamp: String,
+
     /// The total number of ticks (upticks and downticks together).
     pub total_ticks: u64,
+
     /// The sum of up and down volume.
     pub total_volume: String,
+
     /// The number of times a trade was made at the same price
     /// of the previous trade price.
     ///
     /// DEPRECATED: it's value will always be 0
     pub unchanged_ticks: u8,
+
     /// The number of shares or contracts traded on unchanged ticks.
     ///
     /// DEPRECATED: it's value will always be 0
     pub unchanged_volume: u8,
+
     /// The number of times a trade was made at a price
     /// greater than or equal to the previous trade price.
     pub up_ticks: u64,
+
     /// The number of shares or contracts traded on up ticks.
     pub up_volume: u64,
+
     /// Indicates if the current `Bar` is Open or Closed.
     pub bar_status: BarStatus,
 }
@@ -222,6 +239,7 @@ pub struct GetBarsQuery {
     /// or
     /// E.g: `"PLTR"` for bars on the stock Palantir.
     pub symbol: String,
+
     /// The interval (of time units) that each bar will consist of
     ///
     /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
@@ -230,8 +248,10 @@ pub struct GetBarsQuery {
     /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
     pub interval: i16,
+
     /// The unit of measurement for time in each bar interval.
     pub unit: BarUnit,
+
     /// Number of bars back to fetch.
     ///
     /// NOTE: Always defaults to 1, and the max number of intraday bars back
@@ -240,10 +260,12 @@ pub struct GetBarsQuery {
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
     pub bars_back: u32,
+
     /// The first date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
     /// NOTE: This parameter is mutually exclusive with the `bars_back` parameter.
     pub first_date: String,
+
     /// The last date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
     /// NOTE: Defaults to the current timestamp.
@@ -251,10 +273,12 @@ pub struct GetBarsQuery {
     /// NOTE: This parameter is mutually exclusive with the `start_date` parameter
     /// and should be used instead of that parameter, since startdate is deprecated.
     pub last_date: String,
+
     /// The United States (US) stock market session template.
     ///
     /// NOTE: Ignored for non U.S equity symbols.
     pub session_template: SessionTemplate,
+
     /// DEPRECATED: Use `last_date` instead of `start_date` !
     ///
     /// The last date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
@@ -293,6 +317,7 @@ pub struct StreamBarsQuery {
     /// or
     /// E.g: `"PLTR"` for bars on the stock Palantir.
     pub symbol: String,
+
     /// The interval (of time units) that each bar will consist of
     ///
     /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
@@ -301,8 +326,10 @@ pub struct StreamBarsQuery {
     /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
     pub interval: i16,
+
     /// The unit of measurement for time in each bar interval.
     pub unit: BarUnit,
+
     /// Number of bars back to fetch.
     ///
     /// NOTE: Always defaults to 1, and the max number of intraday bars back
@@ -311,6 +338,7 @@ pub struct StreamBarsQuery {
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
     pub bars_back: u32,
+
     /// The United States (US) stock market session template.
     ///
     /// NOTE: Ignored for non U.S equity symbols.
@@ -338,12 +366,16 @@ impl StreamBarsQuery {
 pub enum SessionTemplate {
     /// U.S Equities Pre Market Session Template
     USEQPre,
+
     /// U.S Equities Post Market Session Template
     USEQPost,
+
     /// U.S Equities Pre And Post Market Session Template
     USEQPreAndPost,
+
     /// U.S Equities 24 Hour Session Template
     USEQ24Hour,
+
     /// U.S Equities Normal Market Session Template
     Default,
 }
@@ -353,10 +385,13 @@ pub enum SessionTemplate {
 pub enum BarUnit {
     /// Minute Bars
     Minute,
+
     /// Daily Bars
     Daily,
+
     /// Weekly Bars
     Weekly,
+
     /// Monthly Bars
     Monthly,
 }
@@ -366,6 +401,7 @@ pub enum BarUnit {
 pub enum BarStatus {
     /// Indicates the `Bar` is still trading.
     Open,
+
     /// Indicates the `Bar` is finished trading.
     Closed,
 }
@@ -379,6 +415,7 @@ pub struct GetBarsQueryBuilder {
     /// or
     /// E.g: `"PLTR"` for bars on the stock Palantir.
     symbol: Option<String>,
+
     /// The interval (of time units) that each bar will consist of
     ///
     /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
@@ -387,8 +424,10 @@ pub struct GetBarsQueryBuilder {
     /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
     interval: Option<i16>,
+
     /// The unit of measurement for time in each bar interval.
     unit: Option<BarUnit>,
+
     /// Number of bars back to fetch.
     ///
     /// NOTE: Always defaults to 1, and the max number of intraday bars back
@@ -397,10 +436,12 @@ pub struct GetBarsQueryBuilder {
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
     bars_back: Option<u32>,
+
     /// The first date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
     /// NOTE: This parameter is mutually exclusive with the `bars_back` parameter.
     first_date: Option<String>,
+
     /// The last date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
     /// NOTE: Defaults to the current timestamp.
@@ -408,10 +449,12 @@ pub struct GetBarsQueryBuilder {
     /// NOTE: This parameter is mutually exclusive with the `start_date` parameter
     /// and should be used instead of that parameter, since startdate is deprecated.
     last_date: Option<String>,
+
     /// The United States (US) stock market session template.
     ///
     /// NOTE: Ignored for non U.S equity symbols.
     session_template: Option<SessionTemplate>,
+
     /// DEPRECATED: Use `last_date` instead of `start_date` !
     ///
     /// The last date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
@@ -543,6 +586,7 @@ pub struct StreamBarsQueryBuilder {
     /// or
     /// E.g: `"PLTR"` for bars on the stock Palantir.
     symbol: Option<String>,
+
     /// The interval (of time units) that each bar will consist of
     ///
     /// NOTE: Always defaults to 1, and if using the unit `BarUnit::Minute`
@@ -551,8 +595,10 @@ pub struct StreamBarsQueryBuilder {
     /// E.g: If unit is set to `BarUnit::Minute` than an interval of 5
     /// would mean each `Bar` is a 5 minute aggregation of market data.
     interval: Option<i16>,
+
     /// The unit of measurement for time in each bar interval.
     unit: Option<BarUnit>,
+
     /// Number of bars back to fetch.
     ///
     /// NOTE: Always defaults to 1, and the max number of intraday bars back
@@ -561,6 +607,7 @@ pub struct StreamBarsQueryBuilder {
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
     bars_back: Option<u32>,
+
     /// The United States (US) stock market session template.
     ///
     /// NOTE: Ignored for non U.S equity symbols.
