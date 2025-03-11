@@ -6,6 +6,26 @@ use serde::{de, Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// The error type for partially successful operations around accounts.
+/// For example if getting balances on multiple accounts, but 1 of the account
+/// id's is incorrect and the other 5 account id's were correct, so it was partially
+/// successful with 1 error which would be of this type.
+pub struct AccountApiError {
+    /// The Account ID of the error.
+    ///
+    /// NOTE: May contain multiple Account IDs in a comma seperated string.
+    #[serde(rename = "AccountID")]
+    pub account_id: String,
+
+    /// The error.
+    pub error: String,
+
+    /// The error message.
+    pub message: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for getting accounts.
 pub struct GetAccountsResp {
     pub accounts: Vec<Account>,
@@ -14,35 +34,39 @@ pub struct GetAccountsResp {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for getting account's balance.
-// TODO: This also gives a key for errors, look into using these.
 pub struct GetBalanceResp {
     pub balances: Vec<Balance>,
+    #[serde(default)]
+    pub errors: Vec<AccountApiError>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for getting account's balance.
-// TODO: This also gives a key for errors, look into using these.
 pub struct GetBODBalanceResp {
     #[serde(rename = "BODBalances")]
     pub bod_balances: Vec<BODBalance>,
+    #[serde(default)]
+    pub errors: Vec<AccountApiError>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for getting account's balance.
-// TODO: This also gives a key for errors, look into using these.
 // TODO: This also gives a `nextToken`, look into using this.
 pub struct GetOrdersResp {
     pub orders: Vec<Order>,
+    #[serde(default)]
+    pub errors: Vec<AccountApiError>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for getting account's balance.
-// TODO: This also gives a key for errors, look into using these.
 pub struct GetPositionsResp {
     pub positions: Vec<Position>,
+    #[serde(default)]
+    pub errors: Vec<AccountApiError>,
 }
 
 /// The TradeStation API Response for streaming orders.
