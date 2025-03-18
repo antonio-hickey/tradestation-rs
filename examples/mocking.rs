@@ -6,7 +6,7 @@ use tradestation::{ClientBuilder, Error};
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // The address to your test/mock server
-    let mock_server_url = "127.0.0.1:3865";
+    let mock_server_url = "http://127.0.0.1:3865";
 
     // Example: Initialize a `Client` for a test/mock server
     let client = ClientBuilder::new()?

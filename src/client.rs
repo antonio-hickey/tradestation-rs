@@ -62,7 +62,7 @@ impl Client {
         endpoint: &str,
         payload: &T,
     ) -> Result<Response, Error> {
-        let url = format!("https://{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
             .send_request(|token| {
@@ -83,7 +83,7 @@ impl Client {
 
     /// Send a GET request from your `Client` to TradeStation's API
     pub async fn get(&mut self, endpoint: &str) -> Result<Response, Error> {
-        let url = format!("https://{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
             .send_request(|token| {
@@ -106,7 +106,7 @@ impl Client {
         endpoint: &str,
         payload: &T,
     ) -> Result<Response, Error> {
-        let url = format!("https://{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
             .send_request(|token| {
@@ -127,7 +127,7 @@ impl Client {
 
     /// Send a DELETE request from your `Client` to TradeStation's API
     pub async fn delete(&mut self, endpoint: &str) -> Result<Response, Error> {
-        let url = format!("https://{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
             .send_request(|token| {
@@ -152,7 +152,7 @@ impl Client {
     where
         F: FnMut(Value) -> Result<(), Error>,
     {
-        let url = format!("https://{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.base_url, endpoint);
 
         let mut resp = self
             .clone()
@@ -391,7 +391,7 @@ impl ClientBuilderStep<Step3> {
             let client_id = self.client_id.unwrap();
             let client_secret = self.client_secret.unwrap();
             let token = self.token.unwrap();
-            let base_url = "api.tradestation.com/v3".to_string();
+            let base_url = "https://api.tradestation.com/v3".to_string();
 
             Ok(Client {
                 http_client,
