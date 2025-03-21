@@ -1,5 +1,8 @@
 use mockito::Server;
-use tradestation::{accounting::Account, ClientBuilder};
+use tradestation::{
+    accounting::{accounts::AccountType, Account},
+    ClientBuilder,
+};
 
 /// Account is the core abstraction around this API
 /// since we already have a mock test for get accounts
@@ -14,6 +17,222 @@ fn generate_mock_account() -> Account {
         account_type: tradestation::accounting::accounts::AccountType::Cash,
         account_detail: None,
     }
+}
+
+#[test]
+/// This test ensures that the parsing of
+/// getting `Account`(s) is correct.
+fn test_get_accounts_mocked() {
+    // Mock the `accounts` endpoint with a raw JSON
+    // string which was a real response, but was then
+    // modified to randomize personal information.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/brokerage/accounts")
+        .with_status(200)
+        .with_body(
+            "{\"Accounts\":[{\"AccountID\":\"11111111\",\"Currency\":\"USD\",\"Status\":\"Active\",\"AccountType\":\"Cash\",\"AccountDetail\":{\"IsStockLocateEligible\":false,\"EnrolledInRegTProgram\":false,\"RequiresBuyingPowerWarning\":false,\"CryptoEnabled\":false,\"DayTradingQualified\":true,\"OptionApprovalLevel\":3,\"PatternDayTrader\":false}},{\"AccountID\":\"111ABC11\",\"Currency\":\"USD\",\"Status\":\"Active\",\"AccountType\":\"Futures\"},{\"AccountID\":\"22222222\",\"Currency\":\"USD\",\"Status\":\"Active\",\"AccountType\":\"Cash\",\"AccountDetail\":{\"IsStockLocateEligible\":false,\"EnrolledInRegTProgram\":false,\"RequiresBuyingPowerWarning\":false,\"CryptoEnabled\":false,\"DayTradingQualified\":false,\"OptionApprovalLevel\":2,\"PatternDayTrader\":false}},{\"AccountID\":\"33333333\",\"Currency\":\"USD\",\"Status\":\"Closing Transactions Only\",\"AccountType\":\"Margin\",\"AccountDetail\":{\"IsStockLocateEligible\":false,\"EnrolledInRegTProgram\":true,\"RequiresBuyingPowerWarning\":true,\"CryptoEnabled\":false,\"DayTradingQualified\":true,\"OptionApprovalLevel\":4,\"PatternDayTrader\":false}},{\"AccountID\":\"222ABC22\",\"Currency\":\"USD\",\"Status\":\"Active\",\"AccountType\":\"Futures\"}]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Make sure we can parse the mocked response into `Vec<Account>`
+        match client.get_accounts().await {
+            Ok(accounts) => {
+                assert_eq!(accounts.len(), 5);
+            }
+            Err(e) => {
+                panic!("Failed to parse `Account`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures that the parsing of
+/// getting `Account`(s) is correct in specific
+/// this makes sure a non existant account id
+/// will return `None`.
+fn test_get_non_existant_account_mocked() {
+    // Mock the `accounts` endpoint with a raw JSON
+    // string which was a real response, but was then
+    // modified to randomize personal information.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/brokerage/accounts")
+        .with_status(200)
+        .with_body(
+            "{\"Accounts\":[{\"AccountID\":\"11111111\",\"Currency\":\"USD\",\"Status\":\"Active\",\"AccountType\":\"Cash\",\"AccountDetail\":{\"IsStockLocateEligible\":false,\"EnrolledInRegTProgram\":false,\"RequiresBuyingPowerWarning\":false,\"CryptoEnabled\":false,\"DayTradingQualified\":true,\"OptionApprovalLevel\":3,\"PatternDayTrader\":false}}]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Make sure we can parse the mocked response into `Vec<Account>`
+        match client.get_account("11111112").await {
+            Ok(_) => {
+                panic!("Failed to send error for non existant account id");
+            }
+            Err(e) => match e {
+                tradestation::Error::AccountNotFound => {}
+                _ => panic!("Incorrect error, should be `AccountNotFound`"),
+            },
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures that the parsing of getting an
+/// `Account` (in specific the `AccountType::Cash`
+/// type variant) is correct as well as finding
+/// correct account.
+fn test_get_cash_account_mocked() {
+    // Mock the `accounts` endpoint with a raw JSON
+    // string which was a real response, but was then
+    // modified to randomize personal information.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/brokerage/accounts")
+        .with_status(200)
+        .with_body(
+            "{\"Accounts\":[{\"AccountID\":\"11111111\",\"Currency\":\"USD\",\"Status\":\"Active\",\"AccountType\":\"Cash\",\"AccountDetail\":{\"IsStockLocateEligible\":false,\"EnrolledInRegTProgram\":false,\"RequiresBuyingPowerWarning\":false,\"CryptoEnabled\":false,\"DayTradingQualified\":true,\"OptionApprovalLevel\":3,\"PatternDayTrader\":false}}]}"
+        )
+        .create();
+
+    let account_id = "11111111";
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Make sure we can parse the mocked response into a `Account`
+        match client.get_account(account_id).await {
+            Ok(account) => {
+                assert_eq!(account.account_id, account_id);
+                assert_eq!(account.account_type, AccountType::Cash)
+            }
+            Err(e) => {
+                panic!("Failed to parse `Account`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures that the parsing of getting an
+/// `Account` (in specific the `AccountType::Margin`
+/// type variant) is correct as well as finding
+/// correct account.
+fn test_get_margin_account_mocked() {
+    // Mock the `accounts` endpoint with a raw JSON
+    // string which was a real response, but was then
+    // modified to randomize personal information.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/brokerage/accounts")
+        .with_status(200)
+        .with_body(
+            "{\"Accounts\":[{\"AccountID\":\"11111111\",\"Currency\":\"USD\",\"Status\":\"Closing Transactions Only\",\"AccountType\":\"Margin\",\"AccountDetail\":{\"IsStockLocateEligible\":false,\"EnrolledInRegTProgram\":true,\"RequiresBuyingPowerWarning\":true,\"CryptoEnabled\":false,\"DayTradingQualified\":true,\"OptionApprovalLevel\":4,\"PatternDayTrader\":false}}]}"
+        )
+        .create();
+
+    let account_id = "11111111";
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Make sure we can parse the mocked response into a `Account`
+        match client.get_account(account_id).await {
+            Ok(account) => {
+                assert_eq!(account.account_id, account_id);
+                assert_eq!(account.account_type, AccountType::Margin)
+            }
+            Err(e) => {
+                panic!("Failed to parse `Account`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures that the parsing of getting an
+/// `Account` (in specific the `AccountType::Futures`
+/// type variant) is correct as well as finding
+/// correct account.
+fn test_get_futures_account_mocked() {
+    // Mock the `accounts` endpoint with a raw JSON
+    // string which was a real response, but was then
+    // modified to randomize personal information.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/brokerage/accounts")
+        .with_status(200)
+        .with_body("{\"Accounts\":[{\"AccountID\":\"11111111\",\"Currency\":\"USD\",\"Status\":\"Active\",\"AccountType\":\"Futures\"}]}")
+        .create();
+
+    let account_id = "11111111";
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Make sure we can parse the mocked response into a `Account`
+        match client.get_account(account_id).await {
+            Ok(account) => {
+                assert_eq!(account.account_id, account_id);
+                assert_eq!(account.account_type, AccountType::Futures)
+            }
+            Err(e) => {
+                panic!("Failed to parse `Account`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
 }
 
 #[test]

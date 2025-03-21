@@ -1904,7 +1904,7 @@ pub struct AccountDetail {
     crypto_enabled: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 /// The different types of accounts.
 pub enum AccountType {
     /// Cash Account
