@@ -680,7 +680,7 @@ pub enum OrderAction {
     BuyToCover,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 /// The different types of asset's.
 pub enum AssetType {
     #[serde(rename = "UNKNOWN")]

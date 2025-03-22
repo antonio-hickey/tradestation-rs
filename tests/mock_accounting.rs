@@ -1,13 +1,14 @@
 use mockito::Server;
 use tradestation::{
-    accounting::{accounts::AccountType, Account},
+    accounting::{accounts::AccountType, Account, AssetType},
     ClientBuilder,
 };
 
 /// Account is the core abstraction around this API
-/// since we already have a mock test for get accounts
-/// it's fine to use this for other tests as long as
-/// the mock test for get accounts passes.
+/// so it makes sense to just generate it as needed.
+///
+/// NOTE: We have mock tests for this so we know it
+/// works as long as the tests are passing.
 ///
 /// NOTE: For ALL mocks we will use the account id of `11111111`.
 fn generate_mock_account() -> Account {
@@ -63,7 +64,7 @@ fn test_get_accounts_mocked() {
 /// This test ensures that the parsing of
 /// getting `Account`(s) is correct in specific
 /// this makes sure a non existant account id
-/// will return `None`.
+/// will return `Error::AccountNotFound`.
 fn test_get_non_existant_account_mocked() {
     // Mock the `accounts` endpoint with a raw JSON
     // string which was a real response, but was then
@@ -239,6 +240,9 @@ fn test_get_futures_account_mocked() {
 /// This test ensures that the parsing of getting
 /// an `Accounts` `Balance` is correct.
 fn test_get_account_balance_mocked() {
+    // NOTE: since we already have a mock test for get
+    // accounts it's fine to use this for other tests
+    // as long as the mock test for get accounts passes.
     let account = generate_mock_account();
 
     // Mock the `balances` endpoint with a raw JSON
@@ -279,8 +283,11 @@ fn test_get_account_balance_mocked() {
 
 #[test]
 /// This test ensures that the parsing of getting
-/// an `Accounts` `BODBalance` is correct.
+/// an `Account`(s) `BODBalance` is correct.
 fn test_get_account_bod_balance_mocked() {
+    // NOTE: since we already have a mock test for get
+    // accounts it's fine to use this for other tests
+    // as long as the mock test for get accounts passes.
     let account = generate_mock_account();
 
     // Mock the `bodbalances` endpoint with a raw JSON
@@ -310,6 +317,110 @@ fn test_get_account_bod_balance_mocked() {
             }
             Err(e) => {
                 panic!("Failed to parse `BODBalance`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures that the parsing of getting
+/// an `Account`(s) historic `Order`(s) is correct.
+///
+/// In specific the `AssetType::Future` `Order` variant.
+fn test_get_historic_orders_futures_mocked() {
+    // NOTE: since we already have a mock test for get
+    // accounts it's fine to use this for other tests
+    // as long as the mock test for get accounts passes.
+    let account = generate_mock_account();
+
+    // Mock the `accounts` endpoint with a raw JSON
+    // string which was a real response, but was then
+    // modified to randomize personal information.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/brokerage/accounts/11111111/historicalorders?since=2025-01-23")
+        .with_status(200)
+        .with_body(
+            "{\"Orders\":[{\"AccountID\":\"11111111\",\"CommissionFee\":\"1.5\",\"ClosedDateTime\":\"2025-01-24T18:59:18Z\",\"Currency\":\"USD\",\"Duration\":\"DAY\",\"FilledPrice\":\"108.4375\",\"Legs\":[{\"ExpirationDate\":\"2025-03-20T00:00:00Z\",\"QuantityOrdered\":\"1\",\"ExecQuantity\":\"1\",\"QuantityRemaining\":\"0\",\"BuyOrSell\":\"Buy\",\"Symbol\":\"TYH25\",\"Underlying\":\"TY\",\"AssetType\":\"FUTURE\",\"ExecutionPrice\":\"108.4375\"}],\"LimitPrice\":\"108.4375\",\"OrderID\":\"1124957022\",\"OpenedDateTime\":\"2025-01-24T18:05:03Z\",\"OrderType\":\"Limit\",\"PriceUsedForBuyingPower\":\"108.4375\",\"Status\":\"FLL\",\"StatusDescription\":\"Filled\",\"ConversionRate\":\"1\",\"UnbundledRouteFee\":\"0\"},{\"AccountID\":\"11111111\",\"CommissionFee\":\"3\",\"ClosedDateTime\":\"2025-01-24T18:05:02Z\",\"Currency\":\"USD\",\"Duration\":\"DAY\",\"FilledPrice\":\"108.5\",\"Legs\":[{\"ExpirationDate\":\"2025-03-20T00:00:00Z\",\"QuantityOrdered\":\"2\",\"ExecQuantity\":\"2\",\"QuantityRemaining\":\"0\",\"BuyOrSell\":\"Sell\",\"Symbol\":\"TYH25\",\"Underlying\":\"TY\",\"AssetType\":\"FUTURE\",\"ExecutionPrice\":\"108.5\"}],\"OrderID\":\"1124956996\",\"OpenedDateTime\":\"2025-01-24T18:05:02Z\",\"OrderType\":\"Market\",\"PriceUsedForBuyingPower\":\"108.515625\",\"Status\":\"FLL\",\"StatusDescription\":\"Filled\",\"ConversionRate\":\"1\",\"UnbundledRouteFee\":\"0\"},{\"AccountID\":\"11111111\",\"CommissionFee\":\"3\",\"ClosedDateTime\":\"2025-01-24T18:03:32Z\",\"Currency\":\"USD\",\"Duration\":\"DAY\",\"FilledPrice\":\"108.484375\",\"Legs\":[{\"ExpirationDate\":\"2025-03-20T00:00:00Z\",\"QuantityOrdered\":\"2\",\"ExecQuantity\":\"2\",\"QuantityRemaining\":\"0\",\"BuyOrSell\":\"Sell\",\"Symbol\":\"TYH25\",\"Underlying\":\"TY\",\"AssetType\":\"FUTURE\",\"ExecutionPrice\":\"108.484375\"}],\"LimitPrice\":\"108.484375\",\"OrderID\":\"1124956136\",\"OpenedDateTime\":\"2025-01-24T18:03:31Z\",\"OrderType\":\"Limit\",\"PriceUsedForBuyingPower\":\"108.484375\",\"Status\":\"FLL\",\"StatusDescription\":\"Filled\",\"ConversionRate\":\"1\",\"UnbundledRouteFee\":\"0\"}],\"Errors\":[]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Make sure we can parse the mocked response into `Vec<Order>`
+        match account.get_historic_orders("2025-01-23", &mut client).await {
+            Ok(orders) => {
+                // Should be 3 orders
+                assert_eq!(orders.len(), 3);
+                // Account id should match the orders
+                assert_eq!(orders[0].account_id, account.account_id);
+                // The asset type of the order should be a futures contract
+                assert_eq!(orders[0].legs[0].asset_type, AssetType::Future);
+            }
+            Err(e) => {
+                panic!("Failed to parse `Order`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures that the parsing of getting
+/// an `Account`(s) historic `Order`(s) is correct.
+///
+/// In specific the `AssetType::STOCK` `Order` variant.
+fn test_get_historic_orders_stocks_mocked() {
+    // NOTE: since we already have a mock test for get
+    // accounts it's fine to use this for other tests
+    // as long as the mock test for get accounts passes.
+    let account = generate_mock_account();
+
+    // Mock the `accounts` endpoint with a raw JSON
+    // string which was a real response, but was then
+    // modified to randomize personal information.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/brokerage/accounts/11111111/historicalorders?since=2025-01-23")
+        .with_status(200)
+        .with_body(
+            "{\"Orders\":[{\"AccountID\":\"11111111\",\"CommissionFee\":\"0\",\"ClosedDateTime\":\"2025-03-21T19:49:58Z\",\"Currency\":\"USD\",\"Duration\":\"DAY\",\"FilledPrice\":\"2.59\",\"Legs\":[{\"OpenOrClose\":\"Open\",\"QuantityOrdered\":\"1000\",\"ExecQuantity\":\"1000\",\"QuantityRemaining\":\"0\",\"BuyOrSell\":\"Buy\",\"Symbol\":\"NAT\",\"AssetType\":\"STOCK\",\"ExecutionPrice\":\"2.59\"}],\"LimitPrice\":\"2.59\",\"OrderID\":\"1141645097\",\"OpenedDateTime\":\"2025-03-21T19:48:50Z\",\"OrderType\":\"Limit\",\"PriceUsedForBuyingPower\":\"2.59\",\"Routing\":\"Intelligent\",\"Status\":\"FLL\",\"StatusDescription\":\"Filled\",\"ConversionRate\":\"1\",\"UnbundledRouteFee\":\"0\"},{\"AccountID\":\"11111111\",\"CommissionFee\":\"0\",\"ClosedDateTime\":\"2025-03-14T20:25:00Z\",\"Currency\":\"USD\",\"Duration\":\"DAY\",\"FilledPrice\":\"0\",\"Legs\":[{\"OpenOrClose\":\"Open\",\"QuantityOrdered\":\"1000\",\"ExecQuantity\":\"1000\",\"QuantityRemaining\":\"0\",\"BuyOrSell\":\"Buy\",\"Symbol\":\"NAT\",\"AssetType\":\"STOCK\"}],\"LimitPrice\":\"2.45\",\"OrderID\":\"1139623577\",\"OpenedDateTime\":\"2025-03-14T16:09:54Z\",\"OrderType\":\"Limit\",\"PriceUsedForBuyingPower\":\"2.45\",\"Routing\":\"Intelligent\",\"Status\":\"EXP\",\"StatusDescription\":\"Expired\",\"ConversionRate\":\"1\",\"UnbundledRouteFee\":\"0\"},{\"AccountID\":\"11111111\",\"CommissionFee\":\"0\",\"ClosedDateTime\":\"2025-03-14T13:41:40Z\",\"Currency\":\"USD\",\"Duration\":\"DAY\",\"FilledPrice\":\"7.92\",\"Legs\":[{\"OpenOrClose\":\"Open\",\"QuantityOrdered\":\"250\",\"ExecQuantity\":\"250\",\"QuantityRemaining\":\"0\",\"BuyOrSell\":\"Buy\",\"Symbol\":\"AMDY\",\"AssetType\":\"STOCK\",\"ExecutionPrice\":\"7.92\"}],\"LimitPrice\":\"7.92\",\"OrderID\":\"1139457086\",\"OpenedDateTime\":\"2025-03-14T13:41:28Z\",\"OrderType\":\"Limit\",\"PriceUsedForBuyingPower\":\"7.92\",\"Routing\":\"Intelligent\",\"Status\":\"FLL\",\"StatusDescription\":\"Filled\",\"ConversionRate\":\"1\",\"UnbundledRouteFee\":\"0\"},{\"AccountID\":\"11111111\",\"CommissionFee\":\"0\",\"ClosedDateTime\":\"2025-03-13T18:02:18Z\",\"Currency\":\"USD\",\"Duration\":\"DAY\",\"FilledPrice\":\"18.49\",\"Legs\":[{\"OpenOrClose\":\"Close\",\"QuantityOrdered\":\"100\",\"ExecQuantity\":\"100\",\"QuantityRemaining\":\"0\",\"BuyOrSell\":\"Sell\",\"Symbol\":\"S\",\"AssetType\":\"STOCK\",\"ExecutionPrice\":\"18.49\"}],\"OrderID\":\"1139308736\",\"OpenedDateTime\":\"2025-03-13T18:02:18Z\",\"OrderType\":\"Market\",\"PriceUsedForBuyingPower\":\"18.51\",\"Routing\":\"Intelligent\",\"Status\":\"FLL\",\"StatusDescription\":\"Filled\",\"ConversionRate\":\"1\",\"UnbundledRouteFee\":\"0\"}],\"Errors\":[]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Make sure we can parse the mocked response into `Vec<Order>`
+        match account.get_historic_orders("2025-01-23", &mut client).await {
+            Ok(orders) => {
+                // Should be 4 orders
+                assert_eq!(orders.len(), 4);
+                // Account id should match the orders
+                assert_eq!(orders[0].account_id, account.account_id);
+                // The asset type of the order should be stock
+                assert_eq!(orders[0].legs[0].asset_type, AssetType::Stock);
+            }
+            Err(e) => {
+                panic!("Failed to parse `Order`: {e:?}")
             }
         }
     });
