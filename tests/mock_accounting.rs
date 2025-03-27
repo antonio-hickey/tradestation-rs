@@ -428,3 +428,56 @@ fn test_get_historic_orders_stocks_mocked() {
     // Ensure the mock was called
     mock.assert();
 }
+
+#[test]
+/// This test ensures that the parsing of getting
+/// an `Account`(s) `Position`(s) is correct.
+///
+/// In specific the `AssetType::STOCK` `Position` variant.
+fn test_get_positions_mocked() {
+    // NOTE: since we already have a mock test for get
+    // accounts it's fine to use this for other tests
+    // as long as the mock test for get accounts passes.
+    let account = generate_mock_account();
+
+    // Mock the `positions` endpoint with a raw JSON
+    // string which was a real response, but was then
+    // modified to randomize into fake data to avoid
+    // sensitive info leaking.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/brokerage/accounts/11111111/positions")
+        .with_status(200)
+        .with_body(
+            "{\"Positions\":[{\"AccountID\":\"11111111\",\"AveragePrice\":\"7.92\",\"AssetType\":\"STOCK\",\"Last\":\"8.48\",\"Bid\":\"8.27\",\"Ask\":\"8.52\",\"ConversionRate\":\"1\",\"DayTradeRequirement\":\"0\",\"InitialRequirement\":\"0\",\"MaintenanceMargin\":\"0\",\"PositionID\":\"222222222\",\"LongShort\":\"Long\",\"Quantity\":\"1050\",\"Symbol\":\"AMDY\",\"Timestamp\":\"2025-03-14T13:41:40Z\",\"TodaysProfitLoss\":\"-294.00\",\"TotalCost\":\"8316.00\",\"MarketValue\":\"8904.00\",\"MarkToMarketPrice\":\"8.76\",\"UnrealizedProfitLoss\":\"7.28\",\"UnrealizedProfitLossPercent\":\"7.071\",\"UnrealizedProfitLossQty\":\"0.56\"},{\"AccountID\":\"11111111\",\"AveragePrice\":\"2.4688888889\",\"AssetType\":\"STOCK\",\"Last\":\"2.56\",\"Bid\":\"2.55\",\"Ask\":\"2.57\",\"ConversionRate\":\"1\",\"DayTradeRequirement\":\"0\",\"InitialRequirement\":\"0\",\"MaintenanceMargin\":\"0\",\"PositionID\":\"222222223\",\"LongShort\":\"Long\",\"Quantity\":\"1800\",\"Symbol\":\"NAT\",\"Timestamp\":\"2025-03-04T14:49:49Z\",\"TodaysProfitLoss\":\"36.00\",\"TotalCost\":\"4446.4400000002\",\"MarketValue\":\"4608.08\",\"MarkToMarketPrice\":\"2.54\",\"UnrealizedProfitLoss\":\"161.64\",\"UnrealizedProfitLossPercent\":\"3.69\",\"UnrealizedProfitLossQty\":\"0.09\"},{\"AccountID\":\"11111111\",\"AveragePrice\":\"70.268\",\"AssetType\":\"STOCK\",\"Last\":\"69.77\",\"Bid\":\"69.48\",\"Ask\":\"69.94\",\"ConversionRate\":\"1\",\"DayTradeRequirement\":\"0\",\"InitialRequirement\":\"0\",\"MaintenanceMargin\":\"0\",\"PositionID\":\"222222224\",\"LongShort\":\"Long\",\"Quantity\":\"125\",\"Symbol\":\"NEE\",\"Timestamp\":\"2025-02-28T16:11:56Z\",\"TodaysProfitLoss\":\"147.5\",\"TotalCost\":\"8783.75\",\"MarketValue\":\"8721.25\",\"MarkToMarketPrice\":\"68.59\",\"UnrealizedProfitLoss\":\"-62.50\",\"UnrealizedProfitLossPercent\":\"-0.709\",\"UnrealizedProfitLossQty\":\"-0.5\"},{\"AccountID\":\"11111111\",\"AveragePrice\":\"83.205\",\"AssetType\":\"STOCK\",\"Last\":\"90.6\",\"Bid\":\"90.55\",\"Ask\":\"90.6\",\"ConversionRate\":\"1\",\"DayTradeRequirement\":\"0\",\"InitialRequirement\":\"0\",\"MaintenanceMargin\":\"0\",\"PositionID\":\"222222225\",\"LongShort\":\"Long\",\"Quantity\":\"2\",\"Symbol\":\"PLTR\",\"Timestamp\":\"2025-02-28T15:13:05Z\",\"TodaysProfitLoss\":\"-11.8\",\"TotalCost\":\"166.41\",\"MarketValue\":\"181.2\",\"MarkToMarketPrice\":\"96.5\",\"UnrealizedProfitLoss\":\"14.79\",\"UnrealizedProfitLossPercent\":\"8.888\",\"UnrealizedProfitLossQty\":\"7.4\"}],\"Errors\":[]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Make sure we can parse the mocked response into `Vec<Position>`
+        match account.get_positions(&mut client).await {
+            Ok(positions) => {
+                // Should be 4 positions in this test mock data
+                assert_eq!(positions.len(), 4);
+                // Account id should match the positions
+                assert_eq!(positions[0].account_id, account.account_id);
+                // The asset type of the position should be stock
+                assert_eq!(positions[0].asset_type, AssetType::Stock);
+            }
+            Err(e) => {
+                panic!("Failed to parse `Position`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
