@@ -85,14 +85,14 @@ impl Bar {
     /// Get the 10 most recent 5 minute bars of trading
     /// activity for November 2024 Crude Oil Futures.
     /// ```ignore
-    /// let fetch_bars_query = MarketData::GetBarsQueryBuilder::new()
+    /// let get_bars_query = MarketData::GetBarsQueryBuilder::new()
     ///     .symbol("CLX24")
     ///     .unit(BarUnit::Minute)
     ///     .interval("5")
     ///     .bars_back("10")
     ///     .build()?;
     ///
-    /// let bars = client.fetch_bars(&fetch_bars_query).await?;
+    /// let bars = client.get_bars(&get_bars_query).await?;
     ///
     /// // Do something with the bars, maybe make a chart?
     /// println!("{bars:?}");
@@ -215,7 +215,7 @@ impl Bar {
 }
 impl Client {
     /// Fetch `Vec<Bar>` for a given query `GetBarsQuery`
-    pub async fn fetch_bars(&mut self, query: &GetBarsQuery) -> Result<Vec<Bar>, Error> {
+    pub async fn get_bars(&mut self, query: &GetBarsQuery) -> Result<Vec<Bar>, Error> {
         Bar::fetch(query, self).await
     }
 
