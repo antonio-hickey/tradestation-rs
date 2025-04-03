@@ -247,6 +247,28 @@ impl Quote {
     }
 }
 impl Client {
+    /// Fetches a full snapshot of the latest Quote for the given Symbol.
+    ///
+    /// NOTE: For realtime `Quote` updates, use the `Quote::stream()` endpoint.
+    ///
+    /// NOTE: `symbol` should be a valid symbol string, E.g: `"NVDA"`.
+    ///
+    /// # Example
+    /// ---
+    /// Get a quote on Palantir.
+    /// ```ignore
+    /// let palantir_quote = client.get_quote("PLTR").await?;
+    /// println!("Palantir Quote: {palantir_quote:?}");
+    /// ```
+    pub async fn get_quote(&mut self, symbol: &str) -> Result<Quote, Error> {
+        let mut quotes = Quote::fetch(vec![symbol], self).await?;
+
+        // TODO: This error is not as accurate as it can be.
+        // If this errors out here, it would not be that the
+        // symbol is not set, but that the symbol is incorrect.
+        quotes.pop().ok_or_else(|| Error::SymbolNotSet)
+    }
+
     /// Fetches a full snapshot of the latest Quote for the given Symbols.
     ///
     /// NOTE: For realtime `Quote` updates, users should use the `Quote::stream()` endpoint.
