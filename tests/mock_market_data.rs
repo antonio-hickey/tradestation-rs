@@ -50,3 +50,45 @@ fn test_get_bars_mocked() {
     // Ensure the mock was called
     mock.assert();
 }
+
+#[test]
+/// This test ensures that the parsing of
+/// getting `Quote`(s) is correct.
+fn test_get_quotes_mocked() {
+    // Mock the `quotes` endpoint with a raw JSON
+    // string which was a real response.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/marketdata/quotes/TLT")
+        .with_status(200)
+        .with_body(
+            "{\"Quotes\":[{\"Symbol\":\"TLT\",\"Open\":\"92.37\",\"High\":\"92.37\",\"Low\":\"90.66\",\"PreviousClose\":\"91.49\",\"Last\":\"92.7001\",\"Ask\":\"92.73\",\"AskSize\":\"100\",\"Bid\":\"92.67\",\"BidSize\":\"500\",\"NetChange\":\"1.2101\",\"NetChangePct\":\"1.32265821401246\",\"High52Week\":\"101.64\",\"High52WeekTimestamp\":\"2024-09-17T00:00:00Z\",\"Low52Week\":\"84.89\",\"Low52WeekTimestamp\":\"2025-01-14T00:00:00Z\",\"Volume\":\"43488407\",\"PreviousVolume\":\"39800072\",\"Close\":\"91.43\",\"DailyOpenInterest\":\"0\",\"TradeTime\":\"2025-04-02T23:59:22Z\",\"TickSizeTier\":\"0\",\"MarketFlags\":{\"IsDelayed\":false,\"IsHardToBorrow\":false,\"IsBats\":false,\"IsHalted\":false},\"LastSize\":\"200\",\"LastVenue\":\"TRF\",\"VWAP\":\"91.3955921617407\"}]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Get a quote for TLT
+        match client.get_quotes(vec!["TLT"]).await {
+            Ok(quotes) => {
+                // Should have a length of 1
+                assert_eq!(quotes.len(), 1);
+                // Symbol should be TLT
+                assert_eq!(quotes[0].symbol, "TLT");
+            }
+            Err(e) => {
+                panic!("Failed to parse `Quote`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
