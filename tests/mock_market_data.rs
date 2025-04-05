@@ -92,3 +92,160 @@ fn test_get_quotes_mocked() {
     // Ensure the mock was called
     mock.assert();
 }
+
+#[test]
+/// This test ensures that the parsing of
+/// getting `SymbolDetails` is correct.
+///
+/// NOTE: In specific this is for the FUTURES variant of `SymbolDetails`.
+fn test_futures_get_symbol_details_mocked() {
+    // Mock the `symbols` endpoint with a raw JSON
+    // string which was a real response.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/marketdata/symbols/@TY,@FF")
+        .with_status(200)
+        .with_body(
+            "{\"Symbols\":[{\"AssetType\":\"FUTURE\",\"Country\":\"United States\",\"Currency\":\"USD\",\"Description\":\"30 Day Federal Funds Continuous Contract [Apr25]\",\"Exchange\":\"CBOT\",\"FutureType\":\"Electronic\",\"Symbol\":\"@FF\",\"Root\":\"FF\",\"Underlying\":\"FFJ25\",\"PriceFormat\":{\"Format\":\"Decimal\",\"Decimals\":\"4\",\"IncrementStyle\":\"Simple\",\"Increment\":\"0.0005\",\"PointValue\":\"4167\"},\"QuantityFormat\":{\"Format\":\"Decimal\",\"Decimals\":\"0\",\"IncrementStyle\":\"Simple\",\"Increment\":\"1\",\"MinimumTradeQuantity\":\"1\"}},{\"AssetType\":\"FUTURE\",\"Country\":\"United States\",\"Currency\":\"USD\",\"Description\":\"10 Yr U.S. Treasury Notes Continuous Contract [Jun25]\",\"Exchange\":\"CBOT\",\"FutureType\":\"Electronic\",\"Symbol\":\"@TY\",\"Root\":\"TY\",\"Underlying\":\"TYM25\",\"PriceFormat\":{\"Format\":\"SubFraction\",\"Fraction\":\"32\",\"SubFraction\":\"2\",\"IncrementStyle\":\"Simple\",\"Increment\":\"0.015625\",\"PointValue\":\"1000\"},\"QuantityFormat\":{\"Format\":\"Decimal\",\"Decimals\":\"0\",\"IncrementStyle\":\"Simple\",\"Increment\":\"1\",\"MinimumTradeQuantity\":\"1\"}}],\"Errors\":[]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Get the symbol details for the 10 Year U.S Treasury Futures Contract,
+        // and the 30 Day Federal Funds Rate Futures Contract.
+        match client.get_symbol_details(vec!["@TY", "@FF"]).await {
+            Ok(symbol_details) => {
+                // Should have a length of 2
+                assert_eq!(symbol_details.len(), 2);
+                // Check the symbols
+                symbol_details.iter().for_each(|details| {
+                    assert!(
+                        ["@TY", "@FF"].contains(&details.symbol.as_str()),
+                        "Symbol should only be `@TY` or `@FF`, but got {}",
+                        details.symbol
+                    )
+                })
+            }
+            Err(e) => {
+                panic!("Failed to parse `SymbolDetails`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures that the parsing of
+/// getting `SymbolDetails` is correct.
+///
+/// NOTE: In specific this is for the STOCK variant of `SymbolDetails`.
+fn test_stock_get_symbol_details_mocked() {
+    // Mock the `symbols` endpoint with a raw JSON
+    // string which was a real response.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/marketdata/symbols/NET,META")
+        .with_status(200)
+        .with_body(
+            "{\"Symbols\":[{\"AssetType\":\"STOCK\",\"Country\":\"United States\",\"Currency\":\"USD\",\"Description\":\"Meta Platforms Inc\",\"Exchange\":\"NASDAQ\",\"Symbol\":\"META\",\"Root\":\"META\",\"PriceFormat\":{\"Format\":\"Decimal\",\"Decimals\":\"2\",\"IncrementStyle\":\"Simple\",\"Increment\":\"0.01\",\"PointValue\":\"1\"},\"QuantityFormat\":{\"Format\":\"Decimal\",\"Decimals\":\"0\",\"IncrementStyle\":\"Simple\",\"Increment\":\"1\",\"MinimumTradeQuantity\":\"1\"}},{\"AssetType\":\"STOCK\",\"Country\":\"United States\",\"Currency\":\"USD\",\"Description\":\"CloudFlare Inc\",\"Exchange\":\"NYSE\",\"Symbol\":\"NET\",\"Root\":\"NET\",\"PriceFormat\":{\"Format\":\"Decimal\",\"Decimals\":\"2\",\"IncrementStyle\":\"Simple\",\"Increment\":\"0.01\",\"PointValue\":\"1\"},\"QuantityFormat\":{\"Format\":\"Decimal\",\"Decimals\":\"0\",\"IncrementStyle\":\"Simple\",\"Increment\":\"1\",\"MinimumTradeQuantity\":\"1\"}}],\"Errors\":[]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Get the symbol details for CloudFlare Stock (NET), and Meta Stock (META).
+        match client.get_symbol_details(vec!["NET", "META"]).await {
+            Ok(symbol_details) => {
+                // Should have a length of 2
+                assert_eq!(symbol_details.len(), 2);
+                // Check the symbols
+                symbol_details.iter().for_each(|details| {
+                    assert!(
+                        ["NET", "META"].contains(&details.symbol.as_str()),
+                        "Symbol should only be `NET` or `META`, but got {}",
+                        details.symbol
+                    )
+                })
+            }
+            Err(e) => {
+                panic!("Failed to parse `SymbolDetails`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures that the parsing of
+/// getting `SymbolDetails` is correct.
+///
+/// NOTE: In specific this is for the OPTIONS variant of `SymbolDetails`.
+fn test_options_get_symbol_details_mocked() {
+    // Mock the `symbols` endpoint with a raw JSON
+    // string which was a real response.
+    let mut server = Server::new();
+    let mock = server
+        // NOTE: The '%20' is a url encoded space character
+        .mock("GET", "/marketdata/symbols/SPY%20250407C510,TLT%20250409P90")
+        .with_status(200)
+        .with_body(
+            "{\"Symbols\":[{\"AssetType\":\"STOCKOPTION\",\"Country\":\"United States\",\"Currency\":\"USD\",\"Description\":\"SPDR S\\u0026P 500 ETF [SPY] Apr 2025 510.000 Call\",\"Exchange\":\"OPRA\",\"ExpirationDate\":\"2025-04-07T00:00:00Z\",\"Symbol\":\"SPY 250407C510\",\"OptionType\":\"CALL\",\"Root\":\"SPY\",\"StrikePrice\":\"510\",\"Underlying\":\"SPY\",\"PriceFormat\":{\"Format\":\"Decimal\",\"Decimals\":\"2\",\"IncrementStyle\":\"Simple\",\"Increment\":\"0.01\",\"PointValue\":\"100\"},\"QuantityFormat\":{\"Format\":\"Decimal\",\"Decimals\":\"0\",\"IncrementStyle\":\"Simple\",\"Increment\":\"1\",\"MinimumTradeQuantity\":\"1\"}},{\"AssetType\":\"STOCKOPTION\",\"Country\":\"United States\",\"Currency\":\"USD\",\"Description\":\"TLT [TLT] Apr 2025 90.000 Put\",\"Exchange\":\"OPRA\",\"ExpirationDate\":\"2025-04-09T00:00:00Z\",\"Symbol\":\"TLT 250409P90\",\"OptionType\":\"PUT\",\"Root\":\"TLT\",\"StrikePrice\":\"90\",\"Underlying\":\"TLT\",\"PriceFormat\":{\"Format\":\"Decimal\",\"Decimals\":\"2\",\"IncrementStyle\":\"Schedule\",\"PointValue\":\"100\",\"IncrementSchedule\":[{\"StartsAt\":\"0\",\"Increment\":\"0.01\"},{\"StartsAt\":\"3\",\"Increment\":\"0.05\"}]},\"QuantityFormat\":{\"Format\":\"Decimal\",\"Decimals\":\"0\",\"IncrementStyle\":\"Simple\",\"Increment\":\"1\",\"MinimumTradeQuantity\":\"1\"}}],\"Errors\":[]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Get the symbol details for a call option @ the $510 strike on SPY
+        // for 04/07/25 expiration and a put option @ the $90 strike on TLT
+        // for 04/09/25 expiration
+        match client
+            .get_symbol_details(vec!["SPY 250407C510", "TLT 250409P90"])
+            .await
+        {
+            Ok(symbol_details) => {
+                // Should have a length of 2
+                assert_eq!(symbol_details.len(), 2);
+                // Check the symbols
+                symbol_details.iter().for_each(|details| {
+                    assert!(
+                        ["SPY 250407C510", "TLT 250409P90"].contains(&details.symbol.as_str()),
+                        "Symbol should only be `SPY 250407C510` or `TLT 250409P90`, but got {}",
+                        details.symbol
+                    )
+                })
+            }
+            Err(e) => {
+                panic!("Failed to parse `SymbolDetails`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
