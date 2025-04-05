@@ -249,3 +249,45 @@ fn test_options_get_symbol_details_mocked() {
     // Ensure the mock was called
     mock.assert();
 }
+
+#[test]
+/// This test ensures that the parsing of
+/// getting `OptionExpiration` is correct.
+fn test_get_option_expirations_mocked() {
+    // Mock the `symbols` endpoint with a raw JSON
+    // string which was a real response.
+    let mut server = Server::new();
+    let mock = server
+        .mock("GET", "/marketdata/options/expirations/NEE")
+        .with_status(200)
+        .with_body(
+            "{\"Expirations\":[{\"Date\":\"2025-04-11T00:00:00Z\",\"Type\":\"Weekly\"},{\"Date\":\"2025-04-17T00:00:00Z\",\"Type\":\"Monthly\"},{\"Date\":\"2025-04-25T00:00:00Z\",\"Type\":\"Weekly\"},{\"Date\":\"2025-05-02T00:00:00Z\",\"Type\":\"Weekly\"},{\"Date\":\"2025-05-09T00:00:00Z\",\"Type\":\"Weekly\"},{\"Date\":\"2025-05-16T00:00:00Z\",\"Type\":\"Monthly\"},{\"Date\":\"2025-05-23T00:00:00Z\",\"Type\":\"Weekly\"},{\"Date\":\"2025-06-20T00:00:00Z\",\"Type\":\"Monthly\"},{\"Date\":\"2025-07-18T00:00:00Z\",\"Type\":\"Monthly\"},{\"Date\":\"2025-08-15T00:00:00Z\",\"Type\":\"Monthly\"},{\"Date\":\"2025-09-19T00:00:00Z\",\"Type\":\"Monthly\"},{\"Date\":\"2025-10-17T00:00:00Z\",\"Type\":\"Monthly\"},{\"Date\":\"2025-12-19T00:00:00Z\",\"Type\":\"Monthly\"},{\"Date\":\"2026-01-16T00:00:00Z\",\"Type\":\"Monthly\"},{\"Date\":\"2026-03-20T00:00:00Z\",\"Type\":\"Monthly\"},{\"Date\":\"2026-06-18T00:00:00Z\",\"Type\":\"Monthly\"},{\"Date\":\"2027-01-15T00:00:00Z\",\"Type\":\"Monthly\"}]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Try to get the current available option expirations for Next Era Energy (NEE)
+        match client.get_option_expirations("NEE", None).await {
+            Ok(expirations) => {
+                assert!(
+                    !expirations.is_empty(),
+                    "The vector of expirations should not be empty"
+                );
+            }
+            Err(e) => {
+                panic!("Failed to parse `OptionExpiration`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
