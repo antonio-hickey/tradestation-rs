@@ -65,7 +65,9 @@ pub struct SymbolDetails {
     /// The financial instrument on which an Options contract is
     /// based or derived. Can also apply to some Futures symbols,
     /// like continuous Futures contracts, e.g. `TYZ24` for `@TY`.
-    pub underlying: String,
+    ///
+    /// NOTE: Will always be `None` for `AssetType::STOCK`
+    pub underlying: Option<String>,
 }
 impl SymbolDetails {
     /// Fetches symbol details and formatting information for one or more symbols.
