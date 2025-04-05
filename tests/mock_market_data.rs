@@ -1,6 +1,6 @@
 use mockito::Server;
 use tradestation::ClientBuilder;
-use tradestation::MarketData::{BarUnit, GetBarsQueryBuilder};
+use tradestation::MarketData::{BarUnit, GetBarsQueryBuilder, OptionTradeAction, OptionsLeg};
 
 #[test]
 /// This test ensures that the parsing of
@@ -284,6 +284,73 @@ fn test_get_option_expirations_mocked() {
             }
             Err(e) => {
                 panic!("Failed to parse `OptionExpiration`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures that the parsing of getting
+/// `OptionRiskRewardAnalysis` is correct.
+fn test_analyze_option_risk_reward_mocked() {
+    // Mock the `options/riskreward` endpoint with a raw JSON
+    // string which was a real response from the API.
+    let mut server = Server::new();
+    let mock = server
+        .mock("POST", "/marketdata/options/riskreward")
+        .with_status(200)
+        .with_body(
+            "{\"MaxGainIsInfinite\":true,\"AdjustedMaxGain\":\"0\",\"MaxLossIsInfinite\":false,\"AdjustedMaxLoss\":\"-4400\",\"BreakevenPoints\":[\"88.6\",\"97.4\"]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Long volatility trade on TLT via buying both call and put
+        // options at the same expiration date. Where the price for
+        // each option contract pair (call + put) is 4.40 (* 100 = $440.00)
+        let price = 4.40;
+        let option_legs = vec![
+            OptionsLeg {
+                symbol: "TLT 250516C93".into(),
+                quantity: 10,
+                trade_action: OptionTradeAction::Buy,
+            },
+            OptionsLeg {
+                symbol: "TLT 250516P93".into(),
+                quantity: 10,
+                trade_action: OptionTradeAction::Buy,
+            },
+        ];
+
+        // Try to analyze the risk reward for the trade setup above
+        match client.analyze_options_risk_reward(price, option_legs).await {
+            Ok(analysis) => {
+                assert!(
+                    analysis.max_gain_is_infinite,
+                    "The max gain of this trade should be infinite"
+                );
+                assert!(
+                    !analysis.max_loss_is_infinite,
+                    "The max loss of this trade should not be infinite"
+                );
+                assert!(
+                    analysis.breakeven_points.len() == 2,
+                    "There should be 2 breakeven points for this trade as it involes 2 legs"
+                )
+            }
+            Err(e) => {
+                panic!("Failed to parse `OptionRiskRewardAnalysis`: {e:?}")
             }
         }
     });
