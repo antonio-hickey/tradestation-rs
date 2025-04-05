@@ -57,7 +57,7 @@ pub struct SymbolDetails {
     /// The Strike Price for the Put or Call option.
     ///
     /// NOTE: Only for options symbols.
-    pub strike_price: String,
+    pub strike_price: Option<String>,
 
     /// The Symbol name or abbreviation.
     pub symbol: String,
