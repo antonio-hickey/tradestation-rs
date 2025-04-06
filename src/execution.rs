@@ -1,7 +1,8 @@
 use crate::{
     accounting::orders::{
-        AssetType, MarketActivationRule, OrderType, TimeActivationRule, TrailingStop,
+        AssetType, MarketActivationRule, OrderLeg, OrderType, TimeActivationRule, TrailingStop,
     },
+    market_data::{options::OptionType, OptionSpreadType},
     responses::{
         execution::{
             ConfirmOrderResp, ConfirmOrderRespRaw, GetActivationTriggersResp,
@@ -1280,14 +1281,30 @@ pub struct OrderTimeInForce {
 /// A sub component order apart of the overall
 /// trade the Order is for.
 pub struct OrderRequestLeg {
-    /// The quantity of the order.
-    pub quantity: String,
-
     /// The symbol used for this leg of the order.
     pub symbol: String,
 
+    /// The quantity of the order.
+    pub quantity: String,
+
     /// The intent of the order.
     pub trade_action: TradeAction,
+
+    /// The strike price for this option.
+    ///
+    /// NOTE: Only valid for options.
+    pub strike_price: Option<String>,
+
+    /// The type of option.
+    ///
+    /// NOTE: Only valid for options.
+    pub option_type: Option<OptionType>,
+
+    /// Timestamp represented as an `RFC3339` formatted date,
+    /// a profile of the ISO 8601 date standard.
+    ///
+    /// E.g: `"2021-12-17T00:00:00Z"`.
+    pub expiration: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1723,9 +1740,54 @@ pub struct OrderConfirmation {
     /// A short text summary / description of the order.
     pub summary_message: String,
 
+    /// The asset category for the asset an order is for.
+    pub order_asset_category: OrderAssetCategory,
+
     #[serde(rename = "OrderConfirmID")]
     /// The ID of the order confirm.
     pub order_confirm_id: String,
+
+    /// The limit price of the order.
+    ///
+    /// NOTE: Only valid for orders with `OrderType::Limit`.
+    pub limit_price: Option<String>,
+
+    /// When you send a non-display order, it will not be
+    /// reflected in either the market depth display or ECN books.
+    ///
+    /// NOTE: Only valid for equities.
+    pub non_display: Option<bool>,
+
+    /// This order type is useful to achieve a
+    /// fair price in a fast or volatile market.
+    ///
+    /// NOTE: Only valid for equities.
+    pub peg_value: Option<PegValue>,
+
+    /// Hides the true number of shares intended to be bought or sold.
+    ///
+    /// NOTE: Only valid for orders with `OrderType::Limit` and
+    /// `OrderType::StopLimit`.
+    ///
+    /// NOTE: Not valid for all exchanges.
+    pub show_only_quantity: Option<i64>,
+
+    /// The option spread type.
+    ///
+    /// NOTE: Only valid for options.
+    pub spread: Option<OptionSpreadType>,
+
+    /// The stop price for open orders.
+    pub stop_price: Option<String>,
+
+    /// The trailing stop offset for an order.
+    pub trailing_stop: Option<TrailingStop>,
+
+    /// The order legs related to the overall order.
+    pub legs: Option<OrderLeg>,
+
+    /// The underlying symbol name the order is for.
+    pub underlying: Option<String>,
 
     /// The estimated price of the order.
     pub estimated_price: String,
@@ -1757,6 +1819,41 @@ pub struct OrderConfirmation {
     /// costs will have a negative cost.
     pub debit_credit_estimated_cost_display: Option<String>,
 
+    /// The descretionary price of the order, which can be used to
+    /// reflect a Bid/Ask at a lower/higher price than you are willing
+    /// to pay using a specified price increment.
+    ///
+    /// NOTE: Only valid for `OrderType::Limit` & `OrderType::StopLimit`.
+    ///
+    /// NOTE: Only valid for equities.
+    pub descretionary_price: Option<String>,
+
+    /// Is the order using book only option, which restricts the destination
+    /// you choose in the direct routing from re-routing your order to another
+    /// destination.
+    ///
+    /// This type of order is useful in controlling your execution costs by
+    /// avoiding fees the exchanges can charge for re-routing your order to
+    /// another market center.
+    ///
+    /// NOTE: Only valid for equities.
+    pub book_only: Option<bool>,
+
+    /// Is the order using the all or none option, which avoids partial fills
+    /// on your order. Your order will either be filled in full or not at all
+    /// when using this option.
+    ///
+    /// NOTE: Only valid for equities and options.
+    pub all_or_none: Option<bool>,
+
+    /// Is the order using the add liquidity option, which allows you to place
+    /// orders that will only add liquidity on the route you selected.
+    ///
+    /// NOTE: Only valid if you're also using the `book_only` option on the order.
+    ///
+    /// NOTE: Only valid for equities.
+    pub add_liquidity: Option<bool>,
+
     /// The currency the product is based on.
     ///
     /// NOTE: Only valid for futures orders.
@@ -1771,4 +1868,20 @@ pub struct OrderConfirmation {
     ///
     /// NOTE: Only valid for futures orders.
     pub initial_margin_display: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+/// The different asset categories an `Order` can fall into.
+pub enum OrderAssetCategory {
+    #[serde(rename = "EQUITY")]
+    /// Orders for Stocks, ETFs, ETNs, etc.
+    Equity,
+
+    #[serde(rename = "STOCKOPTION")]
+    /// Orders for Options on Stocks, ETFs, ETNs, etc.
+    StockOption,
+
+    #[serde(rename = "FUTURE")]
+    /// Orders for Future Contracts
+    Future,
 }
