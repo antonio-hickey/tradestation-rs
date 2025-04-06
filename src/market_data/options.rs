@@ -124,14 +124,14 @@ pub enum OptionExpirationType {
     Other,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "PascalCase")]
-///// Information on an options spread.
-/////
-///// e.g: a time spread, buying a long dated call
-///// and hedging some of that duration premium
-///// by selling a shorter dated call. This would
-///// involve a spread with 2 different expirations.
+/// Information on an options spread.
+///
+/// e.g: a time spread, buying a long dated call
+/// and hedging some of that duration premium
+/// by selling a shorter dated call. This would
+/// involve a spread with 2 different expirations.
 pub enum OptionSpreadType {
     /// A single option position, either a call or put.
     ///

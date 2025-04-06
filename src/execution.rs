@@ -1,8 +1,9 @@
 use crate::{
-    accounting::orders::{
-        AssetType, MarketActivationRule, OrderLeg, OrderType, TimeActivationRule, TrailingStop,
+    accounting::{
+        orders::{AssetType, MarketActivationRule, OrderType, TimeActivationRule, TrailingStop},
+        OptionType,
     },
-    market_data::{options::OptionType, OptionSpreadType},
+    market_data::OptionSpreadType,
     responses::{
         execution::{
             ConfirmOrderResp, ConfirmOrderRespRaw, GetActivationTriggersResp,
@@ -916,7 +917,9 @@ pub struct OrderRequest {
     pub order_type: OrderType,
 
     /// The quantity of shares, or contracts for the order.
-    pub quantity: String,
+    ///
+    /// NOTE: Only required if not provided within order legs.
+    pub quantity: Option<String>,
 
     /// The route of the order.
     ///
@@ -935,14 +938,18 @@ pub struct OrderRequest {
     pub stop_price: Option<String>,
 
     /// The symbol used for this order.
-    pub symbol: String,
+    ///
+    /// NOTE: Only required if not provided within order legs.
+    pub symbol: Option<String>,
 
     /// Defines the duration and expiration timestamp of an Order.
     pub time_in_force: OrderTimeInForce,
 
     /// The different trade actions that can be sent or
     /// received, and conveys the intent of the order.
-    pub trade_action: TradeAction,
+    ///
+    /// NOTE: Only required if not provided within order legs.
+    pub trade_action: Option<TradeAction>,
 }
 impl OrderRequest {
     /// Confirm an order getting back an estimated cost
@@ -1039,7 +1046,7 @@ impl OrderRequestBuilder {
 
     /// Set the Symbol the `OrderRequest` is for.
     ///
-    /// NOTE: Required to be set to build an `OrderRequest`.
+    /// NOTE: This is required if no order legs are provided.
     pub fn symbol(mut self, symbol: impl Into<String>) -> Self {
         self.symbol = Some(symbol.into());
         self
@@ -1055,6 +1062,8 @@ impl OrderRequestBuilder {
     }
 
     /// Set the Quantity of shares or contracts for the `OrderRequest`.
+    ///
+    /// NOTE: This is required if no order legs are provided.
     pub fn quantity(mut self, quantity: impl Into<String>) -> Self {
         self.quantity = Some(quantity.into());
         self
@@ -1062,7 +1071,7 @@ impl OrderRequestBuilder {
 
     /// Set the Trade Action for the `OrderRequest`.
     ///
-    /// NOTE: Required to be set to build an `OrderRequest`.
+    /// NOTE: This is required if no order legs are provided.
     pub fn trade_action(mut self, action: TradeAction) -> Self {
         self.trade_action = Some(action);
         self
@@ -1118,8 +1127,7 @@ impl OrderRequestBuilder {
 
     /// Finish building the `OrderRequest`.
     ///
-    /// NOTE: `account_id`, `order_type`, `quantity`, `symbol`,
-    /// `time_in_force`, and `trade_action` are all required.
+    /// NOTE: `account_id`, `order_type`, and `time_in_force` are all required.
     pub fn build(self) -> Result<OrderRequest, Error> {
         Ok(OrderRequest {
             account_id: self.account_id.ok_or(Error::AccountIdNotSet)?,
@@ -1129,11 +1137,11 @@ impl OrderRequestBuilder {
             osos: self.osos,
             order_confirm_id: self.order_confirm_id,
             route: self.route,
-            trade_action: self.trade_action.ok_or(Error::TradeActionNotSet)?,
+            trade_action: self.trade_action,
             time_in_force: self.time_in_force.ok_or(Error::TimeInForceNotSet)?,
-            symbol: self.symbol.ok_or(Error::SymbolNotSet)?,
+            symbol: self.symbol,
             order_type: self.order_type.ok_or(Error::OrderTypeNotSet)?,
-            quantity: self.quantity.ok_or(Error::QuantityNotSet)?,
+            quantity: self.quantity,
             stop_price: self.stop_price,
             limit_price: self.limit_price,
         })
@@ -1304,7 +1312,7 @@ pub struct OrderRequestLeg {
     /// a profile of the ISO 8601 date standard.
     ///
     /// E.g: `"2021-12-17T00:00:00Z"`.
-    pub expiration: Option<String>,
+    pub expiration_date: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1784,7 +1792,7 @@ pub struct OrderConfirmation {
     pub trailing_stop: Option<TrailingStop>,
 
     /// The order legs related to the overall order.
-    pub legs: Option<OrderLeg>,
+    pub legs: Option<Vec<OrderRequestLeg>>,
 
     /// The underlying symbol name the order is for.
     pub underlying: Option<String>,
@@ -1877,9 +1885,9 @@ pub enum OrderAssetCategory {
     /// Orders for Stocks, ETFs, ETNs, etc.
     Equity,
 
-    #[serde(rename = "STOCKOPTION")]
+    #[serde(rename = "OPTION")]
     /// Orders for Options on Stocks, ETFs, ETNs, etc.
-    StockOption,
+    Option,
 
     #[serde(rename = "FUTURE")]
     /// Orders for Future Contracts
