@@ -31,6 +31,34 @@ pub struct Order {
     pub error: Option<String>,
 }
 impl Order {
+    /// Instantiate an `Order` using a provided order id.
+    ///
+    /// NOTE: The created `Order` is NOT guaranteed to be valid
+    /// for use. The order id provided must be valid to do anything
+    /// with the `Order` instance.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Create an instance of `Order` for an order id `11111111`
+    /// which you can then use to cancel or replace the order.
+    ///
+    /// ```
+    /// use tradestation::execution::Order;
+    ///
+    /// fn main() -> Result<(), Error> {
+    ///     let order = Order::from_id("11111111");
+    ///     println!("{order:?}");
+    /// }
+    /// ```
+    pub fn from_id<S: Into<String>>(order_id: S) -> Order {
+        Order {
+            message: "".into(),
+            order_id: order_id.into(),
+            error: None,
+        }
+    }
+
     /// Confirm an order getting back an estimated cost
     /// and commission information for the order without
     /// actually placing the order.
