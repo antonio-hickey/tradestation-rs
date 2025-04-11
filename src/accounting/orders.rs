@@ -617,7 +617,7 @@ pub struct OrderLeg {
     /// The stage of the `Order` , is it opening or closing?
     pub open_or_close: Option<OrderStage>,
 
-    /// The type of option
+    /// The type of option of the `OrderLeg`.
     pub option_type: Option<OptionType>,
 
     /// Number of shares or contracts being purchased or sold.
