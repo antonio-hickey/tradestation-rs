@@ -57,6 +57,69 @@ impl From<OrderRespRaw> for OrderResp {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// The TradeStation API Response for
+/// canceling or replacing an order.
+pub struct ModifyOrderRespRaw {
+    #[serde(rename = "OrderID")]
+    /// The order id of the modified `Order`.
+    order_id: String,
+
+    /// The message related to the `Order` modification.
+    message: Option<String>,
+
+    /// The error type from TradeStation's API.
+    ///
+    /// NOTE: Will be None if there was no error.
+    error: Option<String>,
+}
+#[derive(Debug)]
+/// The TradeStation API Response for
+/// canceling or replacing an order.
+pub struct ModifyOrderResp {
+    /// The order confirmations.
+    pub order_id: String,
+
+    /// The message related to the `Order` modification.
+    message: Option<String>,
+
+    /// The error from TradeStation's API.
+    ///
+    /// NOTE: Will be None if there was no error.
+    pub error: Option<Error>,
+}
+impl From<ModifyOrderRespRaw> for ModifyOrderResp {
+    fn from(raw: ModifyOrderRespRaw) -> Self {
+        let error_enum =
+            if let (Some(err), Some(msg)) = (raw.error.as_deref(), raw.message.as_deref()) {
+                Some(Error::from_api_error(ApiError {
+                    error: err.into(),
+                    message: msg.into(),
+                }))
+            } else {
+                None
+            };
+
+        ModifyOrderResp {
+            order_id: raw.order_id,
+            message: raw.message,
+            error: error_enum,
+        }
+    }
+}
+impl From<ModifyOrderResp> for Order {
+    fn from(raw: ModifyOrderResp) -> Self {
+        let error = raw.error.map(|err| err.to_string());
+
+        Order {
+            order_id: raw.order_id,
+            message: raw.message.unwrap_or_default(),
+            error,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for confirming
 /// an order, but not actually placing it.
 pub struct ConfirmOrderRespRaw {

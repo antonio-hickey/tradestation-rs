@@ -8,7 +8,7 @@ use crate::{
         execution::{
             ConfirmOrderResp, ConfirmOrderRespRaw, GetActivationTriggersResp,
             GetActivationTriggersRespRaw, GetExecutionRoutesResp, GetExecutionRoutesRespRaw,
-            OrderResp, OrderRespRaw,
+            ModifyOrderResp, ModifyOrderRespRaw, OrderResp, OrderRespRaw,
         },
         ApiResponse,
     },
@@ -46,10 +46,8 @@ impl Order {
     /// ```
     /// use tradestation::execution::Order;
     ///
-    /// fn main() -> Result<(), Error> {
-    ///     let order = Order::from_id("11111111");
-    ///     println!("{order:?}");
-    /// }
+    /// let order = Order::from_id("11111111");
+    /// println!("{order:?}");
     /// ```
     pub fn from_id<S: Into<String>>(order_id: S) -> Order {
         Order {
@@ -497,25 +495,20 @@ impl Order {
         self,
         order_update: OrderUpdate,
         client: &mut Client,
-    ) -> Result<Vec<Order>, Error> {
+    ) -> Result<Order, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
         match client
             .put(&endpoint, &order_update)
             .await?
-            .json::<ApiResponse<OrderRespRaw>>()
+            .json::<ApiResponse<ModifyOrderRespRaw>>()
             .await?
         {
             ApiResponse::Success(resp_raw) => {
-                let resp: OrderResp = resp_raw.into();
+                let resp: ModifyOrderResp = resp_raw.into();
+                let order: Order = resp.into();
 
-                if let Some(orders) = resp.orders {
-                    Ok(orders)
-                } else {
-                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
-                        "Unknown TradeStation Error While Replacing Order.".into(),
-                    )))
-                }
+                Ok(order)
             }
             ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }
@@ -549,25 +542,20 @@ impl Order {
     ///     order.cancel(&mut client).await?;
     /// }
     /// ```
-    pub async fn cancel(self, client: &mut Client) -> Result<Vec<Order>, Error> {
+    pub async fn cancel(self, client: &mut Client) -> Result<Order, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
         match client
             .delete(&endpoint)
             .await?
-            .json::<ApiResponse<OrderRespRaw>>()
+            .json::<ApiResponse<ModifyOrderRespRaw>>()
             .await?
         {
             ApiResponse::Success(resp_raw) => {
-                let resp: OrderResp = resp_raw.into();
+                let resp: ModifyOrderResp = resp_raw.into();
+                let order: Order = resp.into();
 
-                if let Some(orders) = resp.orders {
-                    Ok(orders)
-                } else {
-                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
-                        "Unknown TradeStation Error While Canceling Order.".into(),
-                    )))
-                }
+                Ok(order)
             }
             ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
         }

@@ -75,16 +75,11 @@ async fn main() -> Result<(), Error> {
                 OrderUpdate::new().limit_price("222.75").quantity("25"),
                 &mut client,
             )
-            .await?
-            .into_iter()
-            .next();
+            .await?;
 
         //--
         // Example: Cancel the updated order above
-        if let Some(order) = updated_order {
-            order.cancel(&mut client).await?;
-        }
-        //--
+        updated_order.cancel(&mut client).await?;
     }
     //--
 
