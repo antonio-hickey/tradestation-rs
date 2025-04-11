@@ -1,8 +1,8 @@
 use mockito::Server;
 use tradestation::accounting::OrderType;
 use tradestation::execution::{
-    Duration, OrderAssetCategory, OrderRequestBuilder, OrderRequestLeg, OrderTimeInForce,
-    TradeAction,
+    Duration, Order, OrderAssetCategory, OrderRequestBuilder, OrderRequestLeg, OrderTimeInForce,
+    OrderUpdate, TradeAction,
 };
 use tradestation::ClientBuilder;
 use tradestation::MarketData::OptionSpreadType;
@@ -270,6 +270,157 @@ fn test_future_confirm_order_mocked() {
             }
             Err(e) => {
                 panic!("Failed to parse `OrderConfirmation`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures that the parsing of placing an
+/// `OrderRequest` and getting an `Order` back is correct.
+fn test_place_order_mocked() {
+    // Mock the `orderconfirm` endpoint with a raw JSON
+    // string which was a real response from the API, but
+    // was modified just to randomize personal information.
+    let mut server = Server::new();
+    let mock = server
+        .mock("POST", "/orderexecution/orders")
+        .with_status(200)
+        .with_body(
+            "{\"Orders\":[{\"Message\":\"Sent order: Buy 100 PLTR @ 75.00 Limit\",\"OrderID\":\"5555555555\"}]}"
+        )
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Build an order request to buy 100 shares
+        // of Palantir at a limit price of $75.00
+        let order_req = OrderRequestBuilder::new()
+            .account_id("11111111")
+            .symbol("PLTR")
+            .trade_action(TradeAction::Buy)
+            .quantity("100")
+            .order_type(OrderType::Limit)
+            .limit_price("75.00")
+            .time_in_force(OrderTimeInForce {
+                duration: Duration::DAY,
+                expiration: None,
+            })
+            .build()
+            .unwrap();
+
+        // Place the order request built above
+        match Order::place(&order_req, &mut client).await {
+            Ok(orders) => {
+                assert!(
+                    orders.len() == 1,
+                    "Should have a length of 1 as there's only 1 order request placed"
+                );
+            }
+            Err(e) => {
+                panic!("Failed to parse `Order`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures replacing an `Order` works
+/// and the response is parsed correctly.
+fn test_replace_order_mocked() {
+    // Mock the `orderconfirm` endpoint with a raw JSON
+    // string which was a real response from the API, but
+    // was modified just to randomize personal information.
+    let mut server = Server::new();
+    let mock = server
+        .mock("PUT", "/orderexecution/orders/5555555555")
+        .with_status(200)
+        .with_header("Content-Type", "application/json")
+        .with_body("{\"Message\":\"Cancel/Replace order sent.\",\"OrderID\":\"5555555555\"}")
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Update some order to have a quantity of 25
+        let order = Order::from_id("5555555555");
+        let order_update = OrderUpdate::new().quantity("25");
+
+        // Replace the order with the order update
+        match order.replace(order_update, &mut client).await {
+            Ok(order) => {
+                assert!(
+                    order.order_id == "5555555555",
+                    "Should have an order id of `5555555555`, but got {}",
+                    order.order_id
+                );
+            }
+            Err(e) => {
+                panic!("Failed to parse `Order`: {e:?}")
+            }
+        }
+    });
+
+    // Ensure the mock was called
+    mock.assert();
+}
+
+#[test]
+/// This test ensures canceling an `Order` works
+/// and the response is parsed correctly.
+fn test_cancel_order_mocked() {
+    // Mock the `orderconfirm` endpoint with a raw JSON
+    // string which was a real response from the API, but
+    // was modified just to randomize personal information.
+    let mut server = Server::new();
+    let mock = server
+        .mock("DELETE", "/orderexecution/orders/5555555555")
+        .with_status(200)
+        .with_body("{\"Message\":\"Cancel request sent\",\"OrderID\":\"5555555555\"}")
+        .create();
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut client = ClientBuilder::new()
+            .unwrap()
+            .testing_url(&server.url())
+            .build()
+            .await
+            .unwrap();
+
+        // Some order to cancel
+        let order = Order::from_id("5555555555");
+
+        // Cancel the order
+        match order.cancel(&mut client).await {
+            Ok(order) => {
+                assert!(
+                    order.order_id == "5555555555",
+                    "Should have an order id of `5555555555`, but got {}",
+                    order.order_id
+                );
+            }
+            Err(e) => {
+                panic!("Failed to parse `Order`: {e:?}")
             }
         }
     });
