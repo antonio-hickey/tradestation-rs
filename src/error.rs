@@ -8,6 +8,9 @@ pub enum Error {
     /// Issue with your current `Token` the `Client` is using.
     InvalidToken,
 
+    /// Issue building a `Token`.
+    TokenConfig(String),
+
     /// An `Account` was not found for a given account id.
     AccountNotFound,
 
@@ -97,6 +100,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::InvalidToken => write!(f, "Invalid `Token` may be expired, bad, or `None`"),
+            Self::TokenConfig(e) => write!(f, "Error building `Token`: {e}"),
             Self::AccountNotFound => {
                 write!(f, "Couldn't find an account registered to you with that id")
             }

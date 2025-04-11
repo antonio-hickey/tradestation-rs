@@ -1,3 +1,4 @@
+use crate::Error;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -29,6 +30,94 @@ pub struct Token {
 
     /// How many seconds until the `Token` expires.
     pub expires_in: u64,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+/// Builder for a TradeStation API Bearer Token.
+pub struct TokenBuilder {
+    /// Access token used to authenticate API requests.
+    pub access_token: Option<String>,
+
+    /// Refresh token used to obtain new access tokens.
+    pub refresh_token: Option<String>,
+
+    /// ID token used for identity verification.
+    pub id_token: Option<String>,
+
+    /// Scopes associated with the `Token`.
+    #[serde(
+        serialize_with = "serialize_scopes",
+        deserialize_with = "deserialize_scopes"
+    )]
+    pub scope: Vec<Scope>,
+
+    /// How many seconds until the `Token` expires.
+    pub expires_in: Option<u64>,
+}
+impl TokenBuilder {
+    /// Initialize a new `TokenBuilder` instance.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the access token for the `Token`.
+    pub fn access_token(mut self, token: impl Into<String>) -> Self {
+        self.access_token = Some(token.into());
+        self
+    }
+
+    /// Set the refresh token for the `Token`.
+    pub fn refresh_token(mut self, token: impl Into<String>) -> Self {
+        self.refresh_token = Some(token.into());
+        self
+    }
+
+    /// Set the id token for the `Token`.
+    pub fn id_token(mut self, token: impl Into<String>) -> Self {
+        self.id_token = Some(token.into());
+        self
+    }
+
+    /// Set the scopes for the `Token`.
+    pub fn scope(mut self, scopes: Vec<Scope>) -> Self {
+        self.scope = scopes;
+        self
+    }
+
+    /// Set the expiration for the `Token`.
+    ///
+    /// NOTE: Defaults to `1200`.
+    pub fn expires_in(mut self, seconds: u64) -> Self {
+        self.expires_in = Some(seconds);
+        self
+    }
+
+    /// Try to build the `Token`.
+    ///
+    /// NOTE: `access_token`, `refresh_token`, and `id_token`
+    /// are required to be set to successfully build a `Token`.
+    pub fn build(self) -> Result<Token, Error> {
+        if self.scope.is_empty() {
+            return Err(Error::TokenConfig(
+                "`Token::scope` is empty, but required.".into(),
+            ));
+        }
+
+        Ok(Token {
+            access_token: self.access_token.ok_or(Error::TokenConfig(
+                "`Token::access_token` is not set".into(),
+            ))?,
+            refresh_token: self.refresh_token.ok_or(Error::TokenConfig(
+                "`Token::refresh_token` is not set".into(),
+            ))?,
+            id_token: self
+                .id_token
+                .ok_or(Error::TokenConfig("`Token::id_token` is not set".into()))?,
+            token_type: "Bearer".to_string(),
+            scope: self.scope,
+            expires_in: self.expires_in.unwrap_or(1200),
+        })
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
