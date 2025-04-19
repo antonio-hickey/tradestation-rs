@@ -259,12 +259,12 @@ pub struct GetBarsQuery {
     /// or `BarUnit::Monthly` unit.
     ///
     /// NOTE: This parameter is mutually exclusive with the `first_date` parameter.
-    pub bars_back: u32,
+    pub bars_back: Option<u32>,
 
     /// The first date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
     /// NOTE: This parameter is mutually exclusive with the `bars_back` parameter.
-    pub first_date: String,
+    pub first_date: Option<String>,
 
     /// The last date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
     ///
@@ -272,7 +272,7 @@ pub struct GetBarsQuery {
     ///
     /// NOTE: This parameter is mutually exclusive with the `start_date` parameter
     /// and should be used instead of that parameter, since startdate is deprecated.
-    pub last_date: String,
+    pub last_date: Option<String>,
 
     /// The United States (US) stock market session template.
     ///
@@ -282,24 +282,27 @@ pub struct GetBarsQuery {
     /// DEPRECATED: Use `last_date` instead of `start_date` !
     ///
     /// The last date formatted as `"YYYY-MM-DD"`, or `"2020-04-20T18:00:00Z"`.
-    pub start_date: String,
+    pub start_date: Option<String>,
 }
 impl GetBarsQuery {
+    /// Convert the `GetBarsQuery` as a query param string.
     pub fn as_query_string(&self) -> String {
         let mut query_string = String::from("?");
 
         query_string.push_str(&format!("interval={}&", self.interval));
         query_string.push_str(&format!("unit={:?}&", self.unit));
-        query_string.push_str(&format!("barsBack={}&", self.bars_back));
-        if !self.first_date.is_empty() {
-            query_string.push_str(&format!("firstDate={}&", self.first_date));
+        if let Some(bars_back) = self.bars_back {
+            query_string.push_str(&format!("barsBack={}&", bars_back));
         }
-        if !self.last_date.is_empty() {
-            query_string.push_str(&format!("lastDate={}&", self.last_date));
+        if let Some(date) = &self.first_date {
+            query_string.push_str(&format!("firstDate={}&", date));
+        }
+        if let Some(date) = &self.last_date {
+            query_string.push_str(&format!("lastDate={}&", date));
         }
         query_string.push_str(&format!("sessionTemplate={:?}&", self.session_template));
-        if !self.start_date.is_empty() {
-            query_string.push_str(&format!("startDate={}&", self.start_date));
+        if let Some(date) = &self.start_date {
+            query_string.push_str(&format!("startDate={}&", date));
         }
 
         if query_string.ends_with('&') {
@@ -568,11 +571,11 @@ impl GetBarsQueryBuilder {
             symbol: self.symbol.ok_or_else(|| Error::SymbolNotSet)?,
             interval: self.interval.unwrap_or(1),
             unit: self.unit.unwrap_or(BarUnit::Daily),
-            bars_back: self.bars_back.unwrap_or(1),
-            first_date: self.first_date.unwrap_or_default(),
-            last_date: self.last_date.unwrap_or_default(),
+            bars_back: self.bars_back,
+            first_date: self.first_date,
+            last_date: self.last_date,
             session_template: self.session_template.unwrap_or(SessionTemplate::Default),
-            start_date: self.start_date.unwrap_or_default(),
+            start_date: self.start_date,
         })
     }
 }
