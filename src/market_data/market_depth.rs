@@ -79,7 +79,7 @@ impl MarketDepthQuotes {
     /// println!("{streamed_quotes:?}");
     /// ```
     pub async fn stream<F, S: Into<String>>(
-        client: &mut Client,
+        client: &Client,
         symbol: S,
         levels: Option<i32>,
         mut on_chunk: F,
@@ -176,7 +176,7 @@ impl Client {
     /// println!("{streamed_quotes:?}");
     /// ```
     pub async fn stream_market_depth_quotes<S: Into<String>, F>(
-        &mut self,
+        &self,
         symbol: S,
         levels: Option<i32>,
         on_chunk: F,
@@ -289,7 +289,7 @@ impl MarketDepthAggregates {
     /// println!("{streamed_aggregates:?}");
     /// ```
     pub async fn stream<F, S: Into<String>>(
-        client: &mut Client,
+        client: &Client,
         symbol: S,
         levels: Option<i32>,
         mut on_chunk: F,
@@ -388,7 +388,7 @@ impl Client {
     /// println!("{streamed_aggregates:?}");
     /// ```
     pub async fn stream_market_depth_aggregates<S: Into<String>, F>(
-        &mut self,
+        &self,
         symbol: S,
         levels: Option<i32>,
         on_chunk: F,

@@ -43,13 +43,13 @@ impl OptionExpiration {
     /// Fetch all expirations for Cloudflare (NET) options.
     ///
     /// ```ignore
-    /// let cloudflare_option_expirations = OptionExpiration::fetch("NET", None, &mut client).await?;
+    /// let cloudflare_option_expirations = OptionExpiration::fetch("NET", None, &client).await?;
     /// println!("Cloudflare Option Expirations: {cloudflare_option_expirations:?}");
     /// ```
     pub async fn fetch(
         underlying_symbol: &str,
         strike_price: Option<f64>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<OptionExpiration>, Error> {
         let mut endpoint = format!("marketdata/options/expirations/{}", underlying_symbol);
         if let Some(strike) = strike_price {
@@ -99,7 +99,7 @@ impl Client {
     /// println!("Cloudflare Option Expirations: {cloudflare_option_expirations:?}");
     /// ```
     pub async fn get_option_expirations(
-        &mut self,
+        &self,
         underlying_symbol: &str,
         strike_price: Option<f64>,
     ) -> Result<Vec<OptionExpiration>, Error> {
@@ -324,7 +324,7 @@ impl Client {
     ///     );
     /// }
     /// ```
-    pub fn get_option_spread_types(&mut self) -> Vec<OptionSpreadType> {
+    pub fn get_option_spread_types(&self) -> Vec<OptionSpreadType> {
         OptionSpreadType::all()
     }
 }
@@ -404,11 +404,7 @@ impl OptionRiskRewardAnalysis {
     ///      Risk vs Reward Analysis: {risk_reward_analysis:?}"
     /// );
     /// ```
-    pub async fn run(
-        price: f64,
-        legs: Vec<OptionsLeg>,
-        client: &mut Client,
-    ) -> Result<Self, Error> {
+    pub async fn run(price: f64, legs: Vec<OptionsLeg>, client: &Client) -> Result<Self, Error> {
         let payload = json!({"SpreadPrice": price, "Legs": legs});
 
         match client
@@ -485,7 +481,7 @@ impl Client {
     /// );
     /// ```
     pub async fn analyze_options_risk_reward(
-        &mut self,
+        &self,
         price: f64,
         legs: Vec<OptionsLeg>,
     ) -> Result<OptionRiskRewardAnalysis, Error> {
@@ -558,7 +554,7 @@ impl OptionSpreadStrikes {
     /// ```
     pub async fn fetch(
         query: OptionSpreadStrikesQuery,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<OptionSpreadStrikes, Error> {
         let mut endpoint = format!(
             "marketdata/options/strikes/{}?spreadType={:?}&strikeInterval={}",
@@ -618,7 +614,7 @@ impl Client {
     /// println!("Amazon Dec 20th Iron Condor Strikes Availble: {availble_strikes:?}");
     /// ```
     pub async fn get_option_spread_strikes(
-        &mut self,
+        &self,
         query: OptionSpreadStrikesQuery,
     ) -> Result<OptionSpreadStrikes, Error> {
         OptionSpreadStrikes::fetch(query, self).await
@@ -946,7 +942,7 @@ impl OptionChain {
     /// println!("{streamed_chains:?}");
     /// ```
     pub async fn stream<F>(
-        client: &mut Client,
+        client: &Client,
         query: &OptionChainQuery,
         mut on_chunk: F,
     ) -> Result<Vec<OptionChain>, Error>
@@ -1036,7 +1032,7 @@ impl Client {
     /// println!("{streamed_chains:?}");
     /// ```
     pub async fn stream_option_chain<F>(
-        &mut self,
+        &self,
         query: &OptionChainQuery,
         on_chunk: F,
     ) -> Result<Vec<OptionChain>, Error>
@@ -1622,7 +1618,7 @@ impl OptionQuote {
     /// println!("{streamed_quotes:?}");
     /// ```
     pub async fn stream<F>(
-        client: &mut Client,
+        client: &Client,
         query: &OptionQuoteQuery,
         mut on_chunk: F,
     ) -> Result<Vec<OptionQuote>, Error>
@@ -1740,7 +1736,7 @@ impl Client {
     /// println!("{streamed_quotes:?}");
     /// ```
     pub async fn stream_option_quotes<F>(
-        &mut self,
+        &self,
         query: &OptionQuoteQuery,
         on_chunk: F,
     ) -> Result<Vec<OptionQuote>, Error>

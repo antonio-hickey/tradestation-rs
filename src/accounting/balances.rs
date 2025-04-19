@@ -50,7 +50,7 @@ impl Balance {
     /// Get the current balance of an `Account`.
     pub(super) async fn get<S: Into<String>>(
         account_id: S,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Balance, Error> {
         let endpoint = format!("brokerage/accounts/{}/balances", account_id.into());
 
@@ -74,7 +74,7 @@ impl Balance {
     /// Get the current balance of all `Account`(s) by account ids.
     pub(super) async fn get_multiple(
         account_ids: Vec<&str>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Balance>, Error> {
         let endpoint = format!("brokerage/accounts/{}/balances", account_ids.join(","));
 
@@ -232,7 +232,7 @@ impl BODBalance {
     /// Get the beginning of day balance of an `Account`.
     pub(super) async fn get<S: Into<String>>(
         account_id: S,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<BODBalance, Error> {
         let endpoint = format!("brokerage/accounts/{}/bodbalances", account_id.into());
 
@@ -259,7 +259,7 @@ impl BODBalance {
     /// this method should only be used if you ONLY have account id's.
     pub(super) async fn get_multiple(
         account_ids: Vec<&str>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<BODBalance>, Error> {
         let endpoint = format!("brokerage/accounts/{}/bodbalances", account_ids.join(","));
 

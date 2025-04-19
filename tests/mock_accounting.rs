@@ -38,7 +38,7 @@ fn test_get_accounts_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -259,7 +259,7 @@ fn test_get_account_balance_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -267,7 +267,7 @@ fn test_get_account_balance_mocked() {
             .unwrap();
 
         // Make sure we can parse the mocked response into a `Balance`
-        match account.get_balance(&mut client).await {
+        match account.get_balance(&client).await {
             Ok(balance) => {
                 assert_eq!(account.account_id, balance.account_id);
             }
@@ -303,7 +303,7 @@ fn test_get_account_bod_balance_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -311,7 +311,7 @@ fn test_get_account_bod_balance_mocked() {
             .unwrap();
 
         // Make sure we can parse the mocked response into a `BODBalance`
-        match account.get_bod_balance(&mut client).await {
+        match account.get_bod_balance(&client).await {
             Ok(bod_balance) => {
                 assert_eq!(account.account_id, bod_balance.account_id);
             }
@@ -350,7 +350,7 @@ fn test_get_historic_orders_futures_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -358,7 +358,7 @@ fn test_get_historic_orders_futures_mocked() {
             .unwrap();
 
         // Make sure we can parse the mocked response into `Vec<Order>`
-        match account.get_historic_orders("2025-01-23", &mut client).await {
+        match account.get_historic_orders("2025-01-23", &client).await {
             Ok(orders) => {
                 // Should be 3 orders
                 assert_eq!(orders.len(), 3);
@@ -402,7 +402,7 @@ fn test_get_historic_orders_stocks_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -410,7 +410,7 @@ fn test_get_historic_orders_stocks_mocked() {
             .unwrap();
 
         // Make sure we can parse the mocked response into `Vec<Order>`
-        match account.get_historic_orders("2025-01-23", &mut client).await {
+        match account.get_historic_orders("2025-01-23", &client).await {
             Ok(orders) => {
                 // Should be 4 orders
                 assert_eq!(orders.len(), 4);
@@ -455,7 +455,7 @@ fn test_get_positions_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -463,7 +463,7 @@ fn test_get_positions_mocked() {
             .unwrap();
 
         // Make sure we can parse the mocked response into `Vec<Position>`
-        match account.get_positions(&mut client).await {
+        match account.get_positions(&client).await {
             Ok(positions) => {
                 // Should be 4 positions in this test mock data
                 assert_eq!(positions.len(), 4);
