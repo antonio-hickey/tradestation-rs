@@ -1,16 +1,15 @@
+use super::ApiError;
 use crate::{
     execution::{ActivationTrigger, Order, OrderConfirmation},
     Error, Route,
 };
 use serde::{Deserialize, Serialize};
 
-use super::ApiError;
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for confirming
 /// an order, but not actually placing it.
-pub struct OrderRespRaw {
+pub(crate) struct OrderRespRaw {
     /// The orders modified, placed, or canceled.
     orders: Option<Vec<Order>>,
 
@@ -27,7 +26,7 @@ pub struct OrderRespRaw {
 #[derive(Debug)]
 /// The TradeStation API Response for confirming
 /// an order, but not actually placing it.
-pub struct OrderResp {
+pub(crate) struct OrderResp {
     /// The order confirmations.
     pub orders: Option<Vec<Order>>,
 
@@ -59,7 +58,7 @@ impl From<OrderRespRaw> for OrderResp {
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for
 /// canceling or replacing an order.
-pub struct ModifyOrderRespRaw {
+pub(crate) struct ModifyOrderRespRaw {
     #[serde(rename = "OrderID")]
     /// The order id of the modified `Order`.
     order_id: String,
@@ -75,7 +74,7 @@ pub struct ModifyOrderRespRaw {
 #[derive(Debug)]
 /// The TradeStation API Response for
 /// canceling or replacing an order.
-pub struct ModifyOrderResp {
+pub(crate) struct ModifyOrderResp {
     /// The order confirmations.
     pub order_id: String,
 
@@ -122,7 +121,7 @@ impl From<ModifyOrderResp> for Order {
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for confirming
 /// an order, but not actually placing it.
-pub struct ConfirmOrderRespRaw {
+pub(crate) struct ConfirmOrderRespRaw {
     /// The order confirmations.
     confirmations: Option<Vec<OrderConfirmation>>,
     /// The error type from TradeStation's API
@@ -137,7 +136,7 @@ pub struct ConfirmOrderRespRaw {
 #[derive(Debug)]
 /// The TradeStation API Response for confirming
 /// an order, but not actually placing it.
-pub struct ConfirmOrderResp {
+pub(crate) struct ConfirmOrderResp {
     /// The order confirmations.
     pub confirmations: Option<Vec<OrderConfirmation>>,
     /// The error from TradeStation's API.
@@ -168,12 +167,14 @@ impl From<ConfirmOrderRespRaw> for ConfirmOrderResp {
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for running risk vs reward
 /// analysis on an options trade.
-pub struct GetExecutionRoutesRespRaw {
+pub(crate) struct GetExecutionRoutesRespRaw {
     routes: Option<Vec<Route>>,
+
     /// The error type from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
     error: Option<String>,
+
     /// The error message from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
@@ -181,9 +182,10 @@ pub struct GetExecutionRoutesRespRaw {
 }
 #[derive(Debug)]
 /// The TradeStation API Response for fetching symbol details.
-pub struct GetExecutionRoutesResp {
+pub(crate) struct GetExecutionRoutesResp {
     /// The option expirations for a symbol.
     pub routes: Option<Vec<Route>>,
+
     /// The error from TradeStation's API.
     ///
     /// NOTE: Will be None if there was no error.
@@ -212,7 +214,7 @@ impl From<GetExecutionRoutesRespRaw> for GetExecutionRoutesResp {
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for fetching valid
 /// activation triggers and their corresponding key.
-pub struct GetActivationTriggersRespRaw {
+pub(crate) struct GetActivationTriggersRespRaw {
     /// Activation Triggers.
     activation_triggers: Option<Vec<ActivationTrigger>>,
 
@@ -228,7 +230,7 @@ pub struct GetActivationTriggersRespRaw {
 }
 #[derive(Debug)]
 /// The TradeStation API Response for fetching symbol details.
-pub struct GetActivationTriggersResp {
+pub(crate) struct GetActivationTriggersResp {
     /// The Activation Triggers.
     pub activation_triggers: Option<Vec<ActivationTrigger>>,
 

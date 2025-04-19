@@ -70,7 +70,9 @@ impl OptionExpiration {
                 if let Some(expirations) = resp.expirations {
                     Ok(expirations)
                 } else {
-                    Err(Error::UnknownTradeStationAPIError(err_msg))
+                    Err(resp
+                        .error
+                        .unwrap_or(Error::UnknownTradeStationAPIError(err_msg)))
                 }
             }
             ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),

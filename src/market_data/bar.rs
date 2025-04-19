@@ -116,9 +116,9 @@ impl Bar {
                 if let Some(bars) = resp.bars {
                     Ok(bars)
                 } else {
-                    Err(Error::UnknownTradeStationAPIError(
+                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
                         resp_raw.message.unwrap_or_default(),
-                    ))
+                    )))
                 }
             }
             ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),

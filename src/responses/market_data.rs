@@ -14,22 +14,28 @@ use super::ApiError;
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for running risk vs reward
 /// analysis on an options trade.
-pub struct GetOptionsRiskRewardRespRaw {
+pub(crate) struct GetOptionsRiskRewardRespRaw {
     /// Indicates whether the maximum gain can be infinite.
     pub max_gain_is_infinite: Option<bool>,
+
     /// The adjusted maximum gain (if it is not infinite).
     pub adjusted_max_gain: Option<String>,
+
     /// Indicates whether the maximum loss can be infinite.
     pub max_loss_is_infinite: Option<bool>,
+
     /// The adjusted maximum loss (if it is not infinite).
     pub adjusted_max_loss: Option<String>,
+
     /// Market price that the underlying security must reach
     /// for the trade to avoid a loss.
     pub breakeven_points: Option<Vec<String>>,
+
     /// The error type from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
     pub error: Option<String>,
+
     /// The error message from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
@@ -37,9 +43,10 @@ pub struct GetOptionsRiskRewardRespRaw {
 }
 #[derive(Debug)]
 /// The TradeStation API Response for fetching symbol details.
-pub struct GetOptionsRiskRewardResp {
+pub(crate) struct GetOptionsRiskRewardResp {
     /// The option expirations for a symbol.
     pub analysis: Option<OptionRiskRewardAnalysis>,
+
     /// The error from TradeStation's API.
     ///
     /// NOTE: Will be None if there was no error.
@@ -92,13 +99,15 @@ impl From<GetOptionsRiskRewardRespRaw> for GetOptionsRiskRewardResp {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for fetching symbol details.
-pub struct GetOptionExpirationsRespRaw {
+pub(crate) struct GetOptionExpirationsRespRaw {
     /// The option expirations for a symbol.
     pub expirations: Option<Vec<OptionExpiration>>,
+
     /// The error type from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
     pub error: Option<String>,
+
     /// The error message from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
@@ -106,9 +115,10 @@ pub struct GetOptionExpirationsRespRaw {
 }
 #[derive(Debug)]
 /// The TradeStation API Response for fetching symbol details.
-pub struct GetOptionExpirationsResp {
+pub(crate) struct GetOptionExpirationsResp {
     /// The option expirations for a symbol.
     pub expirations: Option<Vec<OptionExpiration>>,
+
     /// The error from TradeStation's API.
     ///
     /// NOTE: Will be None if there was no error.
@@ -136,13 +146,15 @@ impl From<GetOptionExpirationsRespRaw> for GetOptionExpirationsResp {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for fetching symbol details.
-pub struct GetSymbolDetailsRespRaw {
+pub(crate) struct GetSymbolDetailsRespRaw {
     /// The symbol details.
     pub symbols: Option<Vec<SymbolDetails>>,
+
     /// The error type from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
     pub error: Option<String>,
+
     /// The error message from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
@@ -150,9 +162,10 @@ pub struct GetSymbolDetailsRespRaw {
 }
 #[derive(Debug)]
 /// The TradeStation API Response for fetching symbol details.
-pub struct GetSymbolDetailsResp {
+pub(crate) struct GetSymbolDetailsResp {
     /// The symbol details.
     pub symbols: Option<Vec<SymbolDetails>>,
+
     /// The error from TradeStation's API.
     ///
     /// NOTE: Will be None if there was no error.
@@ -180,16 +193,18 @@ impl From<GetSymbolDetailsRespRaw> for GetSymbolDetailsResp {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for fetching bars.
-pub struct GetBarsRespRaw {
+pub(crate) struct GetBarsRespRaw {
     /// The bars fetched from your query
     ///
     /// NOTE: Will be None if there was an error
     /// at TradeStation's API level.
     pub bars: Option<Vec<Bar>>,
+
     /// The error type from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
     pub error: Option<String>,
+
     /// The error message from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
@@ -197,12 +212,13 @@ pub struct GetBarsRespRaw {
 }
 #[derive(Debug)]
 /// The TradeStation API Response for fetching bars.
-pub struct GetBarsResp {
+pub(crate) struct GetBarsResp {
     /// The bars fetched from your query
     ///
     /// NOTE: Will be None if there was an error
     /// at TradeStation's API level.
     pub bars: Option<Vec<Bar>>,
+
     /// The error from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
@@ -233,10 +249,13 @@ impl From<GetBarsRespRaw> for GetBarsResp {
 pub enum StreamBarsResp {
     /// The main response which contains order data
     Bar(Box<self::Bar>),
+
     /// Periodic signal to know the connection is still alive
     Heartbeat(stream::Heartbeat),
+
     /// Signal sent on state changes in the stream (closed, opened, paused, resumed)
     Status(stream::StreamStatus),
+
     /// Response for when an error was encountered, with details on the error
     Error(stream::ErrorResp),
 }
@@ -271,14 +290,18 @@ impl<'de> Deserialize<'de> for StreamBarsResp {
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for running risk vs reward
 /// analysis on an options trade.
-pub struct OptionSpreadStrikesRespRaw {
-    /// Indicates whether the maximum gain can be infinite.
+pub(crate) struct OptionSpreadStrikesRespRaw {
+    /// The name of the spread type for these strikes.
     pub spread_type: Option<OptionSpreadType>,
+
+    /// The strike prices for this spread type.
     pub strikes: Option<Vec<Vec<String>>>,
+
     /// The error type from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
     pub error: Option<String>,
+
     /// The error message from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
@@ -286,9 +309,10 @@ pub struct OptionSpreadStrikesRespRaw {
 }
 #[derive(Debug)]
 /// The TradeStation API Response for fetching symbol details.
-pub struct OptionSpreadStrikesResp {
+pub(crate) struct OptionSpreadStrikesResp {
     /// The option expirations for a symbol.
     pub spread_strikes: Option<OptionSpreadStrikes>,
+
     /// The error from TradeStation's API.
     ///
     /// NOTE: Will be None if there was no error.
@@ -330,10 +354,13 @@ impl From<OptionSpreadStrikesRespRaw> for OptionSpreadStrikesResp {
 pub enum StreamOptionChainResp {
     /// The main response which contains the option chain data.
     OptionChain(Box<self::OptionChain>),
+
     /// Periodic signal to know the connection is still alive.
     Heartbeat(stream::Heartbeat),
+
     /// Signal sent on state changes in the stream (closed, opened, paused, resumed).
     Status(stream::StreamStatus),
+
     /// Response for when an error was encountered, with details on the error.
     Error(stream::ErrorResp),
 }
@@ -370,10 +397,13 @@ impl<'de> Deserialize<'de> for StreamOptionChainResp {
 pub enum StreamOptionQuotesResp {
     /// The main response which contains the option chain data.
     OptionQuotes(Box<self::OptionQuote>),
+
     /// Periodic signal to know the connection is still alive.
     Heartbeat(stream::Heartbeat),
+
     /// Signal sent on state changes in the stream (closed, opened, paused, resumed).
     Status(stream::StreamStatus),
+
     /// Response for when an error was encountered, with details on the error.
     Error(stream::ErrorResp),
 }
@@ -407,13 +437,15 @@ impl<'de> Deserialize<'de> for StreamOptionQuotesResp {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The TradeStation API Response for fetching quote snapshots.
-pub struct GetQuoteSnapshotsRespRaw {
+pub(crate) struct GetQuoteSnapshotsRespRaw {
     /// The quotes snapshots.
     pub quotes: Option<Vec<Quote>>,
+
     /// The error type from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
     pub error: Option<String>,
+
     /// The error message from TradeStation's API
     ///
     /// NOTE: Will be None if there was no error
@@ -421,9 +453,10 @@ pub struct GetQuoteSnapshotsRespRaw {
 }
 #[derive(Debug)]
 /// The TradeStation API Response for fetching quote snapshots.
-pub struct GetQuoteSnapshotsResp {
+pub(crate) struct GetQuoteSnapshotsResp {
     /// The quote snapshots.
     pub quotes: Option<Vec<Quote>>,
+
     /// The error from TradeStation's API.
     ///
     /// NOTE: Will be None if there was no error.
@@ -454,10 +487,13 @@ impl From<GetQuoteSnapshotsRespRaw> for GetQuoteSnapshotsResp {
 pub enum StreamQuotesResp {
     /// The main response which contains the option chain data.
     Quote(Box<self::Quote>),
+
     /// Periodic signal to know the connection is still alive.
     Heartbeat(stream::Heartbeat),
+
     /// Signal sent on state changes in the stream (closed, opened, paused, resumed).
     Status(stream::StreamStatus),
+
     /// Response for when an error was encountered, with details on the error.
     Error(stream::ErrorResp),
 }
@@ -494,10 +530,13 @@ impl<'de> Deserialize<'de> for StreamQuotesResp {
 pub enum StreamMarketDepthQuotesResp {
     /// The main response which contains the bid data.
     Quote(Box<self::MarketDepthQuotes>),
+
     /// Periodic signal to know the connection is still alive.
     Heartbeat(stream::Heartbeat),
+
     /// Signal sent on state changes in the stream (closed, opened, paused, resumed).
     Status(stream::StreamStatus),
+
     /// Response for when an error was encountered, with details on the error.
     Error(stream::ErrorResp),
 }
@@ -535,10 +574,13 @@ pub enum StreamMarketDepthAggregatesResp {
     /// The main response which contains the bid/ask data for
     /// a market depth level.
     Aggregate(Box<self::MarketDepthAggregates>),
+
     /// Periodic signal to know the connection is still alive.
     Heartbeat(stream::Heartbeat),
+
     /// Signal sent on state changes in the stream (closed, opened, paused, resumed).
     Status(stream::StreamStatus),
+
     /// Response for when an error was encountered, with details on the error.
     Error(stream::ErrorResp),
 }
