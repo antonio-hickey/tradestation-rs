@@ -13,7 +13,7 @@ use tradestation::{
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // Create client
-    let mut client = ClientBuilder::new()?
+    let client = ClientBuilder::new()?
         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
         .token(Token {
             access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -60,10 +60,7 @@ async fn main() -> Result<(), Error> {
         })
         .build()?;
 
-    let order = Order::place(&order_req, &mut client)
-        .await?
-        .into_iter()
-        .next();
+    let order = Order::place(&order_req, &client).await?.into_iter().next();
     //--
 
     //--
@@ -73,13 +70,13 @@ async fn main() -> Result<(), Error> {
         let updated_order = order
             .replace(
                 OrderUpdate::new().limit_price("222.75").quantity("25"),
-                &mut client,
+                &client,
             )
             .await?;
 
         //--
         // Example: Cancel the updated order above
-        updated_order.cancel(&mut client).await?;
+        updated_order.cancel(&client).await?;
     }
     //--
 
@@ -136,7 +133,7 @@ async fn main() -> Result<(), Error> {
         .group_type(OrderGroupType::BRK)
         .build()?;
 
-    let orders = order_group.place(&mut client).await?;
+    let orders = order_group.place(&client).await?;
     println!("Place Orders Result: {orders:?}");
     //--
 

@@ -1,9 +1,12 @@
-use crate::token::RefreshedToken;
-use crate::{Error, Token};
+use crate::{
+    token::{RefreshedToken, Token},
+    Error,
+};
 use reqwest::{header, Response};
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::Mutex;
 
 #[derive(Clone, Debug)]
 /// TradeStation API Client
@@ -18,7 +21,7 @@ pub struct Client {
     client_secret: String,
 
     /// Bearer Token for TradeStation's API
-    pub token: Token,
+    pub token: Arc<Mutex<Token>>,
 
     /// The base url used for all endpoints.
     ///
@@ -32,21 +35,28 @@ impl Client {
     /// token refreshing near, at, or after auth token expiration.
     ///
     /// NOTE: You should use `Client::post()` or `Client::get()` in favor of this method.
-    pub async fn send_request<F, T>(&mut self, request_fn: F) -> Result<Response, Error>
+    pub async fn send_request<F, T>(&self, request_fn: F) -> Result<Response, Error>
     where
-        F: Fn(&Token) -> T,
+        F: Fn(String) -> T,
         T: std::future::Future<Output = Result<Response, reqwest::Error>>,
     {
-        match request_fn(&self.token).await {
+        let token_guard = self.token.lock().await;
+        let access_token = token_guard.access_token.clone();
+        drop(token_guard);
+
+        match request_fn(access_token).await {
             Ok(resp) => {
                 // Check if the client gets a 401 unauthorized to try and re auth the client
                 // this happens when auth token expires.
                 if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
                     // Refresh the clients token
                     self.refresh_token().await?;
+                    let token_guard = self.token.lock().await;
+                    let access_token = token_guard.access_token.clone();
+                    drop(token_guard);
 
                     // Retry sending the request to TradeStation's API
-                    let retry_response = request_fn(&self.token).await?;
+                    let retry_response = request_fn(access_token).await?;
                     Ok(retry_response)
                 } else {
                     Ok(resp)
@@ -57,22 +67,15 @@ impl Client {
     }
 
     /// Send a POST request from your `Client` to TradeStation's API
-    pub async fn post<T: Serialize>(
-        &mut self,
-        endpoint: &str,
-        payload: &T,
-    ) -> Result<Response, Error> {
+    pub async fn post<T: Serialize>(&self, endpoint: &str, payload: &T) -> Result<Response, Error> {
         let url = format!("{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
-            .send_request(|token| {
+            .send_request(|access_token| {
                 self.http_client
                     .post(&url)
                     .header("Content-Type", "application/json")
-                    .header(
-                        header::AUTHORIZATION,
-                        format!("Bearer {}", token.access_token),
-                    )
+                    .header(header::AUTHORIZATION, format!("Bearer {}", access_token))
                     .json(payload)
                     .send()
             })
@@ -82,17 +85,14 @@ impl Client {
     }
 
     /// Send a GET request from your `Client` to TradeStation's API
-    pub async fn get(&mut self, endpoint: &str) -> Result<Response, Error> {
+    pub async fn get(&self, endpoint: &str) -> Result<Response, Error> {
         let url = format!("{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
-            .send_request(|token| {
+            .send_request(|access_token| {
                 self.http_client
                     .get(&url)
-                    .header(
-                        header::AUTHORIZATION,
-                        format!("Bearer {}", token.access_token),
-                    )
+                    .header(header::AUTHORIZATION, format!("Bearer {}", access_token))
                     .send()
             })
             .await?;
@@ -101,22 +101,15 @@ impl Client {
     }
 
     /// Send a PUT request from your `Client` to TradeStation's API
-    pub async fn put<T: Serialize>(
-        &mut self,
-        endpoint: &str,
-        payload: &T,
-    ) -> Result<Response, Error> {
+    pub async fn put<T: Serialize>(&self, endpoint: &str, payload: &T) -> Result<Response, Error> {
         let url = format!("{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
-            .send_request(|token| {
+            .send_request(|access_token| {
                 self.http_client
                     .put(&url)
                     .header("Content-Type", "application/json")
-                    .header(
-                        header::AUTHORIZATION,
-                        format!("Bearer {}", token.access_token),
-                    )
+                    .header(header::AUTHORIZATION, format!("Bearer {}", access_token))
                     .json(&payload)
                     .send()
             })
@@ -126,18 +119,15 @@ impl Client {
     }
 
     /// Send a DELETE request from your `Client` to TradeStation's API
-    pub async fn delete(&mut self, endpoint: &str) -> Result<Response, Error> {
+    pub async fn delete(&self, endpoint: &str) -> Result<Response, Error> {
         let url = format!("{}/{}", self.base_url, endpoint);
         let resp = self
             .clone()
-            .send_request(|token| {
+            .send_request(|access_token| {
                 self.http_client
                     .delete(&url)
                     .header("Content-Type", "application/json")
-                    .header(
-                        header::AUTHORIZATION,
-                        format!("Bearer {}", token.access_token),
-                    )
+                    .header(header::AUTHORIZATION, format!("Bearer {}", access_token))
                     .send()
             })
             .await?;
@@ -148,7 +138,7 @@ impl Client {
     /// Start a stream from the TradeStation API to the `Client`
     ///
     /// NOTE: You need to provide a processing function for handeling the stream chunks
-    pub async fn stream<F>(&mut self, endpoint: &str, mut process_chunk: F) -> Result<(), Error>
+    pub async fn stream<F>(&self, endpoint: &str, mut process_chunk: F) -> Result<(), Error>
     where
         F: FnMut(Value) -> Result<(), Error>,
     {
@@ -156,12 +146,12 @@ impl Client {
 
         let mut resp = self
             .clone()
-            .send_request(|token| {
+            .send_request(|access_token| {
                 self.http_client
                     .get(&url)
                     .header(
                         reqwest::header::AUTHORIZATION,
-                        format!("Bearer {}", token.access_token),
+                        format!("Bearer {}", access_token),
                     )
                     .send()
             })
@@ -224,14 +214,16 @@ impl Client {
         Ok(())
     }
 
-    /// Refresh your clients bearer token used for authentication
-    /// with TradeStation's API.
-    pub async fn refresh_token(&mut self) -> Result<(), Error> {
+    /// Refresh your clients bearer token used for
+    /// authentication with TradeStation's API.
+    pub async fn refresh_token(&self) -> Result<(), Error> {
+        let mut token_guard = self.token.lock().await;
+
         let form_data: HashMap<String, String> = HashMap::from([
             ("grant_type".into(), "refresh_token".into()),
             ("client_id".into(), self.client_id.clone()),
             ("client_secret".into(), self.client_secret.clone()),
-            ("refresh_token".into(), self.token.refresh_token.clone()),
+            ("refresh_token".into(), token_guard.refresh_token.clone()),
             ("redirect_uri".into(), "http://localhost:8080/".into()),
         ]);
 
@@ -246,8 +238,8 @@ impl Client {
             .await?;
 
         // Update the clients token
-        self.token = Token {
-            refresh_token: self.token.refresh_token.clone(),
+        *token_guard = Token {
+            refresh_token: token_guard.refresh_token.clone(),
             access_token: new_token.access_token,
             id_token: new_token.id_token,
             scope: new_token.scope,
@@ -397,7 +389,7 @@ impl ClientBuilderStep<Step3> {
                 http_client,
                 client_id,
                 client_secret,
-                token,
+                token: Arc::new(Mutex::new(token)),
                 base_url,
             })
         } else {
@@ -419,7 +411,7 @@ impl ClientBuilderStep<Step3> {
                 http_client,
                 client_id,
                 client_secret,
-                token,
+                token: Arc::new(Mutex::new(token)),
                 base_url,
             })
         }

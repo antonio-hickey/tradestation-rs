@@ -121,7 +121,7 @@ impl Order {
     /// Fetches orders for the given `Account`.
     pub(super) async fn get_all_by_account<S: Into<String>>(
         account_id: S,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!("brokerage/accounts/{}/orders", account_id.into());
 
@@ -140,7 +140,7 @@ impl Order {
     pub(super) async fn find<S: Into<String>>(
         order_ids: Vec<S>,
         account_id: String,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         let order_ids: Vec<String> = order_ids.into_iter().map(|id| id.into()).collect();
 
@@ -165,7 +165,7 @@ impl Order {
     pub(super) async fn get_historic<S: Into<String>>(
         account_id: S,
         since_date: &str,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/historicalorders?since={}",
@@ -188,7 +188,7 @@ impl Order {
     pub(super) async fn get_historic_by_accounts(
         account_ids: Vec<&str>,
         since_date: &str,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/historicalorders?since={}",
@@ -210,7 +210,7 @@ impl Order {
     /// Stream `Order`(s) for the given `Account`.
     pub(super) async fn stream<F, S: Into<String>>(
         account_id: S,
-        client: &mut Client,
+        client: &Client,
         mut on_chunk: F,
     ) -> Result<Vec<Order>, Error>
     where
@@ -241,7 +241,7 @@ impl Order {
     pub(super) async fn stream_by_ids<F>(
         order_ids: Vec<&str>,
         account_id: &str,
-        client: &mut Client,
+        client: &Client,
         mut on_chunk: F,
     ) -> Result<Vec<Order>, Error>
     where
@@ -275,7 +275,7 @@ impl Order {
     /// Stream `Order`(s) for the given `Account`.
     pub(super) async fn stream_by_accounts<F>(
         account_ids: Vec<&str>,
-        client: &mut Client,
+        client: &Client,
         mut on_chunk: F,
     ) -> Result<Vec<Order>, Error>
     where
@@ -304,7 +304,7 @@ impl Order {
 
     /// Stream `Order`s by order id's for the given `Account`(s).
     pub(super) async fn stream_by_ids_and_accounts<F>(
-        client: &mut Client,
+        client: &Client,
         order_ids: Vec<&str>,
         account_ids: Vec<&str>,
         mut on_chunk: F,

@@ -140,7 +140,7 @@ impl Quote {
     /// let palantir_quote = client.get_quotes(vec!["PLTR"]).await?;
     /// println!("Palantir Quote: {palantir_quote:?}");
     /// ```
-    pub async fn fetch(symbols: Vec<&str>, client: &mut Client) -> Result<Vec<Quote>, Error> {
+    pub async fn fetch(symbols: Vec<&str>, client: &Client) -> Result<Vec<Quote>, Error> {
         let endpoint = format!("marketdata/quotes/{}", symbols.join(","));
 
         match client
@@ -218,7 +218,7 @@ impl Quote {
     /// println!("{streamed_quotes:?}");
     /// ```
     pub async fn stream<F>(
-        client: &mut Client,
+        client: &Client,
         symbols: Vec<&str>,
         mut on_chunk: F,
     ) -> Result<Vec<Quote>, Error>
@@ -260,7 +260,7 @@ impl Client {
     /// let palantir_quote = client.get_quote("PLTR").await?;
     /// println!("Palantir Quote: {palantir_quote:?}");
     /// ```
-    pub async fn get_quote(&mut self, symbol: &str) -> Result<Quote, Error> {
+    pub async fn get_quote(&self, symbol: &str) -> Result<Quote, Error> {
         let mut quotes = Quote::fetch(vec![symbol], self).await?;
 
         // TODO: This error is not as accurate as it can be.
@@ -283,7 +283,7 @@ impl Client {
     /// let palantir_quote = client.get_quotes(vec!["PLTR"]).await?;
     /// println!("Palantir Quote: {palantir_quote:?}");
     /// ```
-    pub async fn get_quotes(&mut self, symbols: Vec<&str>) -> Result<Vec<Quote>, Error> {
+    pub async fn get_quotes(&self, symbols: Vec<&str>) -> Result<Vec<Quote>, Error> {
         Quote::fetch(symbols, self).await
     }
 
@@ -340,7 +340,7 @@ impl Client {
     /// println!("{streamed_quotes:?}");
     /// ```
     pub async fn stream_quotes<F>(
-        &mut self,
+        &self,
         symbols: Vec<&str>,
         on_chunk: F,
     ) -> Result<Vec<Quote>, Error>

@@ -14,7 +14,7 @@ async fn main() -> Result<(), Error> {
     // Example: initialize client
     // NOTE: With the `Client` you can interact with all of TradeStation's API endpoints,
     // but it's suggested to use the higher level abstractions provided in the examples below.
-    let mut client = ClientBuilder::new()?
+    let client = ClientBuilder::new()?
         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
         .authorize("YOUR_AUTHORIZATION_CODE")
         .await?
@@ -31,16 +31,14 @@ async fn main() -> Result<(), Error> {
 
     //---
     // Example: Get the balances for all your `Account`(s)
-    let balances = accounts.get_bod_balances(&mut client).await?;
+    let balances = accounts.get_bod_balances(&client).await?;
     println!("Your Balances Per Account: {balances:?}");
     //---
 
     //---
     // Example: Get all historic orders (not including open orders) for your `Accounts`
     // since some date. NOTE: limited to 90 days prior to current date
-    let order_history = accounts
-        .get_historic_orders("2024-07-25", &mut client)
-        .await?;
+    let order_history = accounts.get_historic_orders("2024-07-25", &client).await?;
     println!("Your Order History Per Account: {order_history:?}");
     //---
 
@@ -48,13 +46,13 @@ async fn main() -> Result<(), Error> {
     // Example: Get all the open positions for a specifc account
     if let Some(specific_account) = accounts.find_by_id("SPECIFIC_ACCOUNT_ID") {
         // Example: Get all the open positions for a specifc account
-        let positions = specific_account.get_positions(&mut client).await?;
+        let positions = specific_account.get_positions(&client).await?;
         println!("Open Positions for SPECIFIC_ACCOUNT_ID: {positions:?}");
 
         // Example: Get the amount of funds allocated to open orders
         let mut funds_allocated_to_open_orders = 0.00;
         specific_account
-            .stream_orders(&mut client, |stream_data| {
+            .stream_orders(&client, |stream_data| {
                 // The response type is `responses::account::StreamOrdersResp`
                 // which has multiple variants the main one you care about is
                 // `Order` which will contain order data sent from the stream.
@@ -100,7 +98,7 @@ async fn main() -> Result<(), Error> {
         // Example: collect losing trades into a vector
         let mut losing_positions: Vec<Position> = Vec::new();
         specific_account
-            .stream_positions(&mut client, |stream_data| {
+            .stream_positions(&client, |stream_data| {
                 // the response type is `responses::account::streampositionsresp`
                 // which has multiple variants the main one you care about is
                 // `order` which will contain order data sent from the stream.

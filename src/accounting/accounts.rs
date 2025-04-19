@@ -31,7 +31,7 @@ pub struct Account {
 }
 impl Account {
     /// Get a specific TradeStation `Account` by it's account id.
-    pub async fn get(account_id: &str, client: &mut Client) -> Result<Account, Error> {
+    pub async fn get(account_id: &str, client: &Client) -> Result<Account, Error> {
         if let Some(account) = Account::get_all(client)
             .await?
             .iter()
@@ -44,7 +44,7 @@ impl Account {
     }
 
     /// Get all of your registered TradeStation `Account`(s).
-    pub async fn get_all(client: &mut Client) -> Result<Vec<Account>, Error> {
+    pub async fn get_all(client: &Client) -> Result<Vec<Account>, Error> {
         let endpoint = "brokerage/accounts";
 
         match client
@@ -59,7 +59,7 @@ impl Account {
     }
 
     /// Get the current balance of an `Account`.
-    pub async fn get_balance(&self, client: &mut Client) -> Result<Balance, Error> {
+    pub async fn get_balance(&self, client: &Client) -> Result<Balance, Error> {
         Balance::get(&self.account_id, client).await
     }
 
@@ -69,13 +69,13 @@ impl Account {
     /// this method should only be used in cases where you ONLY have account id's.
     pub async fn get_balances_by_accounts(
         account_ids: Vec<&str>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Balance>, Error> {
         Balance::get_multiple(account_ids, client).await
     }
 
     /// Get the beginning of day balance of an `Account`.
-    pub async fn get_bod_balance(&self, client: &mut Client) -> Result<BODBalance, Error> {
+    pub async fn get_bod_balance(&self, client: &Client) -> Result<BODBalance, Error> {
         BODBalance::get(&self.account_id, client).await
     }
 
@@ -85,7 +85,7 @@ impl Account {
     /// this method should only be used if you ONLY have account id's.
     pub async fn get_bod_balances_by_accounts(
         account_ids: Vec<&str>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<BODBalance>, Error> {
         BODBalance::get_multiple(account_ids, client).await
     }
@@ -99,7 +99,7 @@ impl Account {
     pub async fn get_historic_orders(
         &self,
         since_date: &str,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         Order::get_historic(&self.account_id, since_date, client).await
     }
@@ -113,7 +113,7 @@ impl Account {
     pub async fn get_historic_orders_by_accounts(
         account_ids: Vec<&str>,
         since_date: &str,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         Order::get_historic_by_accounts(account_ids, since_date, client).await
     }
@@ -129,7 +129,7 @@ impl Account {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -146,7 +146,7 @@ impl Account {
     /// let accounts = client.get_accounts().await?;
     /// if let Some(specific_account) = accounts.find_by_id("YOUR_ACCOUNT_ID") {
     ///     // Get all the orders from today for a specific account
-    ///     let orders = specific_account.get_orders( &mut client).await?;
+    ///     let orders = specific_account.get_orders(&client).await?;
     ///
     ///     // Filter out only filled orders
     ///     let filled_orders: Vec<Order> = orders
@@ -160,7 +160,7 @@ impl Account {
     ///     }
     /// }
     /// ```
-    pub async fn get_orders(&self, client: &mut Client) -> Result<Vec<Order>, Error> {
+    pub async fn get_orders(&self, client: &Client) -> Result<Vec<Order>, Error> {
         Order::get_all_by_account(&self.account_id, client).await
     }
 
@@ -169,7 +169,7 @@ impl Account {
     /// to access this functionality.
     async fn get_orders_for_accounts<S: Into<String>>(
         account_ids: Vec<S>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         let account_ids: Vec<String> = account_ids
             .into_iter()
@@ -199,7 +199,7 @@ impl Account {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -217,7 +217,7 @@ impl Account {
     /// if let Some(specific_account) = accounts.find_by_id("YOUR_ACCOUNT_ID") {
     ///     // Get some specific orders by their order id's
     ///     let orders = specific_account.
-    ///         get_orders_by_id(vec!["1115661503", "1115332365"], &mut client)
+    ///         get_orders_by_id(vec!["1115661503", "1115332365"], &client)
     ///         .await?;
     ///
     ///     // Log the status of the order's
@@ -229,7 +229,7 @@ impl Account {
     pub async fn get_orders_by_id<S: Into<String>>(
         &self,
         order_ids: Vec<S>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         Order::find(order_ids, self.account_id.clone(), client).await
     }
@@ -240,7 +240,7 @@ impl Account {
     async fn get_orders_by_id_for_accounts<S: Into<String>>(
         account_ids: Vec<S>,
         order_ids: Vec<S>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         let account_ids: Vec<String> = account_ids
             .into_iter()
@@ -270,7 +270,7 @@ impl Account {
     }
 
     /// Fetches positions for the given `Account`.
-    pub async fn get_positions(&self, client: &mut Client) -> Result<Vec<Position>, Error> {
+    pub async fn get_positions(&self, client: &Client) -> Result<Vec<Position>, Error> {
         Position::get_by_account(&self.account_id, client).await
     }
 
@@ -280,7 +280,7 @@ impl Account {
     async fn get_position_for_accounts(
         account_ids: String,
         position_id: String,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Position, Error> {
         let positions = Position::find(vec![position_id], account_ids, client).await?;
 
@@ -298,7 +298,7 @@ impl Account {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -328,7 +328,7 @@ impl Account {
     pub async fn get_positions_by_id<S: Into<String>>(
         &self,
         position_ids: Vec<S>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         Position::find(position_ids, self.account_id.clone(), client).await
     }
@@ -339,7 +339,7 @@ impl Account {
     async fn get_positions_by_id_for_accounts<S: Into<String>>(
         account_ids: String,
         position_ids: Vec<S>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         Position::find(position_ids, account_ids, client).await
     }
@@ -353,7 +353,7 @@ impl Account {
     pub async fn get_positions_in_symbols(
         &self,
         symbols: &str,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         Position::get_by_symbols(symbols, &self.account_id, client).await
     }
@@ -364,7 +364,7 @@ impl Account {
     /// this method should only be used if you ONLY have account id's.
     pub async fn get_positions_by_accounts(
         account_ids: Vec<&str>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         Position::get_by_accounts(account_ids, client).await
     }
@@ -381,7 +381,7 @@ impl Account {
     pub async fn get_positions_in_symbols_by_accounts(
         symbols: &str,
         account_ids: Vec<&str>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         Position::get_by_symbols_and_accounts(symbols, account_ids, client).await
     }
@@ -398,7 +398,7 @@ impl Account {
     /// ```ignore
     /// let mut funds_allocated_to_open_orders = 0.00;
     /// specific_account
-    ///     .stream_orders(&mut client, |stream_data| {
+    ///     .stream_orders(&client, |stream_data| {
     ///         // The response type is `responses::account::StreamOrdersResp`
     ///         // which has multiple variants the main one you care about is
     ///         // `Order` which will contain order data sent from the stream.
@@ -441,11 +441,7 @@ impl Account {
     ///     })
     ///     .await?;
     /// ```
-    pub async fn stream_orders<F>(
-        &self,
-        client: &mut Client,
-        on_chunk: F,
-    ) -> Result<Vec<Order>, Error>
+    pub async fn stream_orders<F>(&self, client: &Client, on_chunk: F) -> Result<Vec<Order>, Error>
     where
         F: FnMut(StreamOrdersResp) -> Result<(), Error>,
     {
@@ -526,7 +522,7 @@ impl Account {
     /// ```
     pub async fn stream_orders_by_id<F>(
         &self,
-        client: &mut Client,
+        client: &Client,
         order_ids: Vec<&str>,
         on_chunk: F,
     ) -> Result<Vec<Order>, Error>
@@ -548,7 +544,7 @@ impl Account {
     /// ```ignore
     /// let mut funds_allocated_to_open_orders = 0.00;
     /// specific_account
-    ///     .stream_orders(&mut client, |stream_data| {
+    ///     .stream_orders(&client, |stream_data| {
     ///         // The response type is `responses::account::StreamOrdersResp`
     ///         // which has multiple variants the main one you care about is
     ///         // `Order` which will contain order data sent from the stream.
@@ -593,7 +589,7 @@ impl Account {
     /// ```
     async fn stream_orders_for_accounts<F>(
         account_ids: Vec<&str>,
-        client: &mut Client,
+        client: &Client,
         on_chunk: F,
     ) -> Result<Vec<Order>, Error>
     where
@@ -619,7 +615,7 @@ impl Account {
     /// specific_account.stream_orders_by_id_for_accounts(
     ///     vec!["SOME_ORDER_ID_1", "SOME_ORDER_ID_2"],
     ///     vec!["SOME_ACCOUNT_ID_1", "SOME_ORDER_ID_2"],
-    ///     &mut client,
+    ///     &client,
     ///     |stream_data| {
     ///         // The response type is `responses::account::StreamOrdersResp`
     ///         // which has multiple variants the main one you care about is
@@ -676,7 +672,7 @@ impl Account {
     async fn stream_orders_by_id_for_accounts<F>(
         order_ids: Vec<&str>,
         account_ids: Vec<&str>,
-        client: &mut Client,
+        client: &Client,
         on_chunk: F,
     ) -> Result<Vec<Order>, Error>
     where
@@ -696,7 +692,7 @@ impl Account {
     /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
     /// specific_account
-    ///     .stream_positions(&mut client, |stream_data| {
+    ///     .stream_positions(&client, |stream_data| {
     ///         // the response type is `responses::account::StreamPositionsResp`
     ///         // which has multiple variants the main one you care about is
     ///         // `order` which will contain order data sent from the stream.
@@ -749,7 +745,7 @@ impl Account {
     /// ```
     pub async fn stream_positions<F>(
         &self,
-        client: &mut Client,
+        client: &Client,
         on_chunk: F,
     ) -> Result<Vec<Position>, Error>
     where
@@ -769,7 +765,7 @@ impl Account {
     /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
     /// specific_account
-    ///     .stream_positions(&mut client, |stream_data| {
+    ///     .stream_positions(&client, |stream_data| {
     ///         // the response type is `responses::account::StreamPositionsResp`
     ///         // which has multiple variants the main one you care about is
     ///         // `order` which will contain order data sent from the stream.
@@ -822,7 +818,7 @@ impl Account {
     /// ```
     pub async fn stream_positions_for_accounts<F, S: Into<String>>(
         account_ids: Vec<S>,
-        client: &mut Client,
+        client: &Client,
         on_chunk: F,
     ) -> Result<Vec<Position>, Error>
     where
@@ -853,7 +849,7 @@ pub trait MultipleAccounts {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -870,7 +866,7 @@ pub trait MultipleAccounts {
     /// let accounts = client.get_accounts().await?;
     /// if let Some(specific_account) = accounts.find_by_id("YOUR_ACCOUNT_ID") {
     ///     // Get all the orders from today for a specific account
-    ///     let orders = specific_account.get_orders(&mut client).await?;
+    ///     let orders = specific_account.get_orders(&client).await?;
     ///
     ///     // Filter out only filled orders
     ///     let filled_orders: Vec<Order> = orders
@@ -884,7 +880,7 @@ pub trait MultipleAccounts {
     ///     }
     /// }
     /// ```
-    fn get_orders<'a>(&'a self, client: &'a mut Client) -> Self::GetOrdersFuture<'a>;
+    fn get_orders<'a>(&'a self, client: &'a Client) -> Self::GetOrdersFuture<'a>;
 
     /// Get specific `Order`(s) by their id's for multiple `Account`(s).
     ///
@@ -896,7 +892,7 @@ pub trait MultipleAccounts {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -914,7 +910,7 @@ pub trait MultipleAccounts {
     /// if let Some(specific_account) = accounts.find_by_id("YOUR_ACCOUNT_ID") {
     ///     // Get some specific orders by their order id's
     ///     let orders = specific_account.
-    ///         get_orders_by_id(vec!["1115661503", "1115332365"], &mut client)
+    ///         get_orders_by_id(vec!["1115661503", "1115332365"], &client)
     ///         .await?;
     ///
     ///     // Log the status of the order's
@@ -926,7 +922,7 @@ pub trait MultipleAccounts {
     fn get_orders_by_id<'a>(
         &'a self,
         order_ids: &'a [&str],
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::GetOrdersFuture<'a>;
 
     type GetBalanceFuture<'a>: Future<Output = Result<Vec<Balance>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -935,7 +931,7 @@ pub trait MultipleAccounts {
     where
         Self: 'a;
     /// Get the current balance of multiple `Account`(s).
-    fn get_balances<'a>(&'a self, client: &'a mut Client) -> Self::GetBalanceFuture<'a>;
+    fn get_balances<'a>(&'a self, client: &'a Client) -> Self::GetBalanceFuture<'a>;
 
     type GetBODBalanceFuture<'a>: Future<Output = Result<Vec<BODBalance>, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
@@ -943,7 +939,7 @@ pub trait MultipleAccounts {
     where
         Self: 'a;
     /// Get the beginning of day balances for multiple `Account`(s) by account id.
-    fn get_bod_balances<'a>(&'a self, client: &'a mut Client) -> Self::GetBODBalanceFuture<'a>;
+    fn get_bod_balances<'a>(&'a self, client: &'a Client) -> Self::GetBODBalanceFuture<'a>;
 
     type GetHistoricOrdersFuture<'a>: Future<Output = Result<Vec<Order>, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
@@ -959,7 +955,7 @@ pub trait MultipleAccounts {
     fn get_historic_orders<'a>(
         &'a self,
         since_date: &'a str,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::GetHistoricOrdersFuture<'a>;
 
     type GetPositionFuture<'a>: Future<Output = Result<Position, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -979,7 +975,7 @@ pub trait MultipleAccounts {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -1003,7 +999,7 @@ pub trait MultipleAccounts {
     fn get_position<'a, S: Into<String>>(
         &'a self,
         position_id: S,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::GetPositionFuture<'a>;
 
     type GetPositionsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -1012,7 +1008,7 @@ pub trait MultipleAccounts {
     where
         Self: 'a;
     /// Get the `Position`(s) for multiple `Account`(s).
-    fn get_positions<'a>(&'a self, client: &'a mut Client) -> Self::GetPositionsFuture<'a>;
+    fn get_positions<'a>(&'a self, client: &'a Client) -> Self::GetPositionsFuture<'a>;
 
     /// Fetches specific `Position`(s) by their id for multiple `Account`(s).
     ///
@@ -1025,7 +1021,7 @@ pub trait MultipleAccounts {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -1053,7 +1049,7 @@ pub trait MultipleAccounts {
     fn get_positions_by_ids<'a>(
         &'a self,
         position_ids: Vec<String>,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::GetPositionsFuture<'a>;
 
     type GetPositionsInSymbolsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -1065,7 +1061,7 @@ pub trait MultipleAccounts {
     fn get_positions_in_symbols<'a>(
         &'a self,
         symbols: &'a str,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::GetPositionsFuture<'a>;
 
     type StreamOrdersFuture<'a>: Future<Output = Result<Vec<Order>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -1085,7 +1081,7 @@ pub trait MultipleAccounts {
     /// ```ignore
     /// let mut funds_allocated_to_open_orders = 0.00;
     /// specific_account
-    ///     .stream_orders(&mut client, |stream_data| {
+    ///     .stream_orders(&client, |stream_data| {
     ///         // The response type is `responses::account::StreamOrdersResp`
     ///         // which has multiple variants the main one you care about is
     ///         // `Order` which will contain order data sent from the stream.
@@ -1131,7 +1127,7 @@ pub trait MultipleAccounts {
     fn stream_orders<'a, F>(
         &'a self,
         on_chunk: &'a mut F,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::StreamOrdersFuture<'a>
     where
         F: FnMut(StreamOrdersResp) -> Result<(), Error> + Send + 'a;
@@ -1156,7 +1152,7 @@ pub trait MultipleAccounts {
     /// let mut some_trades_order_statuses: HashMap<String, OrderStatus> = HashMap::new();
     /// specific_account
     ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
-    ///     .stream_orders_by_id(&mut client, "1111,1112,1113,1114", |stream_data| {
+    ///     .stream_orders_by_id(&client, "1111,1112,1113,1114", |stream_data| {
     ///         // The response type is `responses::account::StreamOrdersResp`
     ///         // which has multiple variants the main one you care about is
     ///         // `Order` which will contain order data sent from the stream.
@@ -1213,7 +1209,7 @@ pub trait MultipleAccounts {
         &'a self,
         order_ids: Vec<&'a str>,
         on_chunk: &'a mut F,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::StreamOrdersByIdFuture<'a>
     where
         F: FnMut(StreamOrdersResp) -> Result<(), Error> + Send + 'a;
@@ -1234,7 +1230,7 @@ pub trait MultipleAccounts {
     /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
     /// specific_account
-    ///     .stream_positions(&mut client, |stream_data| {
+    ///     .stream_positions(&client, |stream_data| {
     ///         // the response type is `responses::account::StreamPositionsResp`
     ///         // which has multiple variants the main one you care about is
     ///         // `order` which will contain order data sent from the stream.
@@ -1288,7 +1284,7 @@ pub trait MultipleAccounts {
     fn stream_positions<'a, F>(
         &'a self,
         on_chunk: &'a mut F,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::StreamPositionsFuture<'a>
     where
         F: FnMut(StreamPositionsResp) -> Result<(), Error> + Send + 'a;
@@ -1311,7 +1307,7 @@ impl MultipleAccounts for Vec<Account> {
                 + 'a,
         >,
     >;
-    fn get_orders<'a>(&'a self, client: &'a mut Client) -> Self::GetOrdersFuture<'a> {
+    fn get_orders<'a>(&'a self, client: &'a Client) -> Self::GetOrdersFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
             .map(|account| account.account_id.as_str())
@@ -1326,7 +1322,7 @@ impl MultipleAccounts for Vec<Account> {
     fn get_orders_by_id<'a>(
         &'a self,
         order_ids: &'a [&str],
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::GetOrdersFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
@@ -1350,7 +1346,7 @@ impl MultipleAccounts for Vec<Account> {
         >,
     >;
     /// Get the beginning of day balances for multiple `Account`(s).
-    fn get_balances<'a>(&'a self, client: &'a mut Client) -> Self::GetBalanceFuture<'a> {
+    fn get_balances<'a>(&'a self, client: &'a Client) -> Self::GetBalanceFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
             .map(|account| account.account_id.as_str())
@@ -1370,7 +1366,7 @@ impl MultipleAccounts for Vec<Account> {
         >,
     >;
     /// Get the beginning of day balances for multiple `Account`(s)
-    fn get_bod_balances<'a>(&'a self, client: &'a mut Client) -> Self::GetBODBalanceFuture<'a> {
+    fn get_bod_balances<'a>(&'a self, client: &'a Client) -> Self::GetBODBalanceFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
             .map(|account| account.account_id.as_str())
@@ -1393,7 +1389,7 @@ impl MultipleAccounts for Vec<Account> {
     fn get_historic_orders<'a>(
         &'a self,
         since_date: &'a str,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::GetHistoricOrdersFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
@@ -1424,7 +1420,7 @@ impl MultipleAccounts for Vec<Account> {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -1448,7 +1444,7 @@ impl MultipleAccounts for Vec<Account> {
     fn get_position<'a, S: Into<String>>(
         &'a self,
         position_id: S,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::GetPositionFuture<'a> {
         let account_ids = self
             .iter()
@@ -1473,7 +1469,7 @@ impl MultipleAccounts for Vec<Account> {
         >,
     >;
     /// Get the `Position`(s) for multiple `Account`(s).
-    fn get_positions<'a>(&'a self, client: &'a mut Client) -> Self::GetPositionsFuture<'a> {
+    fn get_positions<'a>(&'a self, client: &'a Client) -> Self::GetPositionsFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
             .map(|account| account.account_id.as_str())
@@ -1496,7 +1492,7 @@ impl MultipleAccounts for Vec<Account> {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -1517,7 +1513,7 @@ impl MultipleAccounts for Vec<Account> {
     /// let positions = accounts
     ///     .get_positions_by_ids(
     ///         vec!["YOUR_POSITION_ID_1", "YOUR_POSITION_ID_2"],
-    ///         &mut client,
+    ///         &client,
     ///     )
     ///     .await?;
     /// println!("Positions: {positions:?}");
@@ -1525,7 +1521,7 @@ impl MultipleAccounts for Vec<Account> {
     fn get_positions_by_ids<'a>(
         &'a self,
         position_ids: Vec<String>,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::GetPositionsFuture<'a> {
         let account_ids = self
             .iter()
@@ -1552,7 +1548,7 @@ impl MultipleAccounts for Vec<Account> {
     fn get_positions_in_symbols<'a>(
         &'a self,
         symbols: &'a str,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::GetPositionsFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
@@ -1585,7 +1581,7 @@ impl MultipleAccounts for Vec<Account> {
     /// ```ignore
     /// let mut funds_allocated_to_open_orders = 0.00;
     /// specific_account
-    ///     .stream_orders(&mut client, |stream_data| {
+    ///     .stream_orders(&client, |stream_data| {
     ///         // The response type is `responses::account::StreamOrdersResp`
     ///         // which has multiple variants the main one you care about is
     ///         // `Order` which will contain order data sent from the stream.
@@ -1631,7 +1627,7 @@ impl MultipleAccounts for Vec<Account> {
     fn stream_orders<'a, F>(
         &'a self,
         mut on_chunk: &'a mut F,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::StreamOrdersFuture<'a>
     where
         F: FnMut(StreamOrdersResp) -> Result<(), Error> + Send + 'a,
@@ -1670,7 +1666,7 @@ impl MultipleAccounts for Vec<Account> {
     /// let mut some_trades_order_statuses: HashMap<String, OrderStatus> = HashMap::new();
     /// specific_account
     ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
-    ///     .stream_orders_by_id(&mut client, "1111,1112,1113,1114", |stream_data| {
+    ///     .stream_orders_by_id(&client, "1111,1112,1113,1114", |stream_data| {
     ///         // The response type is `responses::account::StreamOrdersResp`
     ///         // which has multiple variants the main one you care about is
     ///         // `Order` which will contain order data sent from the stream.
@@ -1727,7 +1723,7 @@ impl MultipleAccounts for Vec<Account> {
         &'a self,
         order_ids: Vec<&'a str>,
         mut on_chunk: &'a mut F,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::StreamOrdersByIdFuture<'a>
     where
         F: FnMut(StreamOrdersResp) -> Result<(), Error> + Send + 'a,
@@ -1767,7 +1763,7 @@ impl MultipleAccounts for Vec<Account> {
     /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
     /// specific_account
-    ///     .stream_positions(&mut client, |stream_data| {
+    ///     .stream_positions(&client, |stream_data| {
     ///         // the response type is `responses::account::StreamPositionsResp`
     ///         // which has multiple variants the main one you care about is
     ///         // `order` which will contain order data sent from the stream.
@@ -1821,7 +1817,7 @@ impl MultipleAccounts for Vec<Account> {
     fn stream_positions<'a, F>(
         &'a self,
         mut on_chunk: &'a mut F,
-        client: &'a mut Client,
+        client: &'a Client,
     ) -> Self::StreamPositionsFuture<'a>
     where
         F: FnMut(StreamPositionsResp) -> Result<(), Error> + Send + 'a,
@@ -1982,12 +1978,12 @@ impl<'de> Deserialize<'de> for OptionApprovalLevel {
 
 impl Client {
     /// Get all of your registered TradeStation `Accounts`
-    pub async fn get_accounts(&mut self) -> Result<Vec<Account>, Error> {
+    pub async fn get_accounts(&self) -> Result<Vec<Account>, Error> {
         Account::get_all(self).await
     }
 
     /// Get a specific TradeStation `Account` by it's account id
-    pub async fn get_account(&mut self, account_id: &str) -> Result<Account, Error> {
+    pub async fn get_account(&self, account_id: &str) -> Result<Account, Error> {
         Account::get(account_id, self).await
     }
 }

@@ -116,7 +116,7 @@ impl Position {
     /// Fetches positions for the given `Account`.
     pub(super) async fn get_by_account<S: Into<String>>(
         account_id: S,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!("brokerage/accounts/{}/positions", account_id.into());
 
@@ -135,7 +135,7 @@ impl Position {
     pub(super) async fn find<S: Into<String>>(
         position_ids: Vec<S>,
         account_id: String,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!("brokerage/accounts/{}/positions", account_id);
 
@@ -164,7 +164,7 @@ impl Position {
     pub(super) async fn find_in_accounts<S: Into<String>>(
         position_ids: Vec<S>,
         account_ids: Vec<S>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/positions",
@@ -200,7 +200,7 @@ impl Position {
     pub(super) async fn get_by_symbols<S: Into<String>>(
         symbols: S,
         account_id: S,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/positions?symbol={}",
@@ -223,7 +223,7 @@ impl Position {
     pub(super) async fn get_by_symbols_and_accounts(
         symbols: &str,
         account_ids: Vec<&str>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/positions?symbol={}",
@@ -245,7 +245,7 @@ impl Position {
     /// Fetches positions for the given `Account`(s).
     pub(super) async fn get_by_accounts<S: Into<String>>(
         account_ids: Vec<S>,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/positions",
@@ -270,7 +270,7 @@ impl Position {
     /// Stream `Position`s for the given `Account`.
     pub(super) async fn stream<F, S: Into<String>>(
         account_id: S,
-        client: &mut Client,
+        client: &Client,
         mut on_chunk: F,
     ) -> Result<Vec<Position>, Error>
     where
@@ -300,7 +300,7 @@ impl Position {
     /// Stream `Position`s for the given `Account`(s).
     pub(super) async fn stream_for_accounts<F, S: Into<String>>(
         account_ids: Vec<S>,
-        client: &mut Client,
+        client: &Client,
         mut on_chunk: F,
     ) -> Result<Vec<Position>, Error>
     where
@@ -357,7 +357,7 @@ impl Client {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -374,7 +374,7 @@ impl Client {
     /// println!("Position: {position:?}");
     /// ```
     pub async fn get_position<S: Into<String>>(
-        &mut self,
+        &self,
         position_id: S,
         account_id: S,
     ) -> Result<Position, Error> {
@@ -394,7 +394,7 @@ impl Client {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -415,7 +415,7 @@ impl Client {
     /// println!("Position: {position:?}");
     /// ```
     pub async fn get_position_in_accounts<S: Into<String>>(
-        &mut self,
+        &self,
         position_id: S,
         account_ids: Vec<S>,
     ) -> Result<Position, Error> {
@@ -435,7 +435,7 @@ impl Client {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -452,7 +452,7 @@ impl Client {
     /// println!("Position: {position:?}");
     /// ```
     pub async fn get_positions_in_account<S: Into<String>>(
-        &mut self,
+        &self,
         account_id: S,
     ) -> Result<Vec<Position>, Error> {
         Position::get_by_account(account_id, self).await
@@ -467,7 +467,7 @@ impl Client {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -486,7 +486,7 @@ impl Client {
     /// println!("Positions: {positions:?}");
     /// ```
     pub async fn get_positions_in_accounts<S: Into<String>>(
-        &mut self,
+        &self,
         account_ids: Vec<S>,
     ) -> Result<Vec<Position>, Error> {
         Position::get_by_accounts(account_ids, self).await
@@ -502,7 +502,7 @@ impl Client {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -524,7 +524,7 @@ impl Client {
     /// println!("Positions: {positions:?}");
     /// ```
     pub async fn get_positions_by_id<S: Into<String>>(
-        &mut self,
+        &self,
         position_ids: Vec<S>,
         account_id: S,
     ) -> Result<Vec<Position>, Error> {
@@ -540,7 +540,7 @@ impl Client {
     ///
     /// ```ignore
     /// // Initialize the client
-    /// let mut client = ClientBuilder::new()?
+    /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///     .token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -562,7 +562,7 @@ impl Client {
     /// println!("Positions: {positions:?}");
     /// ```
     pub async fn get_positions_by_id_in_accounts<S: Into<String>>(
-        &mut self,
+        &self,
         account_ids: Vec<S>,
         position_ids: Vec<S>,
     ) -> Result<Vec<Position>, Error> {

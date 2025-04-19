@@ -80,7 +80,7 @@ impl Order {
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
-    ///     let mut client = ClientBuilder::new()?
+    ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
@@ -99,7 +99,7 @@ impl Order {
     ///         })
     ///         .build()?;
     ///
-    ///     match Order::confirm(&order_req, &mut client).await {
+    ///     match Order::confirm(&order_req, &client).await {
     ///         Ok(confirmation) => println!("Confirmed Order: {confirmation:?}"),
     ///         Err(e) => println!("Issue Confirming Order: {e:?}"),
     ///     };
@@ -108,7 +108,7 @@ impl Order {
     ///```
     pub async fn confirm(
         order_request: &OrderRequest,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<OrderConfirmation>, Error> {
         let endpoint = String::from("orderexecution/orderconfirm");
 
@@ -154,15 +154,12 @@ impl Order {
     ///     })
     ///     .build()?;
     ///
-    /// match Order::place(order_req, &mut client,).await {
+    /// match Order::place(order_req, &client,).await {
     ///     Ok(resp) => println!("Order Response: {resp:?}"),
     ///     Err(e) => println!("Order Response: {e:?}"),
     /// }
     /// ```
-    pub async fn place(
-        order_request: &OrderRequest,
-        client: &mut Client,
-    ) -> Result<Vec<Order>, Error> {
+    pub async fn place(order_request: &OrderRequest, client: &Client) -> Result<Vec<Order>, Error> {
         let endpoint = String::from("orderexecution/orders");
 
         match client
@@ -235,7 +232,7 @@ impl Order {
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
-    ///     let mut client = ClientBuilder::new()?
+    ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
@@ -288,13 +285,13 @@ impl Order {
     ///         .group_type(OrderGroupType::BRK)
     ///         .build()?;
     ///
-    ///     let order_confirmations = Order::confirm(&order_group, &mut client).await?;
+    ///     let order_confirmations = Order::confirm(&order_group, &client).await?;
     ///     println!("Confirm Orders Result: {order_confirmations:?}");
     /// }
     /// ```
     pub async fn confirm_group(
         order_req_group: &OrderRequestGroup,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<OrderConfirmation>, Error> {
         let endpoint = String::from("orderexecution/ordergroupconfirm");
 
@@ -371,7 +368,7 @@ impl Order {
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
-    ///     let mut client = ClientBuilder::new()?
+    ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
@@ -424,13 +421,13 @@ impl Order {
     ///         .group_type(OrderGroupType::BRK)
     ///         .build()?;
     ///
-    ///     let orders = Order::place_group(&order_group, &mut client).await?;
+    ///     let orders = Order::place_group(&order_group, &client).await?;
     ///     println!("Place Orders Result: {orders:?}");
     /// }
     /// ```
     pub async fn place_group(
         order_req_group: &OrderRequestGroup,
-        client: &mut Client,
+        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = String::from("orderexecution/ordergroups");
 
@@ -476,7 +473,7 @@ impl Order {
     ///     })
     ///     .build()?;
     ///
-    /// let order = Order::place(&order_req, &mut client)
+    /// let order = Order::place(&order_req, &client)
     ///     .await?
     ///     .into_iter()
     ///     .next();
@@ -486,16 +483,12 @@ impl Order {
     ///         .clone()
     ///         .replace(
     ///             OrderUpdate::new().limit_price("42.50").quantity("25"),
-    ///             &mut client,
+    ///             &client,
     ///         )
     ///         .await?;
     /// }
     /// ```
-    pub async fn replace(
-        self,
-        order_update: OrderUpdate,
-        client: &mut Client,
-    ) -> Result<Order, Error> {
+    pub async fn replace(self, order_update: OrderUpdate, client: &Client) -> Result<Order, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
         match client
@@ -533,16 +526,16 @@ impl Order {
     ///     })
     ///     .build()?;
     ///
-    /// let order = Order::place(&order_req, &mut client)
+    /// let order = Order::place(&order_req, &client)
     ///     .await?
     ///     .into_iter()
     ///     .next();
     ///
     /// if let Some(order) = order {
-    ///     order.cancel(&mut client).await?;
+    ///     order.cancel(&client).await?;
     /// }
     /// ```
-    pub async fn cancel(self, client: &mut Client) -> Result<Order, Error> {
+    pub async fn cancel(self, client: &Client) -> Result<Order, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
         match client
@@ -618,7 +611,7 @@ impl OrderRequestGroup {
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
-    ///     let mut client = ClientBuilder::new()?
+    ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
@@ -671,11 +664,11 @@ impl OrderRequestGroup {
     ///         .group_type(OrderGroupType::BRK)
     ///         .build()?;
     ///
-    ///     let orders = order_group.place(&mut client).await?;
+    ///     let orders = order_group.place(&client).await?;
     ///     println!("Place Orders Result: {orders:?}");
     /// }
     /// ```
-    pub async fn place(&self, client: &mut Client) -> Result<Vec<Order>, Error> {
+    pub async fn place(&self, client: &Client) -> Result<Vec<Order>, Error> {
         Order::place_group(self, client).await
     }
 
@@ -729,7 +722,7 @@ impl OrderRequestGroup {
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
-    ///     let mut client = ClientBuilder::new()?
+    ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
@@ -782,11 +775,11 @@ impl OrderRequestGroup {
     ///         .group_type(OrderGroupType::BRK)
     ///         .build()?;
     ///
-    ///     let order_confirmations = order_group.confirm(&mut client).await?;
+    ///     let order_confirmations = order_group.confirm(&client).await?;
     ///     println!("Confirm Orders Result: {order_confirmations:?}");
     /// }
     /// ```
-    pub async fn confirm(self, client: &mut Client) -> Result<Vec<OrderConfirmation>, Error> {
+    pub async fn confirm(self, client: &Client) -> Result<Vec<OrderConfirmation>, Error> {
         Order::confirm_group(&self, client).await
     }
 }
@@ -988,7 +981,7 @@ impl OrderRequest {
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
-    ///     let mut client = ClientBuilder::new()?
+    ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
@@ -1007,14 +1000,14 @@ impl OrderRequest {
     ///         })
     ///         .build()?;
     ///
-    ///     match order_req.confirm(&mut client).await {
+    ///     match order_req.confirm(&client).await {
     ///         Ok(confirmation) => println!("Confirmed Order: {confirmation:?}"),
     ///         Err(e) => println!("Issue Confirming Order: {e:?}"),
     ///     };
     ///     Ok(())
     /// }
     ///```
-    pub async fn confirm(self, client: &mut Client) -> Result<Vec<OrderConfirmation>, Error> {
+    pub async fn confirm(self, client: &Client) -> Result<Vec<OrderConfirmation>, Error> {
         Order::confirm(&self, client).await
     }
 }
@@ -1476,7 +1469,7 @@ impl Route {
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
-    ///     let mut client = ClientBuilder::new()?
+    ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
@@ -1489,7 +1482,7 @@ impl Route {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn fetch(client: &mut Client) -> Result<Vec<Route>, Error> {
+    pub async fn fetch(client: &Client) -> Result<Vec<Route>, Error> {
         let endpoint = String::from("orderexecution/routes");
 
         match client
@@ -1525,7 +1518,7 @@ impl Client {
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
-    ///     let mut client = ClientBuilder::new()?
+    ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
     ///         .build()
@@ -1538,7 +1531,7 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn get_execution_routes(&mut self) -> Result<Vec<Route>, Error> {
+    pub async fn get_execution_routes(&self) -> Result<Vec<Route>, Error> {
         Route::fetch(self).await
     }
 }
@@ -1574,7 +1567,7 @@ impl ActivationTrigger {
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Initialize client
-    ///     let mut client = ClientBuilder::new()?
+    ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///         .token(Token {
     ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -1594,7 +1587,7 @@ impl ActivationTrigger {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn fetch(client: &mut Client) -> Result<Vec<ActivationTrigger>, Error> {
+    pub async fn fetch(client: &Client) -> Result<Vec<ActivationTrigger>, Error> {
         let endpoint = String::from("orderexecution/activationtriggers");
 
         match client
@@ -1634,7 +1627,7 @@ impl Client {
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Initialize client
-    ///     let mut client = ClientBuilder::new()?
+    ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
     ///         .token(Token {
     ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
@@ -1654,7 +1647,7 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn get_activation_triggers(&mut self) -> Result<Vec<ActivationTrigger>, Error> {
+    pub async fn get_activation_triggers(&self) -> Result<Vec<ActivationTrigger>, Error> {
         ActivationTrigger::fetch(self).await
     }
 }

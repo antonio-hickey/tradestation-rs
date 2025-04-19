@@ -27,7 +27,7 @@ fn test_equity_confirm_order_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -50,7 +50,7 @@ fn test_equity_confirm_order_mocked() {
             .unwrap();
 
         // Confirm the order request built above
-        match order_req.confirm(&mut client).await {
+        match order_req.confirm(&client).await {
             Ok(order_confirm) => {
                 assert!(
                     order_confirm.len() == 1,
@@ -97,7 +97,7 @@ fn test_stock_option_confirm_order_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -159,7 +159,7 @@ fn test_stock_option_confirm_order_mocked() {
             .unwrap();
 
         // Confirm the order request built above
-        match order_req.confirm(&mut client).await {
+        match order_req.confirm(&client).await {
             Ok(order_confirm) => {
                 assert!(
                     order_confirm.len() == 1,
@@ -228,7 +228,7 @@ fn test_future_confirm_order_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -251,7 +251,7 @@ fn test_future_confirm_order_mocked() {
             .unwrap();
 
         // Confirm the order request built above
-        match order_req.confirm(&mut client).await {
+        match order_req.confirm(&client).await {
             Ok(order_confirm) => {
                 assert!(
                     order_confirm.len() == 1,
@@ -296,7 +296,7 @@ fn test_place_order_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -320,7 +320,7 @@ fn test_place_order_mocked() {
             .unwrap();
 
         // Place the order request built above
-        match Order::place(&order_req, &mut client).await {
+        match Order::place(&order_req, &client).await {
             Ok(orders) => {
                 assert!(
                     orders.len() == 1,
@@ -354,7 +354,7 @@ fn test_replace_order_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -366,7 +366,7 @@ fn test_replace_order_mocked() {
         let order_update = OrderUpdate::new().quantity("25");
 
         // Replace the order with the order update
-        match order.replace(order_update, &mut client).await {
+        match order.replace(order_update, &client).await {
             Ok(order) => {
                 assert!(
                     order.order_id == "5555555555",
@@ -400,7 +400,7 @@ fn test_cancel_order_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -411,7 +411,7 @@ fn test_cancel_order_mocked() {
         let order = Order::from_id("5555555555");
 
         // Cancel the order
-        match order.cancel(&mut client).await {
+        match order.cancel(&client).await {
             Ok(order) => {
                 assert!(
                     order.order_id == "5555555555",
