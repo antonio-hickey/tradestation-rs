@@ -6,6 +6,7 @@ use crate::{
     Client, Error,
 };
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -382,6 +383,21 @@ pub enum SessionTemplate {
     /// U.S Equities Normal Market Session Template
     Default,
 }
+impl FromStr for SessionTemplate {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "useqpre" => Ok(SessionTemplate::USEQPre),
+            "useqpost" => Ok(SessionTemplate::USEQPost),
+            "useqpreandpost" => Ok(SessionTemplate::USEQPreAndPost),
+            "useq24hour" => Ok(SessionTemplate::USEQ24Hour),
+            "default" => Ok(SessionTemplate::Default),
+
+            _ => Err(String::from("Invalid value for SessionTemplate: {s}")),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// The types of unit of measurement for time in each bar interval.
@@ -397,6 +413,20 @@ pub enum BarUnit {
 
     /// Monthly Bars
     Monthly,
+}
+impl FromStr for BarUnit {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "minute" => Ok(BarUnit::Minute),
+            "daily" => Ok(BarUnit::Daily),
+            "weekly" => Ok(BarUnit::Weekly),
+            "monthly" => Ok(BarUnit::Monthly),
+
+            _ => Err("Invalid value for BarUnit: {s}".into()),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
