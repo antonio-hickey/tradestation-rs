@@ -6,6 +6,7 @@ use crate::{
     },
     Client, Error,
 };
+use futures::{Stream, StreamExt};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -268,44 +269,28 @@ impl Position {
     }
 
     /// Stream `Position`s for the given `Account`.
-    pub(super) async fn stream<F, S: Into<String>>(
+    pub(super) fn stream<S: Into<String>>(
         account_id: S,
         client: &Client,
-        mut on_chunk: F,
-    ) -> Result<Vec<Position>, Error>
-    where
-        F: FnMut(StreamPositionsResp) -> Result<(), Error>,
-    {
+    ) -> impl Stream<Item = Result<StreamPositionsResp, Error>> + '_ {
         let endpoint = format!("brokerage/stream/accounts/{}/positions", account_id.into());
 
-        let mut collected_positions: Vec<Position> = Vec::new();
-        client
-            .stream(&endpoint, |chunk| {
-                let parsed_chunk = serde_json::from_value::<StreamPositionsResp>(chunk)?;
-                on_chunk(parsed_chunk.clone())?;
-
-                // Only collect orders, so when the stream is done
-                // all the orders that were streamed can be returned
-                if let StreamPositionsResp::Position(position) = parsed_chunk {
-                    collected_positions.push(*position);
-                }
-
-                Ok(())
-            })
-            .await?;
-
-        Ok(collected_positions)
+        client.stream(endpoint).filter_map(|chunk| async {
+            match chunk {
+                Ok(value) => match serde_json::from_value::<StreamPositionsResp>(value) {
+                    Ok(stream_positions_chunk) => Some(Ok(stream_positions_chunk)),
+                    Err(e) => Some(Err(Error::Json(e))),
+                },
+                Err(e) => Some(Err(e)),
+            }
+        })
     }
 
     /// Stream `Position`s for the given `Account`(s).
-    pub(super) async fn stream_for_accounts<F, S: Into<String>>(
+    pub(super) fn stream_for_accounts<S: Into<String>>(
         account_ids: Vec<S>,
         client: &Client,
-        mut on_chunk: F,
-    ) -> Result<Vec<Position>, Error>
-    where
-        F: FnMut(StreamPositionsResp) -> Result<(), Error>,
-    {
+    ) -> impl Stream<Item = Result<StreamPositionsResp, Error>> + '_ {
         let endpoint = format!(
             "brokerage/stream/accounts/{}/positions",
             account_ids
@@ -315,23 +300,15 @@ impl Position {
                 .join(",")
         );
 
-        let mut collected_positions: Vec<Position> = Vec::new();
-        client
-            .stream(&endpoint, |chunk| {
-                let parsed_chunk = serde_json::from_value::<StreamPositionsResp>(chunk)?;
-                on_chunk(parsed_chunk.clone())?;
-
-                // Only collect orders, so when the stream is done
-                // all the orders that were streamed can be returned
-                if let StreamPositionsResp::Position(position) = parsed_chunk {
-                    collected_positions.push(*position);
-                }
-
-                Ok(())
-            })
-            .await?;
-
-        Ok(collected_positions)
+        client.stream(endpoint).filter_map(|chunk| async {
+            match chunk {
+                Ok(value) => match serde_json::from_value::<StreamPositionsResp>(value) {
+                    Ok(stream_positions_chunk) => Some(Ok(stream_positions_chunk)),
+                    Err(e) => Some(Err(Error::Json(e))),
+                },
+                Err(e) => Some(Err(e)),
+            }
+        })
     }
 }
 

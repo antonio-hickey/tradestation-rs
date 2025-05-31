@@ -5,6 +5,7 @@ use crate::{
     },
     Client, Error,
 };
+use futures::{Stream, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -130,88 +131,75 @@ impl Bar {
     ///
     /// # Example
     /// ---
-    ///
-    /// Stream bars of November 2024 Crude Oil Futures trading activity
+    /// Stream bars of November 2030 Crude Oil Futures trading activity
     /// in 4 hour (240 minute) intervals.
     /// ```ignore
     /// let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
-    ///     .symbol("CLX24")
+    ///     .symbol("CLX30")
     ///     .unit(BarUnit::Minute)
-    ///     .interval("240")
+    ///     .interval(240)
     ///     .build()?;
     ///
-    /// let streamed_bars = client
-    ///     .stream_bars(&stream_bars_query, |stream_data| {
-    ///         // The response type is `responses::market_data::StreamBarsResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `Bar` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamBarsResp::Bar(bar) => {
-    ///                 // Do something with the bars like making a chart
-    ///                 println!("{bar:?}")
-    ///             }
-    ///             StreamBarsResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// // Start streaming bars of trading activity
+    /// let bars_stream = Bar::stream(&client, &stream_bars_query);
+    /// tokio::pin!(bars_stream); // NOTE: You must pin the stream to the stack
+    /// while let Some(stream_resp) = bars_stream.next().await {
+    ///     // The response type is `responses::market_data::StreamBarsResp`
+    ///     // which has multiple variants the main one you care about is
+    ///     // `Bar` which will contain order data sent from the stream.
+    ///     match stream_resp {
+    ///         Ok(StreamBarsResp::Bar(bar)) => {
+    ///             // Do something with the bars like making a chart
+    ///             println!("{bar:?}")
+    ///         }
+    ///         Ok(StreamBarsResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamBarsResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamBarsResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    ///             // for the sake of this example after we recieve the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
     ///             }
     ///         }
-    ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
-    ///
-    /// // All the bars collected during the stream
-    /// println!("{streamed_bars:?}");
+    ///         Ok(StreamBarsResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamBarsResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     /// ```
-    pub async fn stream_bars<F>(
-        client: &Client,
-        query: &StreamBarsQuery,
-        mut on_chunk: F,
-    ) -> Result<Vec<Bar>, Error>
-    where
-        F: FnMut(StreamBarsResp) -> Result<(), Error>,
-    {
+    pub fn stream<'a>(
+        client: &'a Client,
+        query: &'a StreamBarsQuery,
+    ) -> impl Stream<Item = Result<StreamBarsResp, Error>> + 'a {
         let endpoint = format!(
             "marketdata/stream/barcharts/{}{}",
             query.symbol,
             query.as_query_string()
         );
 
-        let mut collected_bars: Vec<Bar> = Vec::new();
-        client
-            .stream(&endpoint, |chunk| {
-                let parsed_chunk = serde_json::from_value::<StreamBarsResp>(chunk)?;
-                on_chunk(parsed_chunk.clone())?;
-
-                // Only collect orders, so when the stream is done
-                // all the orders that were streamed can be returned
-                if let StreamBarsResp::Bar(bar) = parsed_chunk {
-                    collected_bars.push(*bar);
-                }
-
-                Ok(())
-            })
-            .await?;
-
-        Ok(collected_bars)
+        client.stream(endpoint).filter_map(|chunk| async {
+            match chunk {
+                Ok(value) => match serde_json::from_value::<StreamBarsResp>(value) {
+                    Ok(resp) => Some(Ok(resp)),
+                    Err(e) => Some(Err(Error::Json(e))),
+                },
+                Err(e) => Some(Err(e)),
+            }
+        })
     }
 }
 impl Client {
@@ -220,16 +208,65 @@ impl Client {
         Bar::fetch(query, self).await
     }
 
-    /// Stream bars of market activity for a q given query `StreamBarsQuery`
-    pub async fn stream_bars<F>(
-        &self,
-        query: &StreamBarsQuery,
-        on_chunk: F,
-    ) -> Result<Vec<Bar>, Error>
-    where
-        F: FnMut(StreamBarsResp) -> Result<(), Error>,
-    {
-        Bar::stream_bars(self, query, on_chunk).await
+    /// Stream bars of market activity for a given query `StreamBarsQuery`
+    ///
+    /// # Example
+    /// ---
+    /// Stream bars of November 2030 Crude Oil Futures trading activity
+    /// in 4 hour (240 minute) intervals.
+    /// ```ignore
+    /// let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
+    ///     .symbol("CLX30")
+    ///     .unit(BarUnit::Minute)
+    ///     .interval(240)
+    ///     .build()?;
+    ///
+    /// // Start streaming bars of trading activity
+    /// let bars_stream = client.stream_bars(&stream_bars_query);
+    /// tokio::pin!(bars_stream); // NOTE: You must pin the stream to the stack
+    /// while let Some(stream_resp) = bars_stream.next().await {
+    ///     // The response type is `responses::market_data::StreamBarsResp`
+    ///     // which has multiple variants the main one you care about is
+    ///     // `Bar` which will contain order data sent from the stream.
+    ///     match stream_resp {
+    ///         Ok(StreamBarsResp::Bar(bar)) => {
+    ///             // Do something with the bars like making a chart
+    ///             println!("{bar:?}")
+    ///         }
+    ///         Ok(StreamBarsResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
+    ///
+    ///             // for the sake of this example after we recieve the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
+    ///             }
+    ///         }
+    ///         Ok(StreamBarsResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamBarsResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn stream_bars<'a>(
+        &'a self,
+        query: &'a StreamBarsQuery,
+    ) -> impl Stream<Item = Result<StreamBarsResp, Error>> + 'a {
+        Bar::stream(self, query)
     }
 }
 

@@ -42,10 +42,10 @@
 //!
 //! Simple example for streaming bars of trading activity:
 //! ```ignore
+//! use futures::StreamExt;
 //! use tradestation::{
 //!     responses::MarketData::StreamBarsResp,
-//!     token::{Scope, Token},
-//!     ClientBuilder, Error,
+//!     ClientBuilder, Error, Scope,
 //!     MarketData::{self, BarUnit},
 //! };
 //!
@@ -73,38 +73,39 @@
 //!
 //!     // Build a query to stream Crude Oil Futures
 //!     let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
-//!         .symbol("CLX25")
-//!         .unit(BarUnit::Minute)
-//!         .interval(240)
+//!         .set_symbol("CLX30")
+//!         .set_unit(BarUnit::Minute)
+//!         .set_interval("240")
 //!         .build()?;
 //!
-//!     // Stream bars of trading activity based on the query built above
-//!     let streamed_bars = client
-//!         .stream_bars(&stream_bars_query, |stream_data| {
-//!             match stream_data {
-//!                 StreamBarsResp::Bar(bar) => {
-//!                     // Do something with the bars like making a chart
-//!                     println!("{bar:?}")
-//!                 }
-//!                 StreamBarsResp::Heartbeat(heartbeat) => {
-//!                     if heartbeat.heartbeat > 10 {
-//!                         return Err(Error::StopStream);
-//!                     }
-//!                 }
-//!                 StreamBarsResp::Status(status) => {
-//!                     println!("{status:?}");
-//!                 }
-//!                 StreamBarsResp::Error(err) => {
-//!                     println!("{err:?}");
+//!     // Start the stream and pin it to the stack
+//!     let mut bars_stream = client.stream_bars(&stream_bars_query);
+//!     tokio::pin!(bars_stream); // NOTE: You must pin the stream before polling
+//!
+//!     // Poll the stream for responses
+//!     while let Some(stream_resp) = bars_stream.next().await {
+//!         match stream_resp {
+//!             StreamBarsResp::Bar(bar) => {
+//!                 // Do something with the bars like making a chart
+//!                 println!("{bar:?}");
+//!             }
+//!             StreamBarsResp::Heartbeat(heartbeat) => {
+//!                 if heartbeat.heartbeat > 10 {
+//!                     return Err(Error::StopStream);
 //!                 }
 //!             }
-//!
-//!             Ok(())
-//!         })
-//!         .await?;
-//!
-//!     // All the bars collected during the stream
-//!     println!("{streamed_bars:?}");
+//!             StreamBarsResp::Status(status) => {
+//!                 println!("{status:?}");
+//!             }
+//!             StreamBarsResp::Error(err) => {
+//!                 eprintln!("{err:?}");
+//!             }
+//!             Err(err) => {
+//!                 // Stream / network error
+//!                 eprintln!("{err:?}");
+//!             }
+//!         }
+//!     }
 //!
 //!     Ok(())
 //! }

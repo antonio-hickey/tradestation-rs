@@ -2,11 +2,14 @@ use crate::{
     token::{RefreshedToken, Token},
     Error,
 };
+use futures::{Stream, TryStreamExt};
 use reqwest::{header, Response};
 use serde::Serialize;
 use serde_json::Value;
 use std::{collections::HashMap, sync::Arc};
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::sync::Mutex;
+use tokio_util::io::StreamReader;
 
 #[derive(Clone, Debug)]
 /// TradeStation API Client
@@ -138,13 +141,11 @@ impl Client {
     /// Start a stream from the TradeStation API to the `Client`
     ///
     /// NOTE: You need to provide a processing function for handeling the stream chunks
-    pub async fn stream<F>(&self, endpoint: &str, mut process_chunk: F) -> Result<(), Error>
-    where
-        F: FnMut(Value) -> Result<(), Error>,
-    {
-        let url = format!("{}/{}", self.base_url, endpoint);
+    pub fn stream(&self, endpoint: String) -> impl Stream<Item = Result<Value, Error>> + '_ {
+        async_stream::try_stream! {
+            let url = format!("{}/{}", self.base_url, endpoint);
 
-        let mut resp = self
+            let resp = self
             .clone()
             .send_request(|access_token| {
                 self.http_client
@@ -157,61 +158,28 @@ impl Client {
             })
             .await?;
 
-        if !resp.status().is_success() {
-            return Err(Error::StreamIssue(format!(
-                "Request failed with status: {}",
-                resp.status()
-            )));
-        }
+            if !resp.status().is_success() {
+                Err(Error::StreamIssue(format!(
+                    "Request failed with status: {}",
+                    resp.status()
+                )))?
+            }
 
-        let mut buffer = String::new();
-        while let Some(chunk) = resp.chunk().await? {
-            let chunk_str = std::str::from_utf8(&chunk).unwrap_or("");
-            buffer.push_str(chunk_str);
+            let byte_stream = resp.bytes_stream().map_err(std::io::Error::other);
+            let stream_reader = StreamReader::new(byte_stream);
+            let buf_reader = BufReader::new(stream_reader);
+            let mut lines = buf_reader.lines();
 
-            while let Some(pos) = buffer.find("\n") {
-                let json_str = buffer[..pos].trim().to_string();
-                buffer = buffer[pos + 1..].to_string();
-                if json_str.is_empty() {
+            while let Some(line) = lines.next_line().await? {
+                let trimmed = line.trim();
+                if trimmed.is_empty() {
                     continue;
                 }
 
-                match serde_json::from_str::<Value>(&json_str) {
-                    Ok(json_value) => {
-                        if let Err(e) = process_chunk(json_value) {
-                            if matches!(e, Error::StopStream) {
-                                return Ok(());
-                            } else {
-                                return Err(e);
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        return Err(Error::Json(e));
-                    }
-                }
+                let json: Value = serde_json::from_str(trimmed).map_err(Error::Json)?;
+                yield json;
             }
         }
-
-        // Handle any leftover data in the buffer
-        if !buffer.trim().is_empty() {
-            match serde_json::from_str::<Value>(&buffer) {
-                Ok(json_value) => {
-                    if let Err(e) = process_chunk(json_value) {
-                        if matches!(e, Error::StopStream) {
-                            return Ok(());
-                        } else {
-                            return Err(e);
-                        }
-                    }
-                }
-                Err(e) => {
-                    return Err(Error::Json(e));
-                }
-            }
-        }
-
-        Ok(())
     }
 
     /// Refresh your clients bearer token used for

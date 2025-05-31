@@ -1,6 +1,6 @@
 [package]
 name = "tradestation"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["Antonio Hickey <contact@antoniohickey.com>"]
 description = "An ergonomic Rust client for the TradeStation API."
 documentation = "https://docs.rs/tradestation/latest/tradestation/index.html"
@@ -18,8 +18,11 @@ name = "tradestation"
 path = "src/lib.rs"
 
 [dependencies]
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", features = ["json", "stream"] }
 tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
+async-stream = "0.3"
+futures = "0.3"
 serde = { version = "1.0.209", features = ["derive"] }
 serde_json = "1.0.127"
 

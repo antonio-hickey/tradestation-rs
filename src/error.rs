@@ -1,6 +1,5 @@
-use std::error::Error as StdErrorTrait;
-
 use crate::responses::ApiError;
+use std::error::Error as StdErrorTrait;
 
 #[derive(Debug)]
 /// TradeStation API Client Error
@@ -30,6 +29,9 @@ pub enum Error {
 
     /// Error with JSON serializing or deseializing.
     Json(serde_json::Error),
+
+    /// Issue reading a stream
+    IoError(std::io::Error),
 
     /// No symbol set when one was required.
     SymbolNotSet,
@@ -115,6 +117,7 @@ impl std::fmt::Display for Error {
             Self::StreamIssue(e) => write!(f, "Issue during stream: {e}"),
             Self::StopStream => write!(f, "WARNING: You've stopped a stream!"),
             Self::Json(e) => write!(f, "JSON Error: {e:?}"),
+            Self::IoError(e) => write!(f, "Issue reading stream: {e}"),
             Self::SymbolNotSet => write!(f, "ERROR: You need to set the symbol."),
             Self::OptionLegsNotSet => write!(f, "ERROR: You need to set the option legs."),
             Self::BadRequest(msg) => write!(f, "TradeStation API ERROR: {msg}"),
@@ -158,5 +161,11 @@ impl From<Box<dyn StdErrorTrait + Send + Sync>> for Error {
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Error {
         Error::Json(err)
+    }
+}
+/// Implement error conversion (`std::io::Error` -> `Error`)
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
+        Error::IoError(err)
     }
 }

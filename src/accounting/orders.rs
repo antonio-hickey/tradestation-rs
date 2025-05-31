@@ -5,6 +5,7 @@ use crate::{
     },
     Client, Error,
 };
+use futures::{Stream, StreamExt};
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -208,133 +209,85 @@ impl Order {
     }
 
     /// Stream `Order`(s) for the given `Account`.
-    pub(super) async fn stream<F, S: Into<String>>(
+    pub(super) fn stream<S: Into<String>>(
         account_id: S,
         client: &Client,
-        mut on_chunk: F,
-    ) -> Result<Vec<Order>, Error>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error>,
-    {
+    ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + '_ {
         let endpoint = format!("brokerage/stream/accounts/{}/orders", account_id.into());
 
-        let mut collected_orders: Vec<Order> = Vec::new();
-        client
-            .stream(&endpoint, |chunk| {
-                let parsed_chunk = serde_json::from_value::<StreamOrdersResp>(chunk)?;
-                on_chunk(parsed_chunk.clone())?;
-
-                // Only collect orders, so when the stream is done
-                // all the orders that were streamed can be returned
-                if let StreamOrdersResp::Order(order) = parsed_chunk {
-                    collected_orders.push(*order);
-                }
-
-                Ok(())
-            })
-            .await?;
-
-        Ok(collected_orders)
+        client.stream(endpoint).filter_map(|chunk| async {
+            match chunk {
+                Ok(value) => match serde_json::from_value::<StreamOrdersResp>(value) {
+                    Ok(stream_orders_chunk) => Some(Ok(stream_orders_chunk)),
+                    Err(e) => Some(Err(Error::Json(e))),
+                },
+                Err(e) => Some(Err(e)),
+            }
+        })
     }
 
     /// Stream `Order`(s) by order id's for the given `Account`.
-    pub(super) async fn stream_by_ids<F>(
-        order_ids: Vec<&str>,
-        account_id: &str,
-        client: &Client,
-        mut on_chunk: F,
-    ) -> Result<Vec<Order>, Error>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error>,
-    {
+    pub(super) fn stream_by_ids<'a>(
+        order_ids: Vec<&'a str>,
+        account_id: &'a str,
+        client: &'a Client,
+    ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
         let endpoint = format!(
             "brokerage/stream/accounts/{}/orders/{}",
             account_id,
             order_ids.join(",")
         );
 
-        let mut collected_orders: Vec<Order> = Vec::new();
-        client
-            .stream(&endpoint, |chunk| {
-                let parsed_chunk = serde_json::from_value::<StreamOrdersResp>(chunk)?;
-                on_chunk(parsed_chunk.clone())?;
-
-                // Only collect orders, so when the stream is done
-                // all the orders that were streamed can be returned
-                if let StreamOrdersResp::Order(order) = parsed_chunk {
-                    collected_orders.push(*order);
-                }
-
-                Ok(())
-            })
-            .await?;
-
-        Ok(collected_orders)
+        client.stream(endpoint).filter_map(|chunk| async {
+            match chunk {
+                Ok(value) => match serde_json::from_value::<StreamOrdersResp>(value) {
+                    Ok(stream_orders_chunk) => Some(Ok(stream_orders_chunk)),
+                    Err(e) => Some(Err(Error::Json(e))),
+                },
+                Err(e) => Some(Err(e)),
+            }
+        })
     }
 
     /// Stream `Order`(s) for the given `Account`.
-    pub(super) async fn stream_by_accounts<F>(
-        account_ids: Vec<&str>,
-        client: &Client,
-        mut on_chunk: F,
-    ) -> Result<Vec<Order>, Error>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error>,
-    {
+    pub(super) fn stream_by_accounts<'a>(
+        account_ids: Vec<&'a str>,
+        client: &'a Client,
+    ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
         let endpoint = format!("brokerage/stream/accounts/{}/orders", account_ids.join(","));
 
-        let mut collected_orders: Vec<Order> = Vec::new();
-        client
-            .stream(&endpoint, |chunk| {
-                let parsed_chunk = serde_json::from_value::<StreamOrdersResp>(chunk)?;
-                on_chunk(parsed_chunk.clone())?;
-
-                // Only collect orders so when the stream is done
-                // all the orders that were streamed can be returned
-                if let StreamOrdersResp::Order(order) = parsed_chunk {
-                    collected_orders.push(*order);
-                }
-
-                Ok(())
-            })
-            .await?;
-
-        Ok(collected_orders)
+        client.stream(endpoint).filter_map(|chunk| async {
+            match chunk {
+                Ok(value) => match serde_json::from_value::<StreamOrdersResp>(value) {
+                    Ok(stream_orders_chunk) => Some(Ok(stream_orders_chunk)),
+                    Err(e) => Some(Err(Error::Json(e))),
+                },
+                Err(e) => Some(Err(e)),
+            }
+        })
     }
 
     /// Stream `Order`s by order id's for the given `Account`(s).
-    pub(super) async fn stream_by_ids_and_accounts<F>(
-        client: &Client,
-        order_ids: Vec<&str>,
-        account_ids: Vec<&str>,
-        mut on_chunk: F,
-    ) -> Result<Vec<Order>, Error>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error>,
-    {
+    pub(super) fn stream_by_ids_and_accounts<'a>(
+        client: &'a Client,
+        order_ids: Vec<&'a str>,
+        account_ids: Vec<&'a str>,
+    ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
         let endpoint = format!(
             "brokerage/stream/accounts/{}/orders/{}",
             account_ids.join(","),
             order_ids.join(","),
         );
 
-        let mut collected_orders: Vec<Order> = Vec::new();
-        client
-            .stream(&endpoint, |chunk| {
-                let parsed_chunk = serde_json::from_value::<StreamOrdersResp>(chunk)?;
-                on_chunk(parsed_chunk.clone())?;
-
-                // Only collect orders so when the stream is done
-                // all the orders that were streamed can be returned
-                if let StreamOrdersResp::Order(order) = parsed_chunk {
-                    collected_orders.push(*order);
-                }
-
-                Ok(())
-            })
-            .await?;
-
-        Ok(collected_orders)
+        client.stream(endpoint).filter_map(|chunk| async {
+            match chunk {
+                Ok(value) => match serde_json::from_value::<StreamOrdersResp>(value) {
+                    Ok(stream_orders_chunk) => Some(Ok(stream_orders_chunk)),
+                    Err(e) => Some(Err(Error::Json(e))),
+                },
+                Err(e) => Some(Err(e)),
+            }
+        })
     }
 }
 
