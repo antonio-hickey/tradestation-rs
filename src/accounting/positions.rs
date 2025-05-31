@@ -137,7 +137,7 @@ impl Position {
         account_id: String,
         client: &Client,
     ) -> Result<Vec<Position>, Error> {
-        let endpoint = format!("brokerage/accounts/{}/positions", account_id);
+        let endpoint = format!("brokerage/accounts/{account_id}/positions");
 
         let position_ids: Vec<String> = position_ids.into_iter().map(|id| id.into()).collect();
 

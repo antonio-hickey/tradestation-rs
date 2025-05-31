@@ -293,17 +293,17 @@ impl GetBarsQuery {
         query_string.push_str(&format!("interval={}&", self.interval));
         query_string.push_str(&format!("unit={:?}&", self.unit));
         if let Some(bars_back) = self.bars_back {
-            query_string.push_str(&format!("barsBack={}&", bars_back));
+            query_string.push_str(&format!("barsBack={bars_back}&"));
         }
         if let Some(date) = &self.first_date {
-            query_string.push_str(&format!("firstDate={}&", date));
+            query_string.push_str(&format!("firstDate={date}&"));
         }
         if let Some(date) = &self.last_date {
-            query_string.push_str(&format!("lastDate={}&", date));
+            query_string.push_str(&format!("lastDate={date}&"));
         }
         query_string.push_str(&format!("sessionTemplate={:?}&", self.session_template));
         if let Some(date) = &self.start_date {
-            query_string.push_str(&format!("startDate={}&", date));
+            query_string.push_str(&format!("startDate={date}&"));
         }
 
         if query_string.ends_with('&') {

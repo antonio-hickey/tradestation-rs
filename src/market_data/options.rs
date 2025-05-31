@@ -51,9 +51,9 @@ impl OptionExpiration {
         strike_price: Option<f64>,
         client: &Client,
     ) -> Result<Vec<OptionExpiration>, Error> {
-        let mut endpoint = format!("marketdata/options/expirations/{}", underlying_symbol);
+        let mut endpoint = format!("marketdata/options/expirations/{underlying_symbol}");
         if let Some(strike) = strike_price {
-            let query_param = format!("?strikePrice={}", strike);
+            let query_param = format!("?strikePrice={strike}");
             endpoint.push_str(&query_param);
         }
 
@@ -562,11 +562,11 @@ impl OptionSpreadStrikes {
         );
 
         if let Some(date) = query.expiration {
-            let query_param = format!("&expiration={}", date);
+            let query_param = format!("&expiration={date}");
             endpoint.push_str(&query_param);
 
             if let Some(date_2) = query.expiration2 {
-                let query_param_2 = format!("&expiration2={}", date_2);
+                let query_param_2 = format!("&expiration2={date_2}");
                 endpoint.push_str(&query_param_2);
             }
         }
@@ -1115,16 +1115,16 @@ impl OptionChainQuery {
         query_string.push_str(&format!("optionType={:?}&", self.option_type));
 
         if let Some(expiration) = &self.expiration {
-            query_string.push_str(&format!("expiration={}&", expiration));
+            query_string.push_str(&format!("expiration={expiration}&"));
         }
-        if let Some(expiration) = &self.expiration2 {
-            query_string.push_str(&format!("expiration2={}&", expiration));
+        if let Some(expiration_2) = &self.expiration2 {
+            query_string.push_str(&format!("expiration2={expiration_2}&"));
         }
         if let Some(rate) = self.risk_free_rate {
-            query_string.push_str(&format!("riskFreeRate={}&", rate));
+            query_string.push_str(&format!("riskFreeRate={rate}&"));
         }
         if let Some(price) = self.price_center {
-            query_string.push_str(&format!("priceCenter={}&", price));
+            query_string.push_str(&format!("priceCenter={price}&"));
         }
 
         if query_string.ends_with('&') {

@@ -107,8 +107,7 @@ impl std::fmt::Display for Error {
             Self::PositionNotFound(position_id, account_id) => {
                 write!(
                     f,
-                    "Couldn't find a position with id: {} in account with id: {}",
-                    position_id, account_id
+                    "Couldn't find a position with id: {position_id} in account with id: {account_id}",
                 )
             }
             Self::Request(e) => write!(f, "{e:?}"),

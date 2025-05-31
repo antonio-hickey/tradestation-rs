@@ -75,7 +75,7 @@ impl Client {
                 self.http_client
                     .post(&url)
                     .header("Content-Type", "application/json")
-                    .header(header::AUTHORIZATION, format!("Bearer {}", access_token))
+                    .header(header::AUTHORIZATION, format!("Bearer {access_token}"))
                     .json(payload)
                     .send()
             })
@@ -92,7 +92,7 @@ impl Client {
             .send_request(|access_token| {
                 self.http_client
                     .get(&url)
-                    .header(header::AUTHORIZATION, format!("Bearer {}", access_token))
+                    .header(header::AUTHORIZATION, format!("Bearer {access_token}"))
                     .send()
             })
             .await?;
@@ -109,7 +109,7 @@ impl Client {
                 self.http_client
                     .put(&url)
                     .header("Content-Type", "application/json")
-                    .header(header::AUTHORIZATION, format!("Bearer {}", access_token))
+                    .header(header::AUTHORIZATION, format!("Bearer {access_token}"))
                     .json(&payload)
                     .send()
             })
@@ -127,7 +127,7 @@ impl Client {
                 self.http_client
                     .delete(&url)
                     .header("Content-Type", "application/json")
-                    .header(header::AUTHORIZATION, format!("Bearer {}", access_token))
+                    .header(header::AUTHORIZATION, format!("Bearer {access_token}"))
                     .send()
             })
             .await?;
@@ -151,7 +151,7 @@ impl Client {
                     .get(&url)
                     .header(
                         reqwest::header::AUTHORIZATION,
-                        format!("Bearer {}", access_token),
+                        format!("Bearer {access_token}"),
                     )
                     .send()
             })

@@ -210,7 +210,7 @@ impl Scope {
             "offline_access" => Ok(Scope::OfflineAccess),
             "profile" => Ok(Scope::Profile),
             "email" => Ok(Scope::Email),
-            _ => Err(format!("unknown scope: {}", s)),
+            _ => Err(format!("unknown scope: {s}")),
         }
     }
 }
@@ -227,7 +227,7 @@ impl std::fmt::Display for Scope {
             Scope::Profile => "profile",
             Scope::Email => "email",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 

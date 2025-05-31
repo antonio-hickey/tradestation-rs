@@ -1950,7 +1950,7 @@ impl TryFrom<u8> for OptionApprovalLevel {
             3 => Ok(OptionApprovalLevel::Three),
             4 => Ok(OptionApprovalLevel::Four),
             5 => Ok(OptionApprovalLevel::Five),
-            _ => Err(format!("Invalid OptionApprovalLevel: {}", value)),
+            _ => Err(format!("Invalid OptionApprovalLevel: {value}")),
         }
     }
 }
