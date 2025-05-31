@@ -233,6 +233,8 @@ impl Client {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct GetBarsQuery {
     /// The symbol of the security you want bars for.
     ///
@@ -314,6 +316,8 @@ impl GetBarsQuery {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct StreamBarsQuery {
     /// The symbol of the security you want bars for.
     ///
