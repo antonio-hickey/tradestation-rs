@@ -12,6 +12,7 @@ use crate::{
     },
     Client, Error,
 };
+use futures::{Stream, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -52,6 +53,7 @@ impl OptionExpiration {
         client: &Client,
     ) -> Result<Vec<OptionExpiration>, Error> {
         let mut endpoint = format!("marketdata/options/expirations/{underlying_symbol}");
+
         if let Some(strike) = strike_price {
             let query_param = format!("?strikePrice={strike}");
             endpoint.push_str(&query_param);
@@ -899,79 +901,76 @@ impl OptionChain {
     ///     .underlying("AAPL")
     ///     .build()?;
     ///
-    /// let streamed_chains = client
-    ///     .stream_option_chain(&stream_aapl_option_chain_query, |stream_data| {
-    ///         // The response type is `responses::market_data::StreamOptionChainResp`
-    ///         // which has multiple variants the main one you care about is `OptionChain`
-    ///         // which will contain option chain data sent from the stream.
-    ///         match stream_data {
-    ///             StreamOptionChainResp::OptionChain(chain) => {
-    ///                 // Do something with the option chain like
-    ///                 // display it with a table on a website.
-    ///                 println!("{chain:?}")
-    ///             }
-    ///             StreamOptionChainResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// let mut collected_chains = Vec::new();
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamOptionChainResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamOptionChainResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    /// // Start the stream and pin it to the stack
+    /// let mut option_chain_stream = OptionChain::stream(&stream_appl_option_chain_query);
+    /// tokio::pin!(option_chain_stream); // NOTE: You must pin the stream to poll it
+    ///
+    /// while let Some(stream_resp) = option_chain_stream.next().await {
+    ///     // The response type is `responses::market_data::StreamOptionQuotesResp`
+    ///     // which has multiple variants. The main one you care about is `OptionQuotes`
+    ///     // which will contain option quote data sent from the stream.
+    ///     match stream_resp {
+    ///         Ok(StreamOptionChainResp::OptionChain(chain)) => {
+    ///             // Do something with the option quote like
+    ///             // send a text / email alert based on some
+    ///             // data from the quote like a certain price,
+    ///             // market spread, volatility change, or something.
+    ///             println!("{chain:?}");
+    ///             collected_chains.push(chain);
+    ///         }
+    ///         Ok(StreamOptionChainResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
+    ///
+    ///             // For the sake of this example, after we receive the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
     ///             }
     ///         }
-    ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///         Ok(StreamOptionChainResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOptionChainResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     ///
     /// // After the stream ends print all the collected option chains
     /// println!("{streamed_chains:?}");
     /// ```
-    pub async fn stream<F>(
-        client: &Client,
-        query: &OptionChainQuery,
-        mut on_chunk: F,
-    ) -> Result<Vec<OptionChain>, Error>
-    where
-        F: FnMut(StreamOptionChainResp) -> Result<(), Error>,
-    {
+    pub fn stream<'a>(
+        client: &'a Client,
+        query: &'a OptionChainQuery,
+    ) -> impl Stream<Item = Result<StreamOptionChainResp, Error>> + 'a {
         let endpoint = format!(
             "marketdata/stream/options/chains/{}{}",
             query.underlying,
             query.as_query_string()
         );
 
-        let mut collected_chains: Vec<OptionChain> = Vec::new();
-        client
-            .stream(&endpoint, |chunk| {
-                let parsed_chunk = serde_json::from_value::<StreamOptionChainResp>(chunk)?;
-                on_chunk(parsed_chunk.clone())?;
-
-                // Only collect orders, so when the stream is done
-                // all the orders that were streamed can be returned
-                if let StreamOptionChainResp::OptionChain(option_chain) = parsed_chunk {
-                    collected_chains.push(*option_chain);
-                }
-
-                Ok(())
-            })
-            .await?;
-
-        Ok(collected_chains)
+        client.stream(endpoint).filter_map(|chunk| async {
+            match chunk {
+                Ok(value) => match serde_json::from_value::<StreamOptionChainResp>(value) {
+                    Ok(options_chain_chunk) => Some(Ok(options_chain_chunk)),
+                    Err(e) => Some(Err(Error::Json(e))),
+                },
+                Err(e) => Some(Err(e)),
+            }
+        })
     }
 }
 impl Client {
@@ -989,57 +988,62 @@ impl Client {
     ///     .underlying("AAPL")
     ///     .build()?;
     ///
-    /// let streamed_chains = client
-    ///     .stream_option_chain(&stream_aapl_option_chain_query, |stream_data| {
-    ///         // The response type is `responses::market_data::StreamOptionChainResp`
-    ///         // which has multiple variants the main one you care about is `OptionChain`
-    ///         // which will contain option chain data sent from the stream.
-    ///         match stream_data {
-    ///             StreamOptionChainResp::OptionChain(chain) => {
-    ///                 // Do something with the option chain like
-    ///                 // display it with a table on a website.
-    ///                 println!("{chain:?}")
-    ///             }
-    ///             StreamOptionChainResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// let mut collected_chains = Vec::new();
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamOptionChainResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamOptionChainResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    /// // Start the stream and pin it to the stack
+    /// let mut option_chain_stream = client.stream_option_chain(&stream_appl_option_chain_query);
+    /// tokio::pin!(option_chain_stream); // NOTE: You must pin the stream to poll it
+    ///
+    /// while let Some(stream_resp) = option_chain_stream.next().await {
+    ///     // The response type is `responses::market_data::StreamOptionQuotesResp`
+    ///     // which has multiple variants. The main one you care about is `OptionQuotes`
+    ///     // which will contain option quote data sent from the stream.
+    ///     match stream_resp {
+    ///         Ok(StreamOptionChainResp::OptionChain(chain)) => {
+    ///             // Do something with the option quote like
+    ///             // send a text / email alert based on some
+    ///             // data from the quote like a certain price,
+    ///             // market spread, volatility change, or something.
+    ///             println!("{chain:?}");
+    ///             collected_chains.push(chain);
+    ///         }
+    ///         Ok(StreamOptionChainResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
+    ///
+    ///             // For the sake of this example, after we receive the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
     ///             }
     ///         }
-    ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///         Ok(StreamOptionChainResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOptionChainResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     ///
     /// // After the stream ends print all the collected option chains
     /// println!("{streamed_chains:?}");
     /// ```
-    pub async fn stream_option_chain<F>(
-        &self,
-        query: &OptionChainQuery,
-        on_chunk: F,
-    ) -> Result<Vec<OptionChain>, Error>
-    where
-        F: FnMut(StreamOptionChainResp) -> Result<(), Error>,
-    {
-        OptionChain::stream(self, query, on_chunk).await
+    pub fn stream_option_chain<'a>(
+        &'a self,
+        query: &'a OptionChainQuery,
+    ) -> impl Stream<Item = Result<StreamOptionChainResp, Error>> + 'a {
+        OptionChain::stream(self, query)
     }
 }
 
@@ -1573,81 +1577,77 @@ impl OptionQuote {
     ///     .risk_free_rate(0.0485)
     ///     .build()?;
     ///
-    /// let streamed_quotes = client
-    ///     .stream_option_quotes(&stream_tlt_iron_butterfly_query, |stream_data| {
-    ///         // The response type is `responses::market_data::StreamOptionQuotesResp`
-    ///         // which has multiple variants the main one you care about is `OptionQuotes`
-    ///         // which will contain option chain data sent from the stream.
-    ///         match stream_data {
-    ///             StreamOptionQuotesResp::OptionQuotes(quote) => {
-    ///                 // Do something with the option quote like
-    ///                 // send a text / email alert based on some
-    ///                 // data from the quote like a certain price,
-    ///                 // market spread, volatility change, or something.
-    ///                 println!("{quote:?}")
-    ///             }
-    ///             StreamOptionQuotesResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// // Start the stream and pin it to the stack
+    /// let mut quote_stream = client.stream_option_quotes(&stream_tlt_iron_butterfly_query);
+    /// tokio::pin!(quote_stream); // NOTE: You must pin the stream to poll it
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamOptionQuotesResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamOptionQuotesResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    /// // Initialize vector to collect streamed in quotes
+    /// let mut streamed_quotes = Vec::new();
+    ///
+    /// // Poll the stream until the stream ends or custom heartbeat triggers end of stream
+    /// while let Some(stream_resp) = quote_stream.next().await {
+    ///     // The response type is `responses::market_data::StreamOptionQuotesResp`
+    ///     // which has multiple variants. The main one you care about is `OptionQuotes`
+    ///     // which will contain option quote data sent from the stream.
+    ///     match stream_resp {
+    ///         Ok(StreamOptionQuotesResp::OptionQuotes(quote)) => {
+    ///             // Do something with the option quote like
+    ///             // send a text / email alert based on some
+    ///             // data from the quote like a certain price,
+    ///             // market spread, volatility change, or something.
+    ///             println!("{quote:?}");
+    ///             streamed_quotes.push(quote);
+    ///         }
+    ///         Ok(StreamOptionQuotesResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
+    ///
+    ///             // For the sake of this example, after we receive the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
     ///             }
     ///         }
+    ///         Ok(StreamOptionQuotesResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOptionQuotesResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
-    ///
-    /// // After the stream ends print all the collected option quotes
+    /// // After the stream ends, print all the collected option quotes
     /// println!("{streamed_quotes:?}");
     /// ```
-    pub async fn stream<F>(
-        client: &Client,
-        query: &OptionQuoteQuery,
-        mut on_chunk: F,
-    ) -> Result<Vec<OptionQuote>, Error>
-    where
-        F: FnMut(StreamOptionQuotesResp) -> Result<(), Error>,
-    {
+    pub fn stream<'a>(
+        client: &'a Client,
+        query: &'a OptionQuoteQuery,
+    ) -> impl Stream<Item = Result<StreamOptionQuotesResp, Error>> + 'a {
         let endpoint = format!(
             "marketdata/stream/options/quotes{}",
             query.as_query_string()
         );
-        println!("endpoint: {endpoint}");
 
-        let mut collected_quotes: Vec<OptionQuote> = Vec::new();
-        client
-            .stream(&endpoint, |chunk| {
-                let parsed_chunk = serde_json::from_value::<StreamOptionQuotesResp>(chunk)?;
-                on_chunk(parsed_chunk.clone())?;
-
-                // Only collect orders, so when the stream is done
-                // all the orders that were streamed can be returned
-                if let StreamOptionQuotesResp::OptionQuotes(option_chain) = parsed_chunk {
-                    collected_quotes.push(*option_chain);
-                }
-
-                Ok(())
-            })
-            .await?;
-
-        Ok(collected_quotes)
+        client.stream(endpoint).filter_map(|chunk| async {
+            match chunk {
+                Ok(value) => match serde_json::from_value::<StreamOptionQuotesResp>(value) {
+                    Ok(stream_option_quotes_chunk) => Some(Ok(stream_option_quotes_chunk)),
+                    Err(e) => Some(Err(Error::Json(e))),
+                },
+                Err(e) => Some(Err(e)),
+            }
+        })
     }
 }
 impl Client {
@@ -1691,59 +1691,64 @@ impl Client {
     ///     .risk_free_rate(0.0485)
     ///     .build()?;
     ///
-    /// let streamed_quotes = client
-    ///     .stream_option_quotes(&stream_tlt_iron_butterfly_query, |stream_data| {
-    ///         // The response type is `responses::market_data::StreamOptionQuotesResp`
-    ///         // which has multiple variants the main one you care about is `OptionQuotes`
-    ///         // which will contain option chain data sent from the stream.
-    ///         match stream_data {
-    ///             StreamOptionQuotesResp::OptionQuotes(quote) => {
-    ///                 // Do something with the option quote like
-    ///                 // send a text / email alert based on some
-    ///                 // data from the quote like a certain price,
-    ///                 // market spread, volatility change, or something.
-    ///                 println!("{quote:?}")
-    ///             }
-    ///             StreamOptionQuotesResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// // Start the stream and pin it to the stack
+    /// let mut quote_stream = client.stream_option_quotes(&stream_tlt_iron_butterfly_query);
+    /// tokio::pin!(quote_stream); // NOTE: You must pin the stream to poll it
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamOptionQuotesResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamOptionQuotesResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    /// // Initialize vector to collect streamed in quotes
+    /// let mut streamed_quotes = Vec::new();
+    ///
+    /// // Poll the stream until the stream ends or custom heartbeat triggers end of stream
+    /// while let Some(stream_resp) = quote_stream.next().await {
+    ///     // The response type is `responses::market_data::StreamOptionQuotesResp`
+    ///     // which has multiple variants. The main one you care about is `OptionQuotes`
+    ///     // which will contain option quote data sent from the stream.
+    ///     match stream_resp {
+    ///         Ok(StreamOptionQuotesResp::OptionQuotes(quote)) => {
+    ///             // Do something with the option quote like
+    ///             // send a text / email alert based on some
+    ///             // data from the quote like a certain price,
+    ///             // market spread, volatility change, or something.
+    ///             println!("{quote:?}");
+    ///             streamed_quotes.push(quote);
+    ///         }
+    ///         Ok(StreamOptionQuotesResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
+    ///
+    ///             // For the sake of this example, after we receive the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
     ///             }
     ///         }
+    ///         Ok(StreamOptionQuotesResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOptionQuotesResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
-    ///
-    /// // After the stream ends print all the collected option quotes
+    /// // After the stream ends, print all the collected option quotes
     /// println!("{streamed_quotes:?}");
     /// ```
-    pub async fn stream_option_quotes<F>(
-        &self,
-        query: &OptionQuoteQuery,
-        on_chunk: F,
-    ) -> Result<Vec<OptionQuote>, Error>
-    where
-        F: FnMut(StreamOptionQuotesResp) -> Result<(), Error>,
-    {
-        OptionQuote::stream(self, query, on_chunk).await
+    pub fn stream_option_quotes<'a>(
+        &'a self,
+        query: &'a OptionQuoteQuery,
+    ) -> impl Stream<Item = Result<StreamOptionQuotesResp, Error>> + 'a {
+        OptionQuote::stream(self, query)
     }
 }
 

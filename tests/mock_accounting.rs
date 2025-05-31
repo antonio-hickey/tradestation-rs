@@ -80,7 +80,7 @@ fn test_get_non_existant_account_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -125,7 +125,7 @@ fn test_get_cash_account_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -170,7 +170,7 @@ fn test_get_margin_account_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()
@@ -213,7 +213,7 @@ fn test_get_futures_account_mocked() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut client = ClientBuilder::new()
+        let client = ClientBuilder::new()
             .unwrap()
             .testing_url(&server.url())
             .build()

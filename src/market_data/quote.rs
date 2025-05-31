@@ -3,6 +3,7 @@ use crate::responses::market_data::{
 };
 use crate::responses::ApiResponse;
 use crate::{Client, Error};
+use futures::{Stream, StreamExt};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -175,75 +176,72 @@ impl Quote {
     ///
     /// Stream quotes on Nvidia (`"NVDA"`) and AMD (`"AMD"`).
     /// ```ignore
-    /// let streamed_quotes = client
-    ///     .stream_quotes(vec!["NVDA", "AMD"], |stream_data| {
-    ///         // The response type is `responses::MarketData::StreamQuotesResp`
-    ///         // which has multiple variants the main one you care about is `Quote`
-    ///         // which will contain option chain data sent from the stream.
-    ///         match stream_data {
-    ///             StreamQuotesResp::Quote(quote) => {
-    ///                 // Do something with the quote for example derive
-    ///                 // a quote for a long amd short nvidia trade.
-    ///                 println!("{quote:?}");
-    ///             }
-    ///             StreamQuotesResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// // Start the stream and pin it to the stack
+    /// let mut quote_stream = Quote::stream(&client, vec!["NVDA", "AMD"]);
+    /// tokio::pin!(quote_stream); // You must pin the stream
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamQuotesResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamQuotesResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    /// let mut streamed_quotes = Vec::new();
+    ///
+    /// while let Some(stream_resp) = quote_stream.next().await {
+    ///     // The response type is `responses::market_data::StreamQuotesResp`
+    ///     // which has multiple variants. The main one you care about is `Quote`
+    ///     // which will contain quote data sent from the stream.
+    ///     match stream_resp {
+    ///         Ok(StreamQuotesResp::Quote(quote)) => {
+    ///             // Do something with the quote — for example, derive
+    ///             // a quote for a long AMD / short NVDA trade.
+    ///             println!("{quote:?}");
+    ///             streamed_quotes.push(quote);
+    ///         }
+    ///         Ok(StreamQuotesResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
+    ///
+    ///             // For the sake of this example, after we receive the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
     ///             }
     ///         }
+    ///         Ok(StreamQuotesResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamQuotesResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
-    ///
-    /// // After the stream ends print all the collected quotes
+    /// // After the stream ends, print all the collected quotes
     /// println!("{streamed_quotes:?}");
     /// ```
-    pub async fn stream<F>(
-        client: &Client,
-        symbols: Vec<&str>,
-        mut on_chunk: F,
-    ) -> Result<Vec<Quote>, Error>
-    where
-        F: FnMut(StreamQuotesResp) -> Result<(), Error>,
-    {
+    pub fn stream<'a>(
+        client: &'a Client,
+        symbols: Vec<&'a str>,
+    ) -> impl Stream<Item = Result<StreamQuotesResp, Error>> + 'a {
         let endpoint = format!("marketdata/stream/quotes/{}", symbols.join(","));
 
-        let mut collected_quotes: Vec<Quote> = Vec::new();
-        client
-            .stream(&endpoint, |chunk| {
-                let parsed_chunk = serde_json::from_value::<StreamQuotesResp>(chunk)?;
-                on_chunk(parsed_chunk.clone())?;
+        let stream = client.stream(endpoint);
 
-                // Only collect orders, so when the stream is done
-                // all the orders that were streamed can be returned
-                if let StreamQuotesResp::Quote(quote) = parsed_chunk {
-                    collected_quotes.push(*quote);
-                }
-
-                Ok(())
-            })
-            .await?;
-
-        Ok(collected_quotes)
+        stream.filter_map(|chunk| async {
+            match chunk {
+                Ok(value) => match serde_json::from_value::<StreamQuotesResp>(value) {
+                    Ok(parsed) => Some(Ok(parsed)),
+                    Err(e) => Some(Err(Error::Json(e))),
+                },
+                Err(e) => Some(Err(e)),
+            }
+        })
     }
 }
 impl Client {
@@ -297,57 +295,60 @@ impl Client {
     ///
     /// Stream quotes on Nvidia (`"NVDA"`) and AMD (`"AMD"`).
     /// ```ignore
-    /// let streamed_quotes = client
-    ///     .stream_quotes(vec!["NVDA", "AMD"], |stream_data| {
-    ///         // The response type is `responses::MarketData::StreamQuotesResp`
-    ///         // which has multiple variants the main one you care about is `Quote`
-    ///         // which will contain option chain data sent from the stream.
-    ///         match stream_data {
-    ///             StreamQuotesResp::Quote(quote) => {
-    ///                 // Do something with the quote for example derive
-    ///                 // a quote for a long amd short nvidia trade.
-    ///                 println!("{quote:?}");
-    ///             }
-    ///             StreamQuotesResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// // Start the stream and pin it to the stack
+    /// let mut quote_stream = client.stream_quotes(vec!["NVDA", "AMD"]);
+    /// tokio::pin!(quote_stream); // You must pin the stream
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamQuotesResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamQuotesResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    /// let mut streamed_quotes = Vec::new();
+    ///
+    /// while let Some(stream_resp) = quote_stream.next().await {
+    ///     // The response type is `responses::market_data::StreamQuotesResp`
+    ///     // which has multiple variants. The main one you care about is `Quote`
+    ///     // which will contain quote data sent from the stream.
+    ///     match stream_resp {
+    ///         Ok(StreamQuotesResp::Quote(quote)) => {
+    ///             // Do something with the quote — for example, derive
+    ///             // a quote for a long AMD / short NVDA trade.
+    ///             println!("{quote:?}");
+    ///             streamed_quotes.push(quote);
+    ///         }
+    ///         Ok(StreamQuotesResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
+    ///
+    ///             // For the sake of this example, after we receive the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
     ///             }
     ///         }
+    ///         Ok(StreamQuotesResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamQuotesResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
-    ///
-    /// // After the stream ends print all the collected quotes
+    /// // After the stream ends, print all the collected quotes
     /// println!("{streamed_quotes:?}");
     /// ```
-    pub async fn stream_quotes<F>(
-        &self,
-        symbols: Vec<&str>,
-        on_chunk: F,
-    ) -> Result<Vec<Quote>, Error>
-    where
-        F: FnMut(StreamQuotesResp) -> Result<(), Error>,
-    {
-        Quote::stream(self, symbols, on_chunk).await
+    pub fn stream_quotes<'a>(
+        &'a self,
+        symbols: Vec<&'a str>,
+    ) -> impl Stream<Item = Result<StreamQuotesResp, Error>> + 'a {
+        Quote::stream(self, symbols)
     }
 }
 

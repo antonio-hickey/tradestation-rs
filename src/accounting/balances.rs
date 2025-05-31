@@ -330,6 +330,7 @@ pub struct BODBalanceDetail {
     /// NOTE: Only applies to futures.
     pub security_on_deposit: Option<String>,
 }
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The beginning of day currency information.

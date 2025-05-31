@@ -1,3 +1,4 @@
+use super::{BODBalance, Balance, Order, Position};
 use crate::{
     responses::{
         account::{GetAccountsResp, GetOrdersResp, StreamOrdersResp, StreamPositionsResp},
@@ -5,10 +6,10 @@ use crate::{
     },
     Client, Error,
 };
+use async_stream::try_stream;
+use futures::{pin_mut, Stream, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::{convert::TryFrom, error::Error as StdErrorTrait, future::Future, pin::Pin};
-
-use super::{BODBalance, Balance, Order, Position};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -388,64 +389,66 @@ impl Account {
 
     /// Stream `Order`(s) for the given `Account`.
     ///
-    /// NOTE: You need to pass a closure function that will handle
-    /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
+    /// NOTE: You must pin the stream before polling it with `.next().await`.
     ///
     /// # Example
     /// ---
-    ///
     /// Get the amount of funds allocated to open orders.
     /// ```ignore
     /// let mut funds_allocated_to_open_orders = 0.00;
-    /// specific_account
-    ///     .stream_orders(&client, |stream_data| {
-    ///         // The response type is `responses::account::StreamOrdersResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `Order` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamOrdersResp::Order(order) => {
-    ///                 // Response for an `Order` streamed in
-    ///                 println!("{order:?}");
     ///
-    ///                 // keep a live sum of all the funds allocated to open orders
-    ///                 let order_value = order.price_used_for_buying_power.parse::<f64>();
-    ///                 if let Ok(value) = order_value {
-    ///                     funds_allocated_to_open_orders += value;
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// let orders_stream = specific_account.stream_orders(&client);
+    /// tokio::pin!(orders_stream); // NOTE: You must pin the stream
+    /// while let Some(chunk) = orders_stream.next().await {
+    ///     // The response type is `responses::account::StreamOrdersResp`
+    ///     // which has multiple variants the main one you care about is
+    ///     // `Order` which will contain order data sent from the stream.
+    ///     match chunk {
+    ///         Ok(StreamOrdersResp::Order(order)) => {
+    ///             // Response for an `Order` streamed in
+    ///             println!("{order:?}");
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamOrdersResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    ///             // keep a live sum of all the funds allocated to open orders
+    ///             let order_value = order.price_used_for_buying_power.parse::<f64>();
+    ///             if let Ok(value) = order_value {
+    ///                 funds_allocated_to_open_orders += value;
     ///             }
     ///         }
+    ///         Ok(StreamOrdersResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
     ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///             // for the sake of this example after we recieve the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
+    ///             }
+    ///         }
+    ///         Ok(StreamOrdersResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOrdersResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
+    /// println!("Funds Allocated To Open Orders: {funds_allocated_to_open_orders}");
     /// ```
-    pub async fn stream_orders<F>(&self, client: &Client, on_chunk: F) -> Result<Vec<Order>, Error>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error>,
-    {
-        Order::stream(&self.account_id, client, on_chunk).await
+    pub fn stream_orders<'a>(
+        &'a self,
+        client: &'a Client,
+    ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
+        Order::stream(&self.account_id, client)
     }
 
     /// Stream `Order`(s) by order id's for the given `Account`.
@@ -463,368 +466,352 @@ impl Account {
     /// ```ignore
     /// let mut some_trades_order_statuses: HashMap<String, OrderStatus> = HashMap::new();
     ///
-    /// specific_account
-    ///     .stream_orders_by_id(
-    ///         vec!["SOME_ORDER_ID_1", "SOME_ORDER_ID_2"],
-    ///         "SOME_ACCOUNT_ID",
-    ///         |stream_data| {
-    ///             // The response type is `responses::account::StreamOrdersResp`
-    ///             // which has multiple variants the main one you care about is
-    ///             // `Order` which will contain order data sent from the stream.
-    ///             match stream_data {
-    ///                 StreamOrdersResp::Order(order) => {
-    ///                     // Response for an `Order` streamed in
-    ///                     println!("{order:?}");
+    /// let orders_stream = specific_account.stream_orders_by_id(vec!["SOME_ORDER_ID_1", "SOME_ORDER_ID_2"], &client);
+    /// tokio::pin!(orders_stream); // NOTE: You must pin the stream
+    /// while let Some(chunk) = orders_stream.next().await {
+    ///     // The response type is `responses::account::StreamOrdersResp`
+    ///     // which has multiple variants the main one you care about is
+    ///     // `Order` which will contain order data sent from the stream.
+    ///     match chunk {
+    ///         Ok(StreamOrdersResp::Order(order)) => {
+    ///             // Response for an `Order` streamed in
+    ///             println!("{order:?}");
     ///
-    ///                     some_trades_order_statuses.insert(order.order_id, order.status);
-    ///                     if some_trades_order_statuses
-    ///                         .values()
-    ///                         .all(|order_status| order_status == OrderStatus::FLL)
-    ///                     {
-    ///                         // When all order's are filled stop the stream
-    ///                         return Err(Error::StopStream);
-    ///                     } else {
-    ///                         // Do something until all order's for a specific trade are filled
-    ///                         // maybe update the limit price of the unfilled order's by 1 tick?
-    ///                         //
-    ///                         // NOTE: you can also "do nothing" essentially just waiting for some
-    ///                         // scenario, maybe waiting for all order's to be filled to send an
-    ///                         // email or text alerting that the trade is fully filled.
-    ///                     }
-    ///                 }
-    ///                 StreamOrdersResp::Heartbeat(heartbeat) => {
-    ///                     // Response for periodic signals letting you know the connection is
-    ///                     // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                     println!("{heartbeat:?}");
-    ///
-    ///                     // for the sake of this example after we recieve the
-    ///                     // tenth heartbeat, we will stop the stream session.
-    ///                     if heartbeat.heartbeat > 10 {
-    ///                         // Example: stopping a stream connection
-    ///                         return Err(Error::StopStream);
-    ///                     }
-    ///                 }
-    ///                 StreamOrdersResp::Status(status) => {
-    ///                     // Signal sent on state changes in the stream
-    ///                     // (closed, opened, paused, resumed)
-    ///                     println!("{status:?}");
-    ///                 }
-    ///                 StreamOrdersResp::Error(err) => {
-    ///                     // Response for when an error was encountered,
-    ///                     // with details on the error
-    ///                     println!("{err:?}");
-    ///                 }
+    ///             some_trades_order_statuses.insert(order.order_id, order.status);
+    ///             if some_trades_order_statuses
+    ///                 .values()
+    ///                 .all(|order_status| order_status == OrderStatus::FLL)
+    ///             {
+    ///                 // When all order's are filled stop the stream
+    ///                 return Err(Error::StopStream);
+    ///             } else {
+    ///                 // Do something until all order's for a specific trade are filled
+    ///                 // maybe update the limit price of the unfilled order's by 1 tick?
+    ///                 //
+    ///                 // NOTE: you can also "do nothing" essentially just waiting for some
+    ///                 // scenario, maybe waiting for all order's to be filled to send an
+    ///                 // email or text alerting that the trade is fully filled.
     ///             }
+    ///         }
+    ///         Ok(StreamOrdersResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
     ///
-    ///             Ok(())
-    ///         })
-    ///         .await?;
+    ///             // for the sake of this example after we recieve the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
+    ///             }
+    ///         }
+    ///         Ok(StreamOrdersResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOrdersResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     /// ```
-    pub async fn stream_orders_by_id<F>(
-        &self,
-        client: &Client,
-        order_ids: Vec<&str>,
-        on_chunk: F,
-    ) -> Result<Vec<Order>, Error>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error>,
-    {
-        Order::stream_by_ids(order_ids, &self.account_id, client, on_chunk).await
+    pub fn stream_orders_by_id<'a>(
+        &'a self,
+        client: &'a Client,
+        order_ids: Vec<&'a str>,
+    ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
+        Order::stream_by_ids(order_ids, &self.account_id, client)
     }
 
-    /// Stream `Order`(s) for the given `Account`.
+    /// Stream `Order`s by order IDs across multiple `Account`s.
     ///
-    /// NOTE: You need to pass a closure function that will handle
-    /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
+    /// NOTE: You must pin the stream before polling it with `.next().await`.
     ///
     /// # Example
     /// ---
+    /// Get the amount of funds allocated to open orders for multiple accounts.
     ///
-    /// Get the amount of funds allocated to open orders.
     /// ```ignore
     /// let mut funds_allocated_to_open_orders = 0.00;
-    /// specific_account
-    ///     .stream_orders(&client, |stream_data| {
-    ///         // The response type is `responses::account::StreamOrdersResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `Order` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamOrdersResp::Order(order) => {
-    ///                 // Response for an `Order` streamed in
-    ///                 println!("{order:?}");
     ///
-    ///                 // keep a live sum of all the funds allocated to open orders
-    ///                 let order_value = order.price_used_for_buying_power.parse::<f64>();
-    ///                 if let Ok(value) = order_value {
-    ///                     funds_allocated_to_open_orders += value;
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// let orders_stream = stream_orders_for_accounts(
+    ///     vec!["ACCOUNT_ID_1", "ACCOUNT_ID_2"],
+    ///     &client,
+    /// );
+    /// tokio::pin!(orders_stream); // NOTE: You must pin the stream
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamOrdersResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    /// while let Some(chunk) = orders_stream.next().await {
+    ///     match chunk {
+    ///         Ok(StreamOrdersResp::Order(order)) => {
+    ///             // Response for an `Order` streamed in
+    ///             println!("{order:?}");
+    ///
+    ///             // Keep a running total of funds allocated to open orders
+    ///             if let Ok(value) = order.price_used_for_buying_power.parse::<f64>() {
+    ///                 funds_allocated_to_open_orders += value;
     ///             }
     ///         }
+    ///         Ok(StreamOrdersResp::Heartbeat(heartbeat)) => {
+    ///             // Periodic signal indicating the stream is still alive
+    ///             println!("{heartbeat:?}");
     ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///             // Example: stop the stream after 10 heartbeats
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 return Err(Error::StopStream);
+    ///             }
+    ///         }
+    ///         Ok(StreamOrdersResp::Status(status)) => {
+    ///             // signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOrdersResp::Error(err)) => {
+    ///             // response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// println!("Funds Allocated To Open Orders: {funds_allocated_to_open_orders}");
     /// ```
-    async fn stream_orders_for_accounts<F>(
-        account_ids: Vec<&str>,
-        client: &Client,
-        on_chunk: F,
-    ) -> Result<Vec<Order>, Error>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error>,
-    {
-        Order::stream_by_accounts(account_ids, client, on_chunk).await
+    fn stream_orders_for_accounts<'a>(
+        account_ids: Vec<&'a str>,
+        client: &'a Client,
+    ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
+        Order::stream_by_accounts(account_ids, client)
     }
 
     /// Stream `Order`s by order id's for the given `Account`(s).
     ///
     /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`
     ///
-    /// NOTE: You need to pass a closure function that will handle
-    /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
+    /// NOTE: You must pin the stream before polling it with `.next().await`.
     ///
     /// # Example
     /// ---
-    ///
     /// Do something until all order's in a trade are filled.
     /// ```ignore
     /// let mut some_trades_order_statuses: HashMap<String, OrderStatus> = HashMap::new();
     ///
-    /// specific_account.stream_orders_by_id_for_accounts(
+    /// let orders_stream = stream_orders_by_id_for_accounts(
     ///     vec!["SOME_ORDER_ID_1", "SOME_ORDER_ID_2"],
-    ///     vec!["SOME_ACCOUNT_ID_1", "SOME_ORDER_ID_2"],
+    ///     vec!["SOME_ACCOUNT_ID_1", "SOME_ACCOUNT_ID_2"],
     ///     &client,
-    ///     |stream_data| {
-    ///         // The response type is `responses::account::StreamOrdersResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `Order` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamOrdersResp::Order(order) => {
-    ///                 // Response for an `Order` streamed in
-    ///                 println!("{order:?}");
+    /// );
+    /// tokio::pin!(orders_stream); // NOTE: You must pin the stream
     ///
-    ///                 some_trades_order_statuses.insert(order.order_id, order.status);
-    ///                 if some_trades_order_statuses
-    ///                     .values()
-    ///                     .all(|order_status| order_status == OrderStatus::FLL)
-    ///                 {
-    ///                     // When all order's are filled stop the stream
-    ///                     return Err(Error::StopStream);
-    ///                 } else {
-    ///                     // Do something until all order's for a specific trade are filled
-    ///                     // maybe update the limit price of the unfilled order's by 1 tick?
-    ///                     //
-    ///                     // NOTE: you can also "do nothing" essentially just waiting for some
-    ///                     // scenario, maybe waiting for all order's to be filled to send an
-    ///                     // email or text alerting that the trade is fully filled.
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// while let Some(chunk) = orders_stream.next().await {
+    ///     match chunk {
+    ///         Ok(StreamOrdersResp::Order(order)) => {
+    ///             // Response for an `Order` streamed in
+    ///             println!("{order:?}");
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamOrdersResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    ///             some_trades_order_statuses.insert(order.order_id.clone(), order.status);
+    ///             if some_trades_order_statuses
+    ///                 .values()
+    ///                 .all(|order_status| order_status == &OrderStatus::FLL)
+    ///             {
+    ///                 // When all orders are filled, stop the stream
+    ///                 return Err(Error::StopStream);
+    ///             } else {
+    ///                 // Do something while waiting for all orders to be filled,
+    ///                 // like updating limit prices or watching for cancel conditions.
     ///             }
     ///         }
+    ///         Ok(StreamOrdersResp::Heartbeat(heartbeat)) => {
+    ///             // Periodic signal to indicate the stream is still alive.
+    ///             println!("{heartbeat:?}");
     ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///             // Example: stop after 10 heartbeats
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 return Err(Error::StopStream);
+    ///             }
+    ///         }
+    ///         Ok(StreamOrdersResp::Status(status)) => {
+    ///             // Notification of stream lifecycle changes (opened, closed, etc.)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOrdersResp::Error(err)) => {
+    ///             // response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     /// ```
-    async fn stream_orders_by_id_for_accounts<F>(
-        order_ids: Vec<&str>,
-        account_ids: Vec<&str>,
-        client: &Client,
-        on_chunk: F,
-    ) -> Result<Vec<Order>, Error>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error>,
-    {
-        Order::stream_by_ids_and_accounts(client, order_ids, account_ids, on_chunk).await
+    fn stream_orders_by_id_for_accounts<'a>(
+        order_ids: Vec<&'a str>,
+        account_ids: Vec<&'a str>,
+        client: &'a Client,
+    ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
+        Order::stream_by_ids_and_accounts(client, order_ids, account_ids)
     }
 
     /// Stream `Position`s for the given `Account`.
     ///
+    /// NOTE: You must pin the stream before polling it with `.next().await`.
+    ///
     /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
     ///
     /// # Example
     /// ---
-    ///
     /// Collect losing trades into a vector and do something with them.
     /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
-    /// specific_account
-    ///     .stream_positions(&client, |stream_data| {
-    ///         // the response type is `responses::account::StreamPositionsResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `order` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamPositionsResp::Position(position) => {
-    ///                 // response for an `position` streamed in
-    ///                 println!("{position:?}");
     ///
-    ///                 if position.long_short == PositionType::Long {
-    ///                     if position.last < position.average_price {
-    ///                         losing_positions.push(*position)
-    ///                     }
-    ///                 } else if position.long_short == PositionType::Short {
-    ///                     if position.last > position.average_price {
-    ///                         losing_positions.push(*position)
-    ///                     }
-    ///                 }
+    /// let positions_stream = specific_account.stream_positions(&client);
+    /// tokio::pin!(positions_stream);
     ///
-    ///                 // do something with the list of losing trades
-    ///                 // maybe send email or text of the positions
-    ///                 println!("{losing_positions:?}");
-    ///             }
-    ///             StreamPositionsResp::Heartbeat(heartbeat) => {
-    ///                 // response for periodic signals letting you know the connection is
-    ///                 // still alive. a heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// while let Some(stream_resp) = positions_stream.next().await {
+    ///     // the response type is `responses::account::StreamPositionsResp`
+    ///     // which has multiple variants the main one you care about is
+    ///     // `order` which will contain order data sent from the stream.
+    ///     match stream_resp {
+    ///         Ok(StreamPositionsResp::Position(position)) => {
+    ///             // response for an `position` streamed in
+    ///             println!("{position:?}");
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
+    ///             // Check if the position is a loser so we
+    ///             // can add it to our losing positions vector
+    ///             if (position.long_short == PositionType::Long
+    ///                 && position.last < position.average_price)
+    ///                 || (position.long_short == PositionType::Short
+    ///                     && position.last > position.average_price)
+    ///             {
+    ///                 losing_positions.push(*position)
     ///             }
-    ///             StreamPositionsResp::Status(status) => {
-    ///                 // signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamPositionsResp::Error(err) => {
-    ///                 // response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    ///
+    ///             // do something with the list of losing trades
+    ///             // maybe send email or text of the positions
+    ///             println!("{losing_positions:?}");
+    ///         }
+    ///         Ok(StreamPositionsResp::Heartbeat(heartbeat)) => {
+    ///             // response for periodic signals letting you know the connection is
+    ///             // still alive. a heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
+    ///
+    ///             // for the sake of this example after we recieve the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
     ///             }
     ///         }
-    ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///         Ok(StreamPositionsResp::Status(status)) => {
+    ///             // signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamPositionsResp::Error(err)) => {
+    ///             // response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     /// ```
-    pub async fn stream_positions<F>(
-        &self,
-        client: &Client,
-        on_chunk: F,
-    ) -> Result<Vec<Position>, Error>
-    where
-        F: FnMut(StreamPositionsResp) -> Result<(), Error>,
-    {
-        Position::stream(&self.account_id, client, on_chunk).await
+    pub fn stream_positions<'a>(
+        &'a self,
+        client: &'a Client,
+    ) -> impl Stream<Item = Result<StreamPositionsResp, Error>> + 'a {
+        Position::stream(&self.account_id, client)
     }
 
     /// Stream `Position`s for the given `Account`(s).
     ///
+    /// NOTE: You must pin the stream before polling it with `.next().await`.
+    ///
     /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
     ///
     /// # Example
     /// ---
-    ///
     /// Collect losing trades into a vector and do something with them.
     /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
-    /// specific_account
-    ///     .stream_positions(&client, |stream_data| {
-    ///         // the response type is `responses::account::StreamPositionsResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `order` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamPositionsResp::Position(position) => {
-    ///                 // response for an `position` streamed in
-    ///                 println!("{position:?}");
     ///
-    ///                 if position.long_short == PositionType::Long {
-    ///                     if position.last < position.average_price {
-    ///                         losing_positions.push(*position)
-    ///                     }
-    ///                 } else if position.long_short == PositionType::Short {
-    ///                     if position.last > position.average_price {
-    ///                         losing_positions.push(*position)
-    ///                     }
-    ///                 }
+    /// let positions_stream = specific_account.stream_positions_for_accounts(
+    ///     vec!["ACCOUNT_ID_1", "ACCOUNT_ID_2", "ACCOUNT_ID_N"],
+    ///     &client
+    /// );
+    /// tokio::pin!(positions_stream);
     ///
-    ///                 // do something with the list of losing trades
-    ///                 // maybe send email or text of the positions
-    ///                 println!("{losing_positions:?}");
-    ///             }
-    ///             StreamPositionsResp::Heartbeat(heartbeat) => {
-    ///                 // response for periodic signals letting you know the connection is
-    ///                 // still alive. a heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// while let Some(stream_resp) = positions_stream.next().await {
+    ///     // the response type is `responses::account::StreamPositionsResp`
+    ///     // which has multiple variants the main one you care about is
+    ///     // `order` which will contain order data sent from the stream.
+    ///     match stream_resp {
+    ///         Ok(StreamPositionsResp::Position(position)) => {
+    ///             // response for an `position` streamed in
+    ///             println!("{position:?}");
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
+    ///             // Check if the position is a loser so we
+    ///             // can add it to our losing positions vector
+    ///             if (position.long_short == PositionType::Long
+    ///                 && position.last < position.average_price)
+    ///                 || (position.long_short == PositionType::Short
+    ///                     && position.last > position.average_price)
+    ///             {
+    ///                 losing_positions.push(*position)
     ///             }
-    ///             StreamPositionsResp::Status(status) => {
-    ///                 // signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamPositionsResp::Error(err) => {
-    ///                 // response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    ///
+    ///             // do something with the list of losing trades
+    ///             // maybe send email or text of the positions
+    ///             println!("{losing_positions:?}");
+    ///         }
+    ///         Ok(StreamPositionsResp::Heartbeat(heartbeat)) => {
+    ///             // response for periodic signals letting you know the connection is
+    ///             // still alive. a heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
+    ///
+    ///             // for the sake of this example after we recieve the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
     ///             }
     ///         }
-    ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///         Ok(StreamPositionsResp::Status(status)) => {
+    ///             // signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamPositionsResp::Error(err)) => {
+    ///             // response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     /// ```
-    pub async fn stream_positions_for_accounts<F, S: Into<String>>(
+    pub fn stream_positions_for_accounts<S: Into<String>>(
         account_ids: Vec<S>,
         client: &Client,
-        on_chunk: F,
-    ) -> Result<Vec<Position>, Error>
-    where
-        F: FnMut(StreamPositionsResp) -> Result<(), Error>,
-    {
-        Position::stream_for_accounts(account_ids, client, on_chunk).await
+    ) -> impl Stream<Item = Result<StreamPositionsResp, Error>> + '_ {
+        Position::stream_for_accounts(account_ids, client)
     }
 }
 
@@ -1064,85 +1051,80 @@ pub trait MultipleAccounts {
         client: &'a Client,
     ) -> Self::GetPositionsFuture<'a>;
 
-    type StreamOrdersFuture<'a>: Future<Output = Result<Vec<Order>, Box<dyn StdErrorTrait + Send + Sync>>>
-        + Send
-        + 'a
+    type StreamOrders<'a>: Stream<Item = Result<StreamOrdersResp, Error>> + Send + 'a
     where
         Self: 'a;
     /// Stream `Order`(s) for the given `Account`.
     ///
-    /// NOTE: You need to pass a closure function that will handle
-    /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
+    /// NOTE: You must pin the stream before polling it with `.next().await`.
     ///
     /// # Example
     /// ---
     ///
     /// Get the amount of funds allocated to open orders.
     /// ```ignore
+    /// let mean_reversion_account = client.get_account("ACCOUNT_ID_1").await?;
+    /// let momentum_account = client.get_account("ACCOUNT_ID_2").await?;
+    ///
+    /// let specific_accounts = vec![mean_reversion_account, momentum_account];
+    ///
     /// let mut funds_allocated_to_open_orders = 0.00;
-    /// specific_account
-    ///     .stream_orders(&client, |stream_data| {
-    ///         // The response type is `responses::account::StreamOrdersResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `Order` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamOrdersResp::Order(order) => {
-    ///                 // Response for an `Order` streamed in
-    ///                 println!("{order:?}");
     ///
-    ///                 // keep a live sum of all the funds allocated to open orders
-    ///                 let order_value = order.price_used_for_buying_power.parse::<f64>();
-    ///                 if let Ok(value) = order_value {
-    ///                     funds_allocated_to_open_orders += value;
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// let orders_stream = specific_accounts.stream_orders(&client);
+    /// tokio::pin!(orders_stream); // NOTE: You must pin the stream
+    /// while let Some(chunk) = orders_stream.next().await {
+    ///     // The response type is `responses::account::StreamOrdersResp`
+    ///     // which has multiple variants the main one you care about is
+    ///     // `Order` which will contain order data sent from the stream.
+    ///     match chunk {
+    ///         Ok(StreamOrdersResp::Order(order)) => {
+    ///             // Response for an `Order` streamed in
+    ///             println!("{order:?}");
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamOrdersResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    ///             // keep a live sum of all the funds allocated to open orders
+    ///             let order_value = order.price_used_for_buying_power.parse::<f64>();
+    ///             if let Ok(value) = order_value {
+    ///                 funds_allocated_to_open_orders += value;
     ///             }
     ///         }
+    ///         Ok(StreamOrdersResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
     ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///             // for the sake of this example after we recieve the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
+    ///             }
+    ///         }
+    ///         Ok(StreamOrdersResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOrdersResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / Network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// println!("Funds Allocated To Open Orders: {funds_allocated_to_open_orders}");
     /// ```
-    fn stream_orders<'a, F>(
-        &'a self,
-        on_chunk: &'a mut F,
-        client: &'a Client,
-    ) -> Self::StreamOrdersFuture<'a>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error> + Send + 'a;
+    fn stream_orders<'a>(&'a self, client: &'a Client) -> Self::StreamOrders<'a>;
 
-    type StreamOrdersByIdFuture<'a>: Future<Output = Result<Vec<Order>, Box<dyn StdErrorTrait + Send + Sync>>>
-        + Send
-        + 'a
-    where
-        Self: 'a;
     /// Stream `Order`s by order id's for the given `Account`(s).
     ///
     /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`.
     ///
-    /// NOTE: You need to pass a closure function that will handle
-    /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
+    /// NOTE: You must pin the stream before polling it with `.next().await`.
     ///
     /// # Example
     /// ---
@@ -1150,73 +1132,72 @@ pub trait MultipleAccounts {
     /// Do something until all order's in a trade are filled.
     /// ```ignore
     /// let mut some_trades_order_statuses: HashMap<String, OrderStatus> = HashMap::new();
-    /// specific_account
-    ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
-    ///     .stream_orders_by_id(&client, "1111,1112,1113,1114", |stream_data| {
-    ///         // The response type is `responses::account::StreamOrdersResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `Order` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamOrdersResp::Order(order) => {
-    ///                 // Response for an `Order` streamed in
-    ///                 println!("{order:?}");
     ///
-    ///                 some_trades_order_statuses.insert(order.order_id, order.status);
-    ///                 if some_trades_order_statuses
-    ///                     .values()
-    ///                     .all(|order_status| order_status == OrderStatus::FLL)
-    ///                 {
-    ///                     // When all order's are filled stop the stream
-    ///                     return Err(Error::StopStream);
-    ///                 } else {
-    ///                     // Do something until all order's for a specific trade are filled
-    ///                     // maybe update the limit price of the unfilled order's by 1 tick?
-    ///                     //
-    ///                     // NOTE: you can also "do nothing" essentially just waiting for some
-    ///                     // scenario, maybe waiting for all order's to be filled to send an
-    ///                     // email or text alerting that the trade is fully filled.
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// // NOTE: The order IDs "1111,1112,1113,1114" are fake and not to be used.
+    /// let mut orders_stream = specific_account.stream_orders_by_id(&client, "1111,1112,1113,1114");
+    /// tokio::pin!(orders_stream); // You must pin the stream
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamOrdersResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    /// while let Some(stream_resp) = orders_stream.next().await {
+    ///     // The response type is `responses::account::StreamOrdersResp`
+    ///     // which has multiple variants. The main one you care about is
+    ///     // `Order`, which contains order data streamed in real-time.
+    ///     match stream_resp {
+    ///         Ok(StreamOrdersResp::Order(order)) => {
+    ///             // Response for an `Order` streamed in
+    ///             println!("{order:?}");
+    ///
+    ///             some_trades_order_statuses.insert(order.order_id.clone(), order.status);
+    ///
+    ///             if some_trades_order_statuses
+    ///                 .values()
+    ///                 .all(|order_status| order_status == &OrderStatus::FLL)
+    ///             {
+    ///                 // When all orders are filled, stop the stream
+    ///                 return Err(Error::StopStream);
+    ///             } else {
+    ///                 // Do something until all orders for a specific trade are filled.
+    ///                 // Maybe update the limit price of unfilled orders by 1 tick?
+    ///                 //
+    ///                 // NOTE: You can also "do nothing", essentially just waiting
+    ///                 // for all orders to fill before triggering a notification.
     ///             }
     ///         }
+    ///         Ok(StreamOrdersResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
     ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///             // For the sake of this example, after we receive the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
+    ///             }
+    ///         }
+    ///         Ok(StreamOrdersResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOrdersResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     /// ```
-    fn stream_orders_by_id<'a, F>(
+    fn stream_orders_by_id<'a>(
         &'a self,
         order_ids: Vec<&'a str>,
-        on_chunk: &'a mut F,
         client: &'a Client,
-    ) -> Self::StreamOrdersByIdFuture<'a>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error> + Send + 'a;
+    ) -> Self::StreamOrders<'a>;
 
-    type StreamPositionsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
-        + Send
-        + 'a
+    type StreamPositions<'a>: Stream<Item = Result<StreamPositionsResp, Error>> + Send + 'a
     where
         Self: 'a;
     /// Stream `Position`s for the given `Account`(s).
@@ -1229,65 +1210,59 @@ pub trait MultipleAccounts {
     /// Collect losing trades into a vector and do something with them.
     /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
-    /// specific_account
-    ///     .stream_positions(&client, |stream_data| {
-    ///         // the response type is `responses::account::StreamPositionsResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `order` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamPositionsResp::Position(position) => {
-    ///                 // response for an `position` streamed in
-    ///                 println!("{position:?}");
     ///
-    ///                 if position.long_short == PositionType::Long {
-    ///                     if position.last < position.average_price {
-    ///                         losing_positions.push(*position)
-    ///                     }
-    ///                 } else if position.long_short == PositionType::Short {
-    ///                     if position.last > position.average_price {
-    ///                         losing_positions.push(*position)
-    ///                     }
-    ///                 }
+    /// let mut position_stream = specific_account.stream_positions(&client);
+    /// tokio::pin!(position_stream); // You must pin the stream
     ///
-    ///                 // do something with the list of losing trades
-    ///                 // maybe send email or text of the positions
-    ///                 println!("{losing_positions:?}");
-    ///             }
-    ///             StreamPositionsResp::Heartbeat(heartbeat) => {
-    ///                 // response for periodic signals letting you know the connection is
-    ///                 // still alive. a heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// while let Some(stream_resp) = position_stream.next().await {
+    ///     // The response type is `responses::account::StreamPositionsResp`
+    ///     // which has multiple variants. The main one you care about is
+    ///     // `Position`, which will contain position data streamed from the account.
+    ///     match stream_resp {
+    ///         Ok(StreamPositionsResp::Position(position)) => {
+    ///             // Response for a `Position` streamed in
+    ///             println!("{position:?}");
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
+    ///             if position.long_short == PositionType::Long && position.last < position.average_price {
+    ///                 losing_positions.push(*position);
+    ///             } else if position.long_short == PositionType::Short && position.last > position.average_price {
+    ///                 losing_positions.push(*position);
     ///             }
-    ///             StreamPositionsResp::Status(status) => {
-    ///                 // signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamPositionsResp::Error(err) => {
-    ///                 // response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    ///
+    ///             // Do something with the list of losing trades,
+    ///             // maybe send an email or text with the positions.
+    ///             println!("{losing_positions:?}");
+    ///         }
+    ///         Ok(StreamPositionsResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
+    ///
+    ///             // For the sake of this example, after we receive the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
     ///             }
     ///         }
-    ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///         Ok(StreamPositionsResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamPositionsResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     /// ```
-    fn stream_positions<'a, F>(
-        &'a self,
-        on_chunk: &'a mut F,
-        client: &'a Client,
-    ) -> Self::StreamPositionsFuture<'a>
-    where
-        F: FnMut(StreamPositionsResp) -> Result<(), Error> + Send + 'a;
+    fn stream_positions<'a>(&'a self, client: &'a Client) -> Self::StreamPositions<'a>;
 }
 impl MultipleAccounts for Vec<Account> {
     /// Find a specific account by a given account id from
@@ -1562,13 +1537,8 @@ impl MultipleAccounts for Vec<Account> {
         })
     }
 
-    type StreamOrdersFuture<'a> = Pin<
-        Box<
-            dyn Future<Output = Result<Vec<Order>, Box<dyn StdErrorTrait + Send + Sync>>>
-                + Send
-                + 'a,
-        >,
-    >;
+    type StreamOrders<'a> =
+        Pin<Box<dyn Stream<Item = Result<StreamOrdersResp, Error>> + Send + 'a>>;
     /// Stream `Order`(s) for the given `Account`
     ///
     /// NOTE: You need to pass a closure function that will handle
@@ -1579,78 +1549,76 @@ impl MultipleAccounts for Vec<Account> {
     ///
     /// Get the amount of funds allocated to open orders.
     /// ```ignore
+    /// let mean_reversion_account = client.get_account("ACCOUNT_ID_1").await?;
+    /// let momentum_account = client.get_account("ACCOUNT_ID_2").await?;
+    /// let specific_accounts = vec![mean_reversion_account, momentum_account];
+    ///
     /// let mut funds_allocated_to_open_orders = 0.00;
-    /// specific_account
-    ///     .stream_orders(&client, |stream_data| {
-    ///         // The response type is `responses::account::StreamOrdersResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `Order` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamOrdersResp::Order(order) => {
-    ///                 // Response for an `Order` streamed in
-    ///                 println!("{order:?}");
     ///
-    ///                 // keep a live sum of all the funds allocated to open orders
-    ///                 let order_value = order.price_used_for_buying_power.parse::<f64>();
-    ///                 if let Ok(value) = order_value {
-    ///                     funds_allocated_to_open_orders += value;
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// let mut order_stream = specific_accounts.stream_orders(&client);
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamOrdersResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    /// while let Some(stream_data) = order_stream.next().await {
+    ///     // The response type is `responses::account::StreamOrdersResp`
+    ///     // which has multiple variants. The main one you care about is
+    ///     // `Order`, which will contain order data sent from the stream.
+    ///     match stream_data {
+    ///         Ok(StreamOrdersResp::Order(order)) => {
+    ///             // Response for an `Order` streamed in
+    ///             println!("{order:?}");
+    ///
+    ///             // Keep a live sum of all the funds allocated to open orders
+    ///             let order_value = order.price_used_for_buying_power.parse::<f64>();
+    ///             if let Ok(value) = order_value {
+    ///                 funds_allocated_to_open_orders += value;
     ///             }
     ///         }
+    ///         Ok(StreamOrdersResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
     ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///             // For the sake of this example, after we receive the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
+    ///             }
+    ///         }
+    ///         Ok(StreamOrdersResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOrdersResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// println!("Funds Allocated to Open Orders: {funds_allocated_to_open_orders}");
     /// ```
-    fn stream_orders<'a, F>(
-        &'a self,
-        mut on_chunk: &'a mut F,
-        client: &'a Client,
-    ) -> Self::StreamOrdersFuture<'a>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error> + Send + 'a,
-    {
+    fn stream_orders<'a>(&'a self, client: &'a Client) -> Self::StreamOrders<'a> {
         let account_ids: Vec<&str> = self
             .iter()
             .map(|account| account.account_id.as_str())
             .collect();
 
-        Box::pin(async move {
-            let orders =
-                Account::stream_orders_for_accounts(account_ids, client, &mut on_chunk).await?;
-            Ok(orders)
+        Box::pin(try_stream! {
+            let orders_stream = Account::stream_orders_for_accounts(account_ids, client);
+            pin_mut!(orders_stream);
+
+            while let Some(order) = orders_stream.next().await {
+                yield order?;
+            }
         })
     }
 
-    type StreamOrdersByIdFuture<'a> = Pin<
-        Box<
-            dyn Future<Output = Result<Vec<Order>, Box<dyn StdErrorTrait + Send + Sync>>>
-                + Send
-                + 'a,
-        >,
-    >;
     /// Stream `Order`s by order id's for the given `Account`(s)
     ///
     /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`
@@ -1664,94 +1632,87 @@ impl MultipleAccounts for Vec<Account> {
     /// Do something until all order's in a trade are filled.
     /// ```ignore
     /// let mut some_trades_order_statuses: HashMap<String, OrderStatus> = HashMap::new();
-    /// specific_account
-    ///     // NOTE: The order ids "1111,1112,1113,1114" are fake and not to be used.
-    ///     .stream_orders_by_id(&client, "1111,1112,1113,1114", |stream_data| {
-    ///         // The response type is `responses::account::StreamOrdersResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `Order` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamOrdersResp::Order(order) => {
-    ///                 // Response for an `Order` streamed in
-    ///                 println!("{order:?}");
     ///
-    ///                 some_trades_order_statuses.insert(order.order_id, order.status);
-    ///                 if some_trades_order_statuses
-    ///                     .values()
-    ///                     .all(|order_status| order_status == OrderStatus::FLL)
-    ///                 {
-    ///                     // When all order's are filled stop the stream
-    ///                     return Err(Error::StopStream);
-    ///                 } else {
-    ///                     // Do something until all order's for a specific trade are filled
-    ///                     // maybe update the limit price of the unfilled order's by 1 tick?
-    ///                     //
-    ///                     // NOTE: you can also "do nothing" essentially just waiting for some
-    ///                     // scenario, maybe waiting for all order's to be filled to send an
-    ///                     // email or text alerting that the trade is fully filled.
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Heartbeat(heartbeat) => {
-    ///                 // Response for periodic signals letting you know the connection is
-    ///                 // still alive. A heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// // NOTE: The order IDs "1111,1112,1113,1114" are fake and not to be used.
+    /// let mut orders_stream = specific_account.stream_orders_by_id(&client, "1111,1112,1113,1114");
+    /// tokio::pin!(orders_stream); // You must pin the stream
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // Example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
-    ///             }
-    ///             StreamOrdersResp::Status(status) => {
-    ///                 // Signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamOrdersResp::Error(err) => {
-    ///                 // Response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    /// while let Some(stream_resp) = orders_stream.next().await {
+    ///     // The response type is `responses::account::StreamOrdersResp`
+    ///     // which has multiple variants. The main one you care about is
+    ///     // `Order`, which contains order data streamed in real-time.
+    ///     match stream_resp {
+    ///         Ok(StreamOrdersResp::Order(order)) => {
+    ///             // Response for an `Order` streamed in
+    ///             println!("{order:?}");
+    ///
+    ///             some_trades_order_statuses.insert(order.order_id.clone(), order.status);
+    ///
+    ///             if some_trades_order_statuses
+    ///                 .values()
+    ///                 .all(|order_status| order_status == &OrderStatus::FLL)
+    ///             {
+    ///                 // When all orders are filled, stop the stream
+    ///                 return Err(Error::StopStream);
+    ///             } else {
+    ///                 // Do something until all orders for a specific trade are filled.
+    ///                 // Maybe update the limit price of unfilled orders by 1 tick?
+    ///                 //
+    ///                 // NOTE: You can also "do nothing", essentially just waiting
+    ///                 // for all orders to fill before triggering a notification.
     ///             }
     ///         }
+    ///         Ok(StreamOrdersResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
     ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///             // For the sake of this example, after we receive the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
+    ///             }
+    ///         }
+    ///         Ok(StreamOrdersResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamOrdersResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     /// ```
-    fn stream_orders_by_id<'a, F>(
+    fn stream_orders_by_id<'a>(
         &'a self,
         order_ids: Vec<&'a str>,
-        mut on_chunk: &'a mut F,
         client: &'a Client,
-    ) -> Self::StreamOrdersByIdFuture<'a>
-    where
-        F: FnMut(StreamOrdersResp) -> Result<(), Error> + Send + 'a,
-    {
+    ) -> Self::StreamOrders<'a> {
         let account_ids: Vec<&str> = self
             .iter()
             .map(|account| account.account_id.as_str())
             .collect();
 
-        Box::pin(async move {
-            let orders = Account::stream_orders_by_id_for_accounts(
-                order_ids,
-                account_ids,
-                client,
-                &mut on_chunk,
-            )
-            .await?;
-            Ok(orders)
+        Box::pin(try_stream! {
+            let orders_stream = Account::stream_orders_by_id_for_accounts(order_ids, account_ids, client);
+            pin_mut!(orders_stream);
+
+            while let Some(order) = orders_stream.next().await {
+                yield order?;
+            }
         })
     }
 
-    type StreamPositionsFuture<'a> = Pin<
-        Box<
-            dyn Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
-                + Send
-                + 'a,
-        >,
-    >;
+    type StreamPositions<'a> =
+        Pin<Box<dyn Stream<Item = Result<StreamPositionsResp, Error>> + Send + 'a>>;
     /// Stream `Position`s for the given `Account`(s).
     ///
     /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
@@ -1762,75 +1723,71 @@ impl MultipleAccounts for Vec<Account> {
     /// Collect losing trades into a vector and do something with them.
     /// ```ignore
     /// let mut losing_positions: Vec<Position> = Vec::new();
-    /// specific_account
-    ///     .stream_positions(&client, |stream_data| {
-    ///         // the response type is `responses::account::StreamPositionsResp`
-    ///         // which has multiple variants the main one you care about is
-    ///         // `order` which will contain order data sent from the stream.
-    ///         match stream_data {
-    ///             StreamPositionsResp::Position(position) => {
-    ///                 // response for an `position` streamed in
-    ///                 println!("{position:?}");
     ///
-    ///                 if position.long_short == PositionType::Long {
-    ///                     if position.last < position.average_price {
-    ///                         losing_positions.push(*position)
-    ///                     }
-    ///                 } else if position.long_short == PositionType::Short {
-    ///                     if position.last > position.average_price {
-    ///                         losing_positions.push(*position)
-    ///                     }
-    ///                 }
+    /// let mut position_stream = specific_account.stream_positions(&client);
+    /// tokio::pin!(position_stream); // You must pin the stream
     ///
-    ///                 // do something with the list of losing trades
-    ///                 // maybe send email or text of the positions
-    ///                 println!("{losing_positions:?}");
-    ///             }
-    ///             StreamPositionsResp::Heartbeat(heartbeat) => {
-    ///                 // response for periodic signals letting you know the connection is
-    ///                 // still alive. a heartbeat is sent every 5 seconds of inactivity.
-    ///                 println!("{heartbeat:?}");
+    /// while let Some(stream_resp) = position_stream.next().await {
+    ///     // The response type is `responses::account::StreamPositionsResp`
+    ///     // which has multiple variants. The main one you care about is
+    ///     // `Position`, which will contain position data streamed from the account.
+    ///     match stream_resp {
+    ///         Ok(StreamPositionsResp::Position(position)) => {
+    ///             // Response for a `Position` streamed in
+    ///             println!("{position:?}");
     ///
-    ///                 // for the sake of this example after we recieve the
-    ///                 // tenth heartbeat, we will stop the stream session.
-    ///                 if heartbeat.heartbeat > 10 {
-    ///                     // example: stopping a stream connection
-    ///                     return Err(Error::StopStream);
-    ///                 }
+    ///             if position.long_short == PositionType::Long && position.last < position.average_price {
+    ///                 losing_positions.push(*position);
+    ///             } else if position.long_short == PositionType::Short && position.last > position.average_price {
+    ///                 losing_positions.push(*position);
     ///             }
-    ///             StreamPositionsResp::Status(status) => {
-    ///                 // signal sent on state changes in the stream
-    ///                 // (closed, opened, paused, resumed)
-    ///                 println!("{status:?}");
-    ///             }
-    ///             StreamPositionsResp::Error(err) => {
-    ///                 // response for when an error was encountered,
-    ///                 // with details on the error
-    ///                 println!("{err:?}");
+    ///
+    ///             // Do something with the list of losing trades,
+    ///             // maybe send an email or text with the positions.
+    ///             println!("{losing_positions:?}");
+    ///         }
+    ///         Ok(StreamPositionsResp::Heartbeat(heartbeat)) => {
+    ///             // Response for periodic signals letting you know the connection is
+    ///             // still alive. A heartbeat is sent every 5 seconds of inactivity.
+    ///             println!("{heartbeat:?}");
+    ///
+    ///             // For the sake of this example, after we receive the
+    ///             // tenth heartbeat, we will stop the stream session.
+    ///             if heartbeat.heartbeat > 10 {
+    ///                 // Example: stopping a stream connection
+    ///                 return Err(Error::StopStream);
     ///             }
     ///         }
-    ///
-    ///         Ok(())
-    ///     })
-    ///     .await?;
+    ///         Ok(StreamPositionsResp::Status(status)) => {
+    ///             // Signal sent on state changes in the stream
+    ///             // (closed, opened, paused, resumed)
+    ///             println!("{status:?}");
+    ///         }
+    ///         Ok(StreamPositionsResp::Error(err)) => {
+    ///             // Response for when an error was encountered,
+    ///             // with details on the error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///         Err(err) => {
+    ///             // Stream / network error
+    ///             eprintln!("{err:?}");
+    ///         }
+    ///     }
+    /// }
     /// ```
-    fn stream_positions<'a, F>(
-        &'a self,
-        mut on_chunk: &'a mut F,
-        client: &'a Client,
-    ) -> Self::StreamPositionsFuture<'a>
-    where
-        F: FnMut(StreamPositionsResp) -> Result<(), Error> + Send + 'a,
-    {
+    fn stream_positions<'a>(&'a self, client: &'a Client) -> Self::StreamPositions<'a> {
         let account_ids: Vec<&str> = self
             .iter()
             .map(|account| account.account_id.as_str())
             .collect();
 
-        Box::pin(async move {
-            let positions =
-                Account::stream_positions_for_accounts(account_ids, client, &mut on_chunk).await?;
-            Ok(positions)
+        Box::pin(try_stream! {
+            let positions_stream = Account::stream_positions_for_accounts(account_ids, client);
+            pin_mut!(positions_stream);
+
+            while let Some(position) = positions_stream.next().await {
+                yield position?;
+            }
         })
     }
 }
