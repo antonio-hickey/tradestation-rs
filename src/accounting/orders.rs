@@ -302,6 +302,7 @@ where
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+/// The current standing of an order in the actual market place.
 pub enum OrderStatus {
     /// Acknowledged (Received)
     ACK,

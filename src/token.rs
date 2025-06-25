@@ -148,7 +148,7 @@ pub struct RefreshedToken {
     pub expires_in: u64,
 }
 
-/// The different API Scopes a `Token` can be configured with.
+/// The different API Scopes a [`Token`] can be configured with.
 ///
 /// NOTE: You should limit the level of scope a token has to only
 /// what it needs, for security reasons. For example if your application

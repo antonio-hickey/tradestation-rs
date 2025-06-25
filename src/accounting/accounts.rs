@@ -389,7 +389,9 @@ impl Account {
 
     /// Stream `Order`(s) for the given `Account`.
     ///
-    /// NOTE: You must pin the stream before polling it with `.next().await`.
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// # Example
     /// ---
@@ -453,10 +455,11 @@ impl Account {
 
     /// Stream `Order`(s) by order id's for the given `Account`.
     ///
-    /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
     ///
-    /// NOTE: You need to pass a closure function that will handle
-    /// each chunk of data `StreamOrdersResp` as it's streamed in.
+    /// NOTE: You must pin the stream before polling it.
+    ///
+    /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`
     ///
     /// # Example
     /// ---
@@ -532,7 +535,9 @@ impl Account {
 
     /// Stream `Order`s by order IDs across multiple `Account`s.
     ///
-    /// NOTE: You must pin the stream before polling it with `.next().await`.
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// # Example
     /// ---
@@ -595,9 +600,11 @@ impl Account {
 
     /// Stream `Order`s by order id's for the given `Account`(s).
     ///
-    /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
     ///
-    /// NOTE: You must pin the stream before polling it with `.next().await`.
+    /// NOTE: You must pin the stream before polling it.
+    ///
+    /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`
     ///
     /// # Example
     /// ---
@@ -665,7 +672,9 @@ impl Account {
 
     /// Stream `Position`s for the given `Account`.
     ///
-    /// NOTE: You must pin the stream before polling it with `.next().await`.
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
     ///
@@ -739,7 +748,9 @@ impl Account {
 
     /// Stream `Position`s for the given `Account`(s).
     ///
-    /// NOTE: You must pin the stream before polling it with `.next().await`.
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
     ///
@@ -1056,7 +1067,9 @@ pub trait MultipleAccounts {
         Self: 'a;
     /// Stream `Order`(s) for the given `Account`.
     ///
-    /// NOTE: You must pin the stream before polling it with `.next().await`.
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// # Example
     /// ---
@@ -1122,9 +1135,11 @@ pub trait MultipleAccounts {
 
     /// Stream `Order`s by order id's for the given `Account`(s).
     ///
-    /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`.
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
     ///
-    /// NOTE: You must pin the stream before polling it with `.next().await`.
+    /// NOTE: You must pin the stream before polling it.
+    ///
+    /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`.
     ///
     /// # Example
     /// ---
@@ -1201,6 +1216,10 @@ pub trait MultipleAccounts {
     where
         Self: 'a;
     /// Stream `Position`s for the given `Account`(s).
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
     ///
@@ -1394,25 +1413,6 @@ impl MultipleAccounts for Vec<Account> {
     /// would do it.
     ///
     /// ```ignore
-    /// // Initialize the client
-    /// let client = ClientBuilder::new()?
-    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
-    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
-    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
-    ///         id_token: String::from("YOUR_ID_TOKEN"),
-    ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
-    ///         expires_in: 1200,
-    ///     })?
-    ///     .build()
-    ///     .await?;
-    ///
-    /// // Grab the account where the position exists
-    /// let accounts = client
-    ///     .get_accounts()
-    ///     .await?;
-    ///
     /// let position = accounts.get_position("YOUR_POSITION_ID").await?;
     /// println!("Position: {position:?}");
     /// ```
@@ -1466,31 +1466,19 @@ impl MultipleAccounts for Vec<Account> {
     /// but maybe not the account ids, here's how you would do it.
     ///
     /// ```ignore
-    /// // Initialize the client
-    /// let client = ClientBuilder::new()?
-    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
-    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
-    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
-    ///         id_token: String::from("YOUR_ID_TOKEN"),
-    ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
-    ///         expires_in: 1200,
-    ///     })?
-    ///     .build()
-    ///     .await?;
-    ///
     /// // Grab all accounts
     /// let accounts = client
     ///     .get_accounts()
     ///     .await?;
     ///
+    /// // Look for 2 positions within in all accounts
     /// let positions = accounts
     ///     .get_positions_by_ids(
     ///         vec!["YOUR_POSITION_ID_1", "YOUR_POSITION_ID_2"],
     ///         &client,
     ///     )
     ///     .await?;
+    ///
     /// println!("Positions: {positions:?}");
     /// ```
     fn get_positions_by_ids<'a>(
@@ -1541,8 +1529,9 @@ impl MultipleAccounts for Vec<Account> {
         Pin<Box<dyn Stream<Item = Result<StreamOrdersResp, Error>> + Send + 'a>>;
     /// Stream `Order`(s) for the given `Account`
     ///
-    /// NOTE: You need to pass a closure function that will handle
-    /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// # Example
     /// ---
@@ -1621,10 +1610,11 @@ impl MultipleAccounts for Vec<Account> {
 
     /// Stream `Order`s by order id's for the given `Account`(s)
     ///
-    /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
     ///
-    /// NOTE: You need to pass a closure function that will handle
-    /// each chunk of data (`StreamOrdersResp`) as it's streamed in.
+    /// NOTE: You must pin the stream before polling it.
+    ///
+    /// NOTE: order ids should be a comma delimited string slice `"xxxxx,xxxxx,xxxxx"`
     ///
     /// # Example
     /// ---
@@ -1714,6 +1704,10 @@ impl MultipleAccounts for Vec<Account> {
     type StreamPositions<'a> =
         Pin<Box<dyn Stream<Item = Result<StreamPositionsResp, Error>> + Send + 'a>>;
     /// Stream `Position`s for the given `Account`(s).
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// NOTE: TODO: Currently does NOT support streaming `Position` changes.
     ///

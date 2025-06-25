@@ -11,7 +11,7 @@ use std::str::FromStr;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// Market Data Bars (candlestick bars)
+/// Market Data Bars ("candlesticks")
 pub struct Bar {
     /// The closing price of the current bar.
     pub close: String,
@@ -79,7 +79,7 @@ pub struct Bar {
     pub bar_status: BarStatus,
 }
 impl Bar {
-    /// Fetch `Vec<Bar>` for a given query `GetBarsQuery`
+    /// Fetch `Vec<Bar>` for a given query `GetBarsQuery`.
     ///
     /// # Example
     /// ---
@@ -127,7 +127,11 @@ impl Bar {
         }
     }
 
-    /// Stream bars of market activity for a given query `GetBarsQuery`
+    /// Stream bars of market activity for a given query `GetBarsQuery`.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// # Example
     /// ---
@@ -203,12 +207,16 @@ impl Bar {
     }
 }
 impl Client {
-    /// Fetch `Vec<Bar>` for a given query `GetBarsQuery`
+    /// Fetch `Vec<Bar>` for a given query `GetBarsQuery`.
     pub async fn get_bars(&self, query: &GetBarsQuery) -> Result<Vec<Bar>, Error> {
         Bar::fetch(query, self).await
     }
 
-    /// Stream bars of market activity for a given query `StreamBarsQuery`
+    /// Stream bars of market activity for a given query `StreamBarsQuery`.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// # Example
     /// ---
@@ -272,6 +280,7 @@ impl Client {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// A query to fetch [`Bar`]'s of market data.
 pub struct GetBarsQuery {
     /// The symbol of the security you want bars for.
     ///
@@ -355,6 +364,7 @@ impl GetBarsQuery {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// A query to stream [`Bar`]'s of market data.
 pub struct StreamBarsQuery {
     /// The symbol of the security you want bars for.
     ///
@@ -481,7 +491,7 @@ pub enum BarStatus {
 }
 
 #[derive(Debug, Default)]
-/// Builder pattern struct for `GetBarsQuery`.
+/// Builder pattern struct for [`GetBarsQuery`].
 pub struct GetBarsQueryBuilder {
     /// The symbol of the security you want bars for.
     ///
@@ -652,7 +662,7 @@ impl GetBarsQueryBuilder {
 }
 
 #[derive(Debug, Default)]
-/// Builder pattern struct for `StreamBarsQuery`.
+/// Builder pattern struct for [`StreamBarsQuery`].
 pub struct StreamBarsQueryBuilder {
     /// The symbol of the security you want bars for.
     ///
