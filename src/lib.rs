@@ -13,7 +13,7 @@
 //!
 //! * [Crates.io Homepage](https://crates.io/crates/tradestation)
 //! * [Documentation](https://docs.rs/tradestation/latest/tradestation)
-//! * [GitHub Repository]()
+//! * [GitHub Repository](https://github.com/antonio-hickey/tradestation-rs)
 //!
 //! Features
 //! ---
@@ -32,7 +32,7 @@
 //! Or manually add it into your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! tradestation = "0.0.5"
+//! tradestation = "0.0.6"
 //! ```
 //!
 //! Usage
@@ -120,20 +120,29 @@
 //!
 //! Keep an eye out on open issues :)
 
+/// Functions, structs, and primitives related to accounting.
 pub mod accounting;
+
+/// Structs for all TradeStation API responses.
 pub mod responses;
 
+/// Functions, structs, and primitives related to the tradestation-rs `Client`.
 pub mod client;
 pub use client::{Client, ClientBuilder};
 
+/// The tradestation-rs error definitions.
 pub mod error;
+/// The tradestation-rs error type.
 pub use error::Error;
 
+/// Functions, Structs, and primitives related to market data.
 pub mod market_data;
+/// Functions, Structs, and primitives related to market data.
 pub use market_data as MarketData;
 
+/// Functions, structs, and primitives related to auth tokens.
 pub mod token;
 pub use token::{Scope, Token};
 
+/// Functions, Structs, and primitives related to market data.
 pub mod execution;
-pub use execution::Route;

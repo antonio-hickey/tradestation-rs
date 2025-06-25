@@ -18,6 +18,10 @@ pub struct MarketDepthQuotes {
 impl MarketDepthQuotes {
     /// Stream realtime market depth quotes for the given Symbol.
     ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
+    ///
     /// NOTE: `symbol` must be a string of a valid symbol.
     /// E.g: `"NVDA"`.
     ///
@@ -102,6 +106,10 @@ impl MarketDepthQuotes {
 }
 impl Client {
     /// Stream realtime market depth quotes for the given Symbol.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// NOTE: `symbol` must be a string of a valid symbol.
     /// E.g: `"NVDA"`.
@@ -200,6 +208,7 @@ pub struct MarketDepthQuote {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// A collection of [`MarketDepthAggregate`]'s split into `bids` and `asks`.
 pub struct MarketDepthAggregates {
     /// Aggregated bid quotes, ordered from high to low price.
     bids: Vec<MarketDepthAggregate>,
@@ -209,6 +218,10 @@ pub struct MarketDepthAggregates {
 }
 impl MarketDepthAggregates {
     /// Stream realtime aggregates of market depth for the given Symbol.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// NOTE: `symbol` must be a string of a valid symbol.
     /// E.g: `"AMD"`.
@@ -295,6 +308,10 @@ impl MarketDepthAggregates {
 }
 impl Client {
     /// Stream realtime aggregates of market depth for the given Symbol.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// NOTE: `symbol` must be a string of a valid symbol.
     /// E.g: `"AMD"`.

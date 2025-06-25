@@ -333,20 +333,6 @@ impl Client {
     /// how you would do it.
     ///
     /// ```ignore
-    /// // Initialize the client
-    /// let client = ClientBuilder::new()?
-    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
-    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
-    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
-    ///         id_token: String::from("YOUR_ID_TOKEN"),
-    ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
-    ///         expires_in: 1200,
-    ///     })?
-    ///     .build()
-    ///     .await?;
-    ///
     /// let position = client.get_position("YOUR_POSITION_ID", "YOUR_ACCOUNT_ID").await?;
     /// println!("Position: {position:?}");
     /// ```
@@ -370,25 +356,12 @@ impl Client {
     /// here's how you would do it.
     ///
     /// ```ignore
-    /// // Initialize the client
-    /// let client = ClientBuilder::new()?
-    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
-    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
-    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
-    ///         id_token: String::from("YOUR_ID_TOKEN"),
-    ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
-    ///         expires_in: 1200,
-    ///     })?
-    ///     .build()
-    ///     .await?;
-    ///
     /// let position = client
     ///     .get_position_in_accounts(
     ///         "YOUR_POSITION_ID",
     ///         vec!["YOUR_ACCOUNT_ID_1", "YOUR_ACCOUNT_ID_N"]
     ///     ).await?;
+    ///
     /// println!("Position: {position:?}");
     /// ```
     pub async fn get_position_in_accounts<S: Into<String>>(
@@ -411,20 +384,6 @@ impl Client {
     /// how you would do it.
     ///
     /// ```ignore
-    /// // Initialize the client
-    /// let client = ClientBuilder::new()?
-    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
-    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
-    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
-    ///         id_token: String::from("YOUR_ID_TOKEN"),
-    ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
-    ///         expires_in: 1200,
-    ///     })?
-    ///     .build()
-    ///     .await?;
-    ///
     /// let positions = client.get_positions_in_account("YOUR_ACCOUNT_ID").await?;
     /// println!("Position: {position:?}");
     /// ```
@@ -443,20 +402,6 @@ impl Client {
     /// Grab all the positions in 2 different accounts.
     ///
     /// ```ignore
-    /// // Initialize the client
-    /// let client = ClientBuilder::new()?
-    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
-    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
-    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
-    ///         id_token: String::from("YOUR_ID_TOKEN"),
-    ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
-    ///         expires_in: 1200,
-    ///     })?
-    ///     .build()
-    ///     .await?;
-    ///
     /// let positions = client
     ///     .get_positions_in_accounts(vec!["YOUR_ACCOUNT_ID_1", "YOUR_ACCOUNT_ID_2"])
     ///     .await?;
@@ -478,26 +423,13 @@ impl Client {
     /// positions and you already know their position ids, here's how you would do it.
     ///
     /// ```ignore
-    /// // Initialize the client
-    /// let client = ClientBuilder::new()?
-    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
-    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
-    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
-    ///         id_token: String::from("YOUR_ID_TOKEN"),
-    ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
-    ///         expires_in: 1200,
-    ///     })?
-    ///     .build()
-    ///     .await?;
-    ///
     /// let positions = client
     ///     .get_positions_by_id(
     ///         vec!["YOUR_POSITION_ID_1", "YOUR_POSITION_ID_2"],
     ///         "YOUR_ACCOUNT_ID",
     ///     )
     ///     .await?;
+    ///
     /// println!("Positions: {positions:?}");
     /// ```
     pub async fn get_positions_by_id<S: Into<String>>(
@@ -516,26 +448,13 @@ impl Client {
     /// Grab specific positions for specific accounts.
     ///
     /// ```ignore
-    /// // Initialize the client
-    /// let client = ClientBuilder::new()?
-    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
-    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
-    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
-    ///         id_token: String::from("YOUR_ID_TOKEN"),
-    ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
-    ///         expires_in: 1200,
-    ///     })?
-    ///     .build()
-    ///     .await?;
-    ///
     /// let positions = client
     ///     .get_positions_by_id(
     ///         vec!["YOUR_POSITION_ID_1", "YOUR_POSITION_ID_2"],
     ///         "YOUR_ACCOUNT_ID",
     ///     )
     ///     .await?;
+    ///
     /// println!("Positions: {positions:?}");
     /// ```
     pub async fn get_positions_by_id_in_accounts<S: Into<String>>(

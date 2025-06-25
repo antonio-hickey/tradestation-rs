@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// A quote on a specific asset symbol.
 pub struct Quote {
     /// The price at which a security, futures contract, or other
     /// financial instrument is offered for sale.
@@ -286,6 +287,10 @@ impl Client {
     }
 
     /// Stream realtime quotes for the given Symbols.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// NOTE: `symbols` should be a vector of valid symbols, and no more than 100 symbols
     /// per request. E.g: `vec!["NVDA", "AMD"]`.

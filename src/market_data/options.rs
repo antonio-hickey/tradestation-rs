@@ -374,15 +374,6 @@ impl OptionRiskRewardAnalysis {
     /// a max potential loss.
     ///
     /// ```ignore
-    /// use tradestation::{ClientBuilder, Error, MarketData::options::{OptionsLeg, OptionTradeAction}};
-    ///
-    /// let mut client = ClientBuilder::new()?
-    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .authorize("YOUR_AUTHORIZATION_CODE")
-    ///     .await?
-    ///     .build()
-    ///     .await?;
-    ///
     /// let risk_reward_analysis = client
     ///     .analyze_options_risk_reward(
     ///         4.33,
@@ -625,7 +616,7 @@ impl Client {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// The query required to fetch `OptionSpreadStrikes`.
+/// The query required to fetch [`OptionSpreadStrikes`].
 pub struct OptionSpreadStrikesQuery {
     /// The symbol for the underlying security
     /// on which the option contracts are based.
@@ -655,7 +646,7 @@ pub struct OptionSpreadStrikesQuery {
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "PascalCase")]
-/// Builder for `OptionSpreadStrikesQuery`
+/// Builder for [`OptionSpreadStrikesQuery`]
 pub struct OptionSpreadStrikesQueryBuilder {
     underlying: Option<String>,
     spread_type: Option<OptionSpreadType>,
@@ -664,7 +655,7 @@ pub struct OptionSpreadStrikesQueryBuilder {
     expiration2: Option<String>,
 }
 impl OptionSpreadStrikesQueryBuilder {
-    /// Create a new `OptionSpreadStrikesQueryBuilder`.
+    /// Create a new [`OptionSpreadStrikesQueryBuilder`].
     pub fn new() -> Self {
         Self::default()
     }
@@ -712,7 +703,7 @@ impl OptionSpreadStrikesQueryBuilder {
         self
     }
 
-    /// Finish building, returning a `OptionSpreadStrikesQuery`.
+    /// Finish building, returning a [`OptionSpreadStrikesQuery`].
     ///
     /// NOTE: You must set `symbol` before calling `build`.
     pub fn build(self) -> Result<OptionSpreadStrikesQuery, Error> {
@@ -1141,7 +1132,7 @@ impl OptionChainQuery {
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "PascalCase")]
-/// Builder for `OptionChainQuery`.
+/// Builder for [`OptionChainQuery`].
 pub struct OptionChainQueryBuilder {
     /// The symbol for the underlying security on which the option contracts are based.
     underlying: Option<String>,
@@ -1380,6 +1371,7 @@ pub enum OptionType {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// A quote on a specific options contract.
 pub struct OptionQuote {
     /// The expected change in an option position’s value resulting
     /// from a one point increase in the price of the underlying security.
@@ -1537,11 +1529,11 @@ pub struct OptionQuote {
     pub legs: Vec<OptionSpreadLeg>,
 }
 impl OptionQuote {
-    /// Stream quotes of an options spread for given a query `OptionQuoteQuery`.
+    /// Stream quotes of an options spread for given a query [`OptionQuoteQuery`].
     ///
     /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
     ///
-    /// NOTE: You need to provide a function to handle each stream chunk.
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// # Example
     /// ---
@@ -1651,9 +1643,11 @@ impl OptionQuote {
     }
 }
 impl Client {
-    /// Stream quotes of an options spread for given a query `OptionQuoteQuery`.
+    /// Stream quotes of an options spread for given a query [`OptionQuoteQuery`].
     ///
     /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// NOTE: You must pin the stream before polling it.
     ///
     /// NOTE: You need to provide a function to handle each stream chunk.
     ///
@@ -1804,7 +1798,7 @@ impl OptionQuoteQuery {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// The leg for an `OptionQuoteQuery`
+/// The leg for an [`OptionQuoteQuery`]
 pub struct OptionQouteLeg {
     /// Option contract symbol or underlying
     /// symbol to be traded for this leg.
@@ -1819,14 +1813,14 @@ pub struct OptionQouteLeg {
 }
 
 #[derive(Default)]
-/// Builder for `OptionQuoteQuery`
+/// Builder for [`OptionQuoteQuery`]
 pub struct OptionQuoteQueryBuilder {
     legs: Option<Vec<OptionQouteLeg>>,
     risk_free_rate: Option<f64>,
     enable_greeks: Option<bool>,
 }
 impl OptionQuoteQueryBuilder {
-    /// Create a new builder for `OptionQuoteQuery`.
+    /// Create a new builder for [`OptionQuoteQuery`].
     pub fn new() -> Self {
         Self::default()
     }
@@ -1855,7 +1849,7 @@ impl OptionQuoteQueryBuilder {
         self
     }
 
-    /// Finish building `OptionQuoteQuery`
+    /// Finish building [`OptionQuoteQuery`]
     pub fn build(self) -> Result<OptionQuoteQuery, Error> {
         Ok(OptionQuoteQuery {
             legs: self.legs.ok_or_else(|| Error::OptionLegsNotSet)?,

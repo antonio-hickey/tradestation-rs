@@ -556,6 +556,7 @@ impl Order {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// An collection of `OrderRequest`'s to be sent together.
 pub struct OrderRequestGroup {
     pub order_requests: Vec<OrderRequest>,
     pub group_type: OrderGroupType,
@@ -836,6 +837,8 @@ pub enum OrderGroupType {
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 #[serde(rename_all = "PascalCase")]
+/// An update to an existing [`Order`] already placed and
+/// still alive in the market.
 pub struct OrderUpdate {
     /// The limit price for this updated `Order`.
     pub limit_price: Option<String>,
@@ -1464,23 +1467,8 @@ impl Route {
     /// ---
     /// Example: Fetch a list of routes to send orders for execution.
     /// ```ignore
-    /// use tradestation::{ClientBuilder, Error, Token};
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), Error> {
-    ///     // Create client
-    ///     let client = ClientBuilder::new()?
-    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
-    ///         .build()
-    ///         .await?;
-    ///
-    ///     // Example: Fetch a list of routes to send orders for execution.
-    ///     let routes = client.get_execution_routes().await?;
-    ///     println!("Valid routes for order execution: {routes:?}");
-    ///
-    ///     Ok(())
-    /// }
+    /// let routes = client.get_execution_routes().await?;
+    /// println!("Valid routes for order execution: {routes:?}");
     /// ```
     pub async fn fetch(client: &Client) -> Result<Vec<Route>, Error> {
         let endpoint = String::from("orderexecution/routes");
@@ -1562,30 +1550,8 @@ impl ActivationTrigger {
     /// Fetch valid activation triggers to utilize with your orders.
     ///
     /// ```ignore
-    /// use tradestation::{ClientBuilder, Error, Token};
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), Error> {
-    ///     // Initialize client
-    ///     let client = ClientBuilder::new()?
-    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .token(Token {
-    ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
-    ///             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
-    ///             id_token: String::from("YOUR_ID_TOKEN"),
-    ///             token_type: String::from("Bearer"),
-    ///             scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
-    ///             expires_in: 1200,
-    ///         })?
-    ///         .build()
-    ///         .await?;
-    ///
-    ///     // Fetch a list of valid activation triggers for order execution.
-    ///     let triggers = client.get_activation_triggers().await?;
-    ///     println!("Valid activation triggers for order execution: {triggers:?}");
-    ///
-    ///     Ok(())
-    /// }
+    /// let triggers = client.get_activation_triggers().await?;
+    /// println!("Valid activation triggers for order execution: {triggers:?}");
     /// ```
     pub async fn fetch(client: &Client) -> Result<Vec<ActivationTrigger>, Error> {
         let endpoint = String::from("orderexecution/activationtriggers");
@@ -1740,6 +1706,10 @@ pub enum ActivationTriggerKey {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// A confirmed order.
+///
+/// NOTE: This is NOT a placed order, but similar to a mock order
+/// confirming it's valid and ready to be sent to the intended route.
 pub struct OrderConfirmation {
     /// The route of the order.
     ///
