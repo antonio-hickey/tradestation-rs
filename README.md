@@ -64,10 +64,8 @@ async fn main() -> Result<(), Error> {
             id_token: "YOUR_ID_TOKEN".into(),
             token_type: String::from("Bearer"),
             scope: vec![
-                Scope::OpenId,
                 Scope::Profile,
                 Scope::ReadAccount,
-                Scope::OfflineAccess,
                 Scope::MarketData,
             ],
             expires_in: 1200,

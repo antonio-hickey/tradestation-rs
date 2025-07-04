@@ -27,8 +27,7 @@ async fn main() -> Result<(), Error> {
             id_token: String::from("YOUR_ID_TOKEN"),
             token_type: String::from("Bearer"),
             scope: vec![
-                Scope::OpenId,
-                Scope::OfflineAccess,
+                Scope::MarketData,
                 /* ... Your Other Desired Scopes */
             ],
             expires_in: 1200,
