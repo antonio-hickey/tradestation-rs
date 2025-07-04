@@ -46,6 +46,7 @@ pub struct TokenBuilder {
 
     /// Scopes associated with the `Token`.
     #[serde(
+        default = "default_scopes",
         serialize_with = "serialize_scopes",
         deserialize_with = "deserialize_scopes"
     )]
@@ -80,7 +81,12 @@ impl TokenBuilder {
 
     /// Set the scopes for the `Token`.
     pub fn scope(mut self, scopes: Vec<Scope>) -> Self {
-        self.scope = scopes;
+        let scopes: Vec<Scope> = scopes
+            .into_iter()
+            .filter(|scope| !self.scope.contains(scope))
+            .collect();
+
+        self.scope.extend(scopes);
         self
     }
 
@@ -258,4 +264,9 @@ where
     s.split_whitespace()
         .map(|token| Scope::from_str(token).map_err(de::Error::custom))
         .collect()
+}
+
+/// The default set of scope.
+fn default_scopes() -> Vec<Scope> {
+    vec![Scope::OpenId, Scope::OfflineAccess]
 }
