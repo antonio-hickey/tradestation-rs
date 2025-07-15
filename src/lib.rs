@@ -32,7 +32,7 @@
 //! Or manually add it into your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! tradestation = "0.0.6"
+//! tradestation = "0.0.7"
 //! ```
 //!
 //! Usage
