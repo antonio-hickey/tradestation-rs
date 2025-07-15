@@ -36,7 +36,7 @@ cargo install tradestation
 Or manually add it into your `Cargo.toml`:
 ```toml
 [dependencies]
-tradestation = "0.0.5"
+tradestation = "0.0.7"
 ```
 
 Usage
