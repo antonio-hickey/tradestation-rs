@@ -112,6 +112,7 @@ impl Order {
     /// loss price. A total of 3 orders making up this position.
     /// ```ignore
     /// use tradestation::{
+    ///     accounting::{OrderRelationship},
     ///     execution::{Duration, Order, OrderRequestBuilder},
     ///     ClientBuilder, Error, Token,
     /// };
@@ -169,7 +170,7 @@ impl Order {
     ///             take_profit_order_req,
     ///             stop_loss_order_req,
     ///         ]))
-    ///         .group_type(OrderGroupType::BRK)
+    ///         .group_type(OrderRelationship::BRK)
     ///         .build()?;
     ///
     ///     let orders = Order::place_group(&order_group, &client).await?;
@@ -593,17 +594,4 @@ pub enum AdvancedOrderType {
     /// but only one can be filled as the rest
     /// cancel when any of the orders is filled.
     OCO,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// The different types of order groups
-pub enum OrderGroupType {
-    /// Bracket Order
-    BRK,
-
-    /// Order Cancels Order
-    OCO,
-
-    /// Normal Group of Orders
-    NORMAL,
 }

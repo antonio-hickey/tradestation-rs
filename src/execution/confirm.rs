@@ -285,6 +285,7 @@ impl Order {
     /// loss price. A total of 3 orders making up this position.
     /// ```ignore
     /// use tradestation::{
+    ///     accounting::OrderRelationship,
     ///     execution::{Duration, Order, OrderRequestBuilder},
     ///     ClientBuilder, Error, Token,
     /// };
@@ -342,7 +343,7 @@ impl Order {
     ///             take_profit_order_req,
     ///             stop_loss_order_req,
     ///         ]))
-    ///         .group_type(OrderGroupType::BRK)
+    ///         .group_type(OrderRelationship::BRK)
     ///         .build()?;
     ///
     ///     let order_confirmations = Order::confirm(&order_group, &client).await?;
@@ -472,6 +473,7 @@ impl OrderRequestGroup {
     /// loss price. A total of 3 orders making up this position.
     /// ```ignore
     /// use tradestation::{
+    ///     accounting::OrderRelationship,
     ///     execution::{Duration, Order, OrderRequestBuilder},
     ///     ClientBuilder, Error, Token,
     /// };
@@ -529,7 +531,7 @@ impl OrderRequestGroup {
     ///             take_profit_order_req,
     ///             stop_loss_order_req,
     ///         ]))
-    ///         .group_type(OrderGroupType::BRK)
+    ///         .group_type(OrderRelationship::BRK)
     ///         .build()?;
     ///
     ///     let order_confirmations = order_group.confirm(&client).await?;
