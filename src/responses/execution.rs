@@ -1,6 +1,6 @@
 use super::ApiError;
 use crate::{
-    execution::{ActivationTrigger, Order, OrderConfirmation, Route},
+    execution::{ActivationTrigger, OrderConfirmation, OrderTicket, Route},
     Error,
 };
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 /// an order, but not actually placing it.
 pub(crate) struct OrderRespRaw {
     /// The orders modified, placed, or canceled.
-    orders: Option<Vec<Order>>,
+    orders: Option<Vec<OrderTicket>>,
 
     /// The error type from TradeStation's API
     ///
@@ -28,7 +28,7 @@ pub(crate) struct OrderRespRaw {
 /// an order, but not actually placing it.
 pub(crate) struct OrderResp {
     /// The order confirmations.
-    pub orders: Option<Vec<Order>>,
+    pub orders: Option<Vec<OrderTicket>>,
 
     /// The error from TradeStation's API.
     ///
@@ -105,11 +105,11 @@ impl From<ModifyOrderRespRaw> for ModifyOrderResp {
         }
     }
 }
-impl From<ModifyOrderResp> for Order {
+impl From<ModifyOrderResp> for OrderTicket {
     fn from(raw: ModifyOrderResp) -> Self {
         let error = raw.error.map(|err| err.to_string());
 
-        Order {
+        OrderTicket {
             order_id: raw.order_id,
             message: raw.message.unwrap_or_default(),
             error,
