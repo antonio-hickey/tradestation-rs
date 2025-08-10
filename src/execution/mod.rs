@@ -16,6 +16,8 @@ pub mod order;
 pub mod request;
 /// Functionality and primitives around execution routes.
 pub mod route;
+/// Functionality and primitives around [`crate::accounting::orders::Order`] tickets (post execution).
+pub mod ticket;
 /// Functionality and primitives around [`crate::accounting::orders::Order`] execution triggers.
 pub mod trigger;
 /// Functionality and primitives around [`crate::accounting::orders::Order`] updating/replacing.
@@ -27,10 +29,11 @@ pub use crate::accounting::orders::{
 };
 pub use confirm::OrderConfirmation;
 pub use order::{
-    AdvancedOrderOptions, BPWarningStatus, Duration, Order, OrderAssetCategory, OrderGroupType,
+    AdvancedOrderOptions, BPWarningStatus, Duration, OrderAssetCategory, OrderGroupType,
     OrderRequestLeg, OrderTimeInForce, Oso, PegValue, TradeAction,
 };
 pub use request::{OrderRequest, OrderRequestBuilder, OrderRequestGroup, OrderRequestGroupBuilder};
 pub use route::Route;
+pub use ticket::OrderTicket;
 pub use trigger::{ActivationTrigger, ActivationTriggerKey};
 pub use update::OrderUpdate;

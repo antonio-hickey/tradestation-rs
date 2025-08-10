@@ -1,9 +1,9 @@
 use crate::{
     accounting::{
         orders::{MarketActivationRule, TimeActivationRule, TrailingStop},
-        OptionType,
+        OptionType, Order,
     },
-    execution::{OrderRequest, OrderRequestGroup, OrderUpdate},
+    execution::{OrderRequest, OrderRequestGroup, OrderTicket, OrderUpdate},
     responses::{
         execution::{ModifyOrderResp, ModifyOrderRespRaw, OrderResp, OrderRespRaw},
         ApiResponse,
@@ -12,47 +12,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
-/// An Active Order
-pub struct Order {
-    /// Short text summary / description of the order.
-    pub message: String,
-
-    #[serde(rename = "OrderID")]
-    /// The id of the order.
-    pub order_id: String,
-
-    /// The error for the order.
-    pub error: Option<String>,
-}
 impl Order {
-    /// Instantiate an `Order` using a provided order id.
-    ///
-    /// NOTE: The created `Order` is NOT guaranteed to be valid
-    /// for use. The order id provided must be valid to do anything
-    /// with the `Order` instance.
-    ///
-    /// # Example
-    /// ---
-    ///
-    /// Create an instance of `Order` for an order id `11111111`
-    /// which you can then use to cancel or replace the order.
-    ///
-    /// ```
-    /// use tradestation::execution::Order;
-    ///
-    /// let order = Order::from_id("11111111");
-    /// println!("{order:?}");
-    /// ```
-    pub fn from_id<S: Into<String>>(order_id: S) -> Order {
-        Order {
-            message: "".into(),
-            order_id: order_id.into(),
-            error: None,
-        }
-    }
-
     /// Place the `OrderRequest` getting back the result of the Order Request.
     ///
     /// # Example
@@ -80,7 +40,10 @@ impl Order {
     ///     Err(e) => println!("Order Response: {e:?}"),
     /// }
     /// ```
-    pub async fn place(order_request: &OrderRequest, client: &Client) -> Result<Vec<Order>, Error> {
+    pub async fn place(
+        order_request: &OrderRequest,
+        client: &Client,
+    ) -> Result<Vec<OrderTicket>, Error> {
         let endpoint = String::from("orderexecution/orders");
 
         match client
@@ -216,7 +179,7 @@ impl Order {
     pub async fn place_group(
         order_req_group: &OrderRequestGroup,
         client: &Client,
-    ) -> Result<Vec<Order>, Error> {
+    ) -> Result<Vec<OrderTicket>, Error> {
         let endpoint = String::from("orderexecution/ordergroups");
 
         match client
@@ -276,7 +239,11 @@ impl Order {
     ///         .await?;
     /// }
     /// ```
-    pub async fn replace(self, order_update: OrderUpdate, client: &Client) -> Result<Order, Error> {
+    pub async fn replace(
+        self,
+        order_update: OrderUpdate,
+        client: &Client,
+    ) -> Result<OrderTicket, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
         match client
@@ -287,7 +254,7 @@ impl Order {
         {
             ApiResponse::Success(resp_raw) => {
                 let resp: ModifyOrderResp = resp_raw.into();
-                let order: Order = resp.into();
+                let order: OrderTicket = resp.into();
 
                 Ok(order)
             }
@@ -323,7 +290,7 @@ impl Order {
     ///     order.cancel(&client).await?;
     /// }
     /// ```
-    pub async fn cancel(self, client: &Client) -> Result<Order, Error> {
+    pub async fn cancel(self, client: &Client) -> Result<OrderTicket, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
         match client
@@ -334,7 +301,7 @@ impl Order {
         {
             ApiResponse::Success(resp_raw) => {
                 let resp: ModifyOrderResp = resp_raw.into();
-                let order: Order = resp.into();
+                let order: OrderTicket = resp.into();
 
                 Ok(order)
             }

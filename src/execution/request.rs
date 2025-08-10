@@ -1,8 +1,11 @@
 use crate::{
-    accounting::orders::OrderType,
-    execution::order::{
-        AdvancedOrderOptions, BPWarningStatus, Order, OrderGroupType, OrderRequestLeg,
-        OrderTimeInForce, Oso, TradeAction,
+    accounting::orders::{Order, OrderType},
+    execution::{
+        order::{
+            AdvancedOrderOptions, BPWarningStatus, OrderGroupType, OrderRequestLeg,
+            OrderTimeInForce, Oso, TradeAction,
+        },
+        ticket::OrderTicket,
     },
     Client, Error,
 };
@@ -334,7 +337,7 @@ impl OrderRequestGroup {
     ///     println!("Place Orders Result: {orders:?}");
     /// }
     /// ```
-    pub async fn place(&self, client: &Client) -> Result<Vec<Order>, Error> {
+    pub async fn place(&self, client: &Client) -> Result<Vec<OrderTicket>, Error> {
         Order::place_group(self, client).await
     }
 }

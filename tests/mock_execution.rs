@@ -1,8 +1,8 @@
 use mockito::Server;
-use tradestation::accounting::OrderType;
+use tradestation::accounting::{Order, OrderType};
 use tradestation::execution::{
-    Duration, Order, OrderAssetCategory, OrderRequestBuilder, OrderRequestLeg, OrderTimeInForce,
-    OrderUpdate, TradeAction,
+    Duration, OrderAssetCategory, OrderRequestBuilder, OrderRequestLeg, OrderTicket,
+    OrderTimeInForce, OrderUpdate, TradeAction,
 };
 use tradestation::ClientBuilder;
 use tradestation::MarketData::OptionSpreadType;
@@ -362,7 +362,7 @@ fn test_replace_order_mocked() {
             .unwrap();
 
         // Update some order to have a quantity of 25
-        let order = Order::from_id("5555555555");
+        let order = OrderTicket::from_id("5555555555");
         let order_update = OrderUpdate::new().quantity("25");
 
         // Replace the order with the order update
@@ -408,7 +408,7 @@ fn test_cancel_order_mocked() {
             .unwrap();
 
         // Some order to cancel
-        let order = Order::from_id("5555555555");
+        let order = OrderTicket::from_id("5555555555");
 
         // Cancel the order
         match order.cancel(&client).await {
