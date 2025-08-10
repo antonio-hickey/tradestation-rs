@@ -1,10 +1,10 @@
 //! Example file on basic usage for order execution endpoints
 
 use tradestation::{
-    accounting::orders::OrderType,
+    accounting::orders::{Order, OrderType},
     execution::{
-        Duration, Order, OrderGroupType, OrderRequestBuilder, OrderRequestGroupBuilder,
-        OrderTimeInForce, OrderUpdate, TradeAction,
+        Duration, OrderGroupType, OrderRequestBuilder, OrderRequestGroupBuilder, OrderTimeInForce,
+        OrderUpdate, TradeAction,
     },
     token::{Scope, Token},
     ClientBuilder, Error,
