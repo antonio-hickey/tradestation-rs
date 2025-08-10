@@ -1,10 +1,10 @@
 //! Example file on basic usage for order execution endpoints
 
 use tradestation::{
-    accounting::orders::{Order, OrderType},
+    accounting::orders::{Order, OrderRelationship, OrderType},
     execution::{
-        Duration, OrderGroupType, OrderRequestBuilder, OrderRequestGroupBuilder, OrderTimeInForce,
-        OrderUpdate, TradeAction,
+        Duration, OrderRequestBuilder, OrderRequestGroupBuilder, OrderTimeInForce, OrderUpdate,
+        TradeAction,
     },
     token::{Scope, Token},
     ClientBuilder, Error,
@@ -129,7 +129,7 @@ async fn main() -> Result<(), Error> {
             take_profit_order_req,
             stop_loss_order_req,
         ]))
-        .group_type(OrderGroupType::BRK)
+        .group_type(OrderRelationship::BRK)
         .build()?;
 
     let orders = order_group.place(&client).await?;

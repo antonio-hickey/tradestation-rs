@@ -697,17 +697,28 @@ pub struct ConditionalOrder {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-/// Types of `Order` relationships
+/// The different types of [`Order`] relationships.
 pub enum OrderRelationship {
-    /// Bracket Order
+    /// Bracket [`Order`] relationship.
     BRK,
 
-    /// One Sends Parent (linked parent)
+    /// One Sends Parent (linked parent).
     OSP,
 
-    /// One Sends Other (linked child)
+    /// One Sends Other (linked child).
+    ///
+    /// NOTE: From an execution perspective this
+    /// can be thought of as "Order Sends Order"
+    /// relationship type between [`Order`]'s.
     OSO,
 
-    /// One Cancels Other
+    /// One Cancels Other.
+    ///
+    /// NOTE: From an execution perspective this
+    /// can be thought of as "Order Cancels Order"
+    /// relationship type between [`Order`]'s.
     OCO,
+
+    /// All other types of [`Order`] relationships.
+    NORMAL,
 }

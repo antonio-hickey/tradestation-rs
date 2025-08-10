@@ -1,9 +1,9 @@
 use crate::{
-    accounting::orders::{Order, OrderType},
+    accounting::orders::{Order, OrderRelationship, OrderType},
     execution::{
         order::{
-            AdvancedOrderOptions, BPWarningStatus, OrderGroupType, OrderRequestLeg,
-            OrderTimeInForce, Oso, TradeAction,
+            AdvancedOrderOptions, BPWarningStatus, OrderRequestLeg, OrderTimeInForce, Oso,
+            TradeAction,
         },
         ticket::OrderTicket,
     },
@@ -227,7 +227,7 @@ impl OrderRequestBuilder {
 /// An collection of `OrderRequest`'s to be sent together.
 pub struct OrderRequestGroup {
     pub order_requests: Vec<OrderRequest>,
-    pub group_type: OrderGroupType,
+    pub group_type: OrderRelationship,
 }
 impl OrderRequestGroup {
     /// Submits a group order. Request valid for Order Cancels Order (OCO)
@@ -273,6 +273,7 @@ impl OrderRequestGroup {
     /// loss price. A total of 3 orders making up this position.
     /// ```ignore
     /// use tradestation::{
+    ///     accounting::OrderRelationship,
     ///     execution::{Duration, Order, OrderRequestBuilder},
     ///     ClientBuilder, Error, Token,
     /// };
@@ -330,7 +331,7 @@ impl OrderRequestGroup {
     ///             take_profit_order_req,
     ///             stop_loss_order_req,
     ///         ]))
-    ///         .group_type(OrderGroupType::BRK)
+    ///         .group_type(OrderRelationship::BRK)
     ///         .build()?;
     ///
     ///     let orders = order_group.place(&client).await?;
@@ -346,7 +347,7 @@ impl OrderRequestGroup {
 /// `OrderRequestGroup` builder
 pub struct OrderRequestGroupBuilder {
     order_requests: Option<Vec<OrderRequest>>,
-    group_type: Option<OrderGroupType>,
+    group_type: Option<OrderRelationship>,
 }
 impl OrderRequestGroupBuilder {
     /// Initialize a default builder struct for an `OrderRequestGroup`.
@@ -360,8 +361,8 @@ impl OrderRequestGroupBuilder {
         self
     }
 
-    /// Set the Order Group Type (`execution::OrderGroupType`).
-    pub fn group_type(mut self, group_type: OrderGroupType) -> Self {
+    /// Set the Order Group Type ([`OrderRelationship`]).
+    pub fn group_type(mut self, group_type: OrderRelationship) -> Self {
         self.group_type = Some(group_type);
         self
     }
