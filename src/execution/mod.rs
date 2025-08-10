@@ -25,12 +25,13 @@ pub mod update;
 
 // Expose these directly from the [`crate::execution`] level
 pub use crate::accounting::orders::{
-    ConditionalOrder, OrderAction, OrderLeg, OrderRelationship, OrderStage, OrderStatus, OrderType,
+    AssetType, ConditionalOrder, OrderAction, OrderLeg, OrderRelationship, OrderStage, OrderStatus,
+    OrderType,
 };
 pub use confirm::OrderConfirmation;
 pub use order::{
-    AdvancedOrderOptions, BPWarningStatus, Duration, OrderAssetCategory, OrderGroupType,
-    OrderRequestLeg, OrderTimeInForce, Oso, PegValue, TradeAction,
+    AdvancedOrderOptions, BPWarningStatus, Duration, OrderGroupType, OrderRequestLeg,
+    OrderTimeInForce, Oso, PegValue, TradeAction,
 };
 pub use request::{OrderRequest, OrderRequestBuilder, OrderRequestGroup, OrderRequestGroupBuilder};
 pub use route::Route;

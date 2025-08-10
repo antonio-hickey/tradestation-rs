@@ -1,8 +1,8 @@
 use mockito::Server;
-use tradestation::accounting::{Order, OrderType};
+use tradestation::accounting::{AssetType, Order, OrderType};
 use tradestation::execution::{
-    Duration, OrderAssetCategory, OrderRequestBuilder, OrderRequestLeg, OrderTicket,
-    OrderTimeInForce, OrderUpdate, TradeAction,
+    Duration, OrderRequestBuilder, OrderRequestLeg, OrderTicket, OrderTimeInForce, OrderUpdate,
+    TradeAction,
 };
 use tradestation::ClientBuilder;
 use tradestation::MarketData::OptionSpreadType;
@@ -62,7 +62,7 @@ fn test_equity_confirm_order_mocked() {
                     order_confirm[0].account_id
                 );
                 assert!(
-                    order_confirm[0].order_asset_category == OrderAssetCategory::Equity,
+                    order_confirm[0].order_asset_category == AssetType::Equity,
                     "The asset category for this order should be Equity, but got {:?}",
                     order_confirm[0].order_asset_category
                 );
@@ -171,7 +171,7 @@ fn test_stock_option_confirm_order_mocked() {
                     order_confirm[0].account_id
                 );
                 assert!(
-                    order_confirm[0].order_asset_category == OrderAssetCategory::Option,
+                    order_confirm[0].order_asset_category == AssetType::Option,
                     "The asset category for this order should be Option, but got {:?}",
                     order_confirm[0].order_asset_category
                 );
@@ -263,7 +263,7 @@ fn test_future_confirm_order_mocked() {
                     order_confirm[0].account_id
                 );
                 assert!(
-                    order_confirm[0].order_asset_category == OrderAssetCategory::Future,
+                    order_confirm[0].order_asset_category == AssetType::Future,
                     "The asset category for this order should be Future, but got {:?}",
                     order_confirm[0].order_asset_category
                 );

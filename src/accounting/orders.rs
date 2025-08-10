@@ -641,6 +641,14 @@ pub enum AssetType {
     /// An unknown asset type.
     Unknown,
 
+    #[serde(rename = "EQUITY")]
+    /// An asset in the form of equity.
+    Equity,
+
+    #[serde(rename = "OPTION")]
+    /// An asset in the form of an option.
+    Option,
+
     #[serde(rename = "STOCK")]
     /// An asset in the form of a stock.
     Stock,
