@@ -30,8 +30,8 @@ pub use crate::accounting::orders::{
 };
 pub use confirm::OrderConfirmation;
 pub use order::{
-    AdvancedOrderOptions, BPWarningStatus, Duration, OrderGroupType, OrderRequestLeg,
-    OrderTimeInForce, Oso, PegValue, TradeAction,
+    AdvancedOrderOptions, BPWarningStatus, Duration, OrderRequestLeg, OrderTimeInForce, Oso,
+    PegValue, TradeAction,
 };
 pub use request::{OrderRequest, OrderRequestBuilder, OrderRequestGroup, OrderRequestGroupBuilder};
 pub use route::Route;

@@ -1,9 +1,9 @@
 use crate::{
-    accounting::orders::{Order, OrderType},
+    accounting::orders::{Order, OrderRelationship, OrderType},
     execution::{
         order::{
-            AdvancedOrderOptions, BPWarningStatus, OrderGroupType, OrderRequestLeg,
-            OrderTimeInForce, Oso, TradeAction,
+            AdvancedOrderOptions, BPWarningStatus, OrderRequestLeg, OrderTimeInForce, Oso,
+            TradeAction,
         },
         ticket::OrderTicket,
     },
@@ -227,7 +227,7 @@ impl OrderRequestBuilder {
 /// An collection of `OrderRequest`'s to be sent together.
 pub struct OrderRequestGroup {
     pub order_requests: Vec<OrderRequest>,
-    pub group_type: OrderGroupType,
+    pub group_type: OrderRelationship,
 }
 impl OrderRequestGroup {
     /// Submits a group order. Request valid for Order Cancels Order (OCO)
@@ -346,7 +346,7 @@ impl OrderRequestGroup {
 /// `OrderRequestGroup` builder
 pub struct OrderRequestGroupBuilder {
     order_requests: Option<Vec<OrderRequest>>,
-    group_type: Option<OrderGroupType>,
+    group_type: Option<OrderRelationship>,
 }
 impl OrderRequestGroupBuilder {
     /// Initialize a default builder struct for an `OrderRequestGroup`.
@@ -361,7 +361,7 @@ impl OrderRequestGroupBuilder {
     }
 
     /// Set the Order Group Type (`execution::OrderGroupType`).
-    pub fn group_type(mut self, group_type: OrderGroupType) -> Self {
+    pub fn group_type(mut self, group_type: OrderRelationship) -> Self {
         self.group_type = Some(group_type);
         self
     }

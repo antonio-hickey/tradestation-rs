@@ -594,16 +594,3 @@ pub enum AdvancedOrderType {
     /// cancel when any of the orders is filled.
     OCO,
 }
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// The different types of order groups
-pub enum OrderGroupType {
-    /// Bracket Order
-    BRK,
-
-    /// Order Cancels Order
-    OCO,
-
-    /// Normal Group of Orders
-    NORMAL,
-}
