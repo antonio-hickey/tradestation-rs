@@ -12,6 +12,8 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
+use super::OrderRelationship;
+
 impl Order {
     /// Place the `OrderRequest` getting back the result of the Order Request.
     ///
@@ -577,21 +579,5 @@ pub struct Oso {
     pub orders: Vec<OrderRequest>,
 
     /// The type of OSO Order
-    pub r#type: AdvancedOrderType,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// Different types of advanced order types
-pub enum AdvancedOrderType {
-    /// Normal Order
-    Normal,
-
-    /// Bracket Order, multiple orders ranged
-    /// in price.
-    BRK,
-
-    /// Order Cancels Other, multiple orders
-    /// but only one can be filled as the rest
-    /// cancel when any of the orders is filled.
-    OCO,
+    pub r#type: OrderRelationship,
 }
