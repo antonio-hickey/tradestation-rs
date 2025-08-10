@@ -1,7 +1,7 @@
 use crate::{
-    accounting::orders::{Order, TrailingStop},
+    accounting::orders::{AssetType, Order, TrailingStop},
     execution::{
-        order::{OrderAssetCategory, OrderRequestLeg, OrderTimeInForce, PegValue},
+        order::{OrderRequestLeg, OrderTimeInForce, PegValue},
         request::{OrderRequest, OrderRequestGroup},
     },
     market_data::OptionSpreadType,
@@ -37,7 +37,7 @@ pub struct OrderConfirmation {
     pub summary_message: String,
 
     /// The asset category for the asset an order is for.
-    pub order_asset_category: OrderAssetCategory,
+    pub order_asset_category: AssetType,
 
     #[serde(rename = "OrderConfirmID")]
     /// The ID of the order confirm.
