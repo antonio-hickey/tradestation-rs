@@ -595,22 +595,6 @@ pub enum AdvancedOrderType {
     OCO,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-/// The different asset categories an `Order` can fall into.
-pub enum OrderAssetCategory {
-    #[serde(rename = "EQUITY")]
-    /// Orders for Stocks, ETFs, ETNs, etc.
-    Equity,
-
-    #[serde(rename = "OPTION")]
-    /// Orders for Options on Stocks, ETFs, ETNs, etc.
-    Option,
-
-    #[serde(rename = "FUTURE")]
-    /// Orders for Future Contracts
-    Future,
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// The different types of order groups
 pub enum OrderGroupType {
