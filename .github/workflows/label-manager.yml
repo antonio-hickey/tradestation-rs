@@ -1,0 +1,32 @@
+name: Label Manager
+
+on:
+  push:
+    paths:
+      # Specify which paths triggers the workflow action run.
+      #
+      # You really only want this action to run when you update
+      # your label defintions file, and not any other time.
+      - ".github/labels.yml"
+  workflow_dispatch:
+
+permissions:
+  # The label manager NEEDS permssion to read the .github/labels.yml
+  # and `.github/workflows/labels-manager.yml` files to know how to
+  # manage labels and what actions to take.
+  contents: read
+
+  # The labels manager NEEDS permission to write
+  # to your repositories issue's section to create,
+  # update, and delete issue labels.
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: byte-forge-io/github-labels-manager@master
+        with:
+          yaml-path: ".github/labels.yml"
+          prune: "true"
