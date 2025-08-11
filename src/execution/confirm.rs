@@ -15,40 +15,40 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// A confirmed order.
+/// A Confirmation/Verification of an [`OrderRequest`].
 ///
-/// NOTE: This is NOT a placed order, but similar to a mock order
+/// NOTE: This is NOT a placed [`Order`], but similar to a mock [`Order`]
 /// confirming it's valid and ready to be sent to the intended route.
 pub struct OrderConfirmation {
-    /// The route of the order.
+    /// The route of the [`Order`].
     ///
     /// NOTE: For Stocks and Options, Route value will
     /// default to Intelligent if no value is set.
     pub route: String,
 
-    /// Defines the duration or expiration timestamp of an Order.
+    /// Defines the duration or expiration timestamp of an [`Order`].
     pub time_in_force: OrderTimeInForce,
 
     #[serde(rename = "AccountID")]
-    /// The ID of the Account the order belongs to.
+    /// The ID of the Account the [`Order`] belongs to.
     pub account_id: String,
 
-    /// A short text summary / description of the order.
+    /// A short text summary / description of the [`Order`].
     pub summary_message: String,
 
-    /// The asset category for the asset an order is for.
+    /// The asset category for the asset an [`Order`] is for.
     pub order_asset_category: AssetType,
 
     #[serde(rename = "OrderConfirmID")]
-    /// The ID of the order confirm.
+    /// The ID of the [`Order`] confirm.
     pub order_confirm_id: String,
 
-    /// The limit price of the order.
+    /// The limit price of the [`Order`].
     ///
-    /// NOTE: Only valid for orders with `OrderType::Limit`.
+    /// NOTE: Only valid for orders with [`crate::orders::OrderType::Limit`].
     pub limit_price: Option<String>,
 
-    /// When you send a non-display order, it will not be
+    /// When you send a non-display [`Order`], it will not be
     /// reflected in either the market depth display or ECN books.
     ///
     /// NOTE: Only valid for equities.
@@ -62,8 +62,8 @@ pub struct OrderConfirmation {
 
     /// Hides the true number of shares intended to be bought or sold.
     ///
-    /// NOTE: Only valid for orders with `OrderType::Limit` and
-    /// `OrderType::StopLimit`.
+    /// NOTE: Only valid for orders with [`crate::orders::OrderType::Limit`]
+    /// and [`crate::orders::OrderType::StopLimit`].
     ///
     /// NOTE: Not valid for all exchanges.
     pub show_only_quantity: Option<i64>,
@@ -73,58 +73,59 @@ pub struct OrderConfirmation {
     /// NOTE: Only valid for options.
     pub spread: Option<OptionSpreadType>,
 
-    /// The stop price for open orders.
+    /// The stop price for open [`Order`]'s.
     pub stop_price: Option<String>,
 
-    /// The trailing stop offset for an order.
+    /// The trailing stop offset for an [`Order`].
     pub trailing_stop: Option<TrailingStop>,
 
-    /// The order legs related to the overall order.
+    /// The order legs related to the overall [`Order`].
     pub legs: Option<Vec<OrderRequestLeg>>,
 
-    /// The underlying symbol name the order is for.
+    /// The underlying symbol name the [`Order`] is for.
     pub underlying: Option<String>,
 
-    /// The estimated price of the order.
+    /// The estimated price of the [`Order`].
     pub estimated_price: String,
 
-    /// The estimated display price of the order.
+    /// The estimated display price of the [`Order`].
     pub estimated_price_display: Option<String>,
 
-    /// The estimated cost of the order.
+    /// The estimated cost of the [`Order`].
     pub estimated_cost: String,
 
-    /// The estimated display cost of the order.
+    /// The estimated display cost of the [`Order`].
     pub estimated_cost_display: Option<String>,
 
-    /// The estimated commission cost for the order.
+    /// The estimated commission cost for the [`Order`].
     pub estimated_commission: String,
 
-    /// The estimated commission cost display for the order.
+    /// The estimated commission cost display for the [`Order`].
     pub estimated_commission_display: Option<String>,
 
-    /// The estimated debit or credit cost of the the order.
+    /// The estimated debit or credit cost of the the [`Order`].
     ///
     /// NOTE: Debit costs will have a positive cost, and credit
     /// costs will have a negative cost.
     pub debit_credit_estimated_cost: Option<String>,
 
-    /// The estimated debit or credit display cost of the the order.
+    /// The estimated debit or credit display cost of the the [`Order`].
     ///
     /// NOTE: Debit costs will have a positive cost, and credit
     /// costs will have a negative cost.
     pub debit_credit_estimated_cost_display: Option<String>,
 
-    /// The descretionary price of the order, which can be used to
+    /// The descretionary price of the [`Order`], which can be used to
     /// reflect a Bid/Ask at a lower/higher price than you are willing
     /// to pay using a specified price increment.
     ///
-    /// NOTE: Only valid for `OrderType::Limit` & `OrderType::StopLimit`.
+    /// NOTE: Only valid for [`crate::orders::OrderType::Limit`] and
+    /// [`crate::orders::OrderType::StopLimit`].
     ///
     /// NOTE: Only valid for equities.
     pub descretionary_price: Option<String>,
 
-    /// Is the order using book only option, which restricts the destination
+    /// Is the [`Order`] using book only option, which restricts the destination
     /// you choose in the direct routing from re-routing your order to another
     /// destination.
     ///
@@ -135,17 +136,17 @@ pub struct OrderConfirmation {
     /// NOTE: Only valid for equities.
     pub book_only: Option<bool>,
 
-    /// Is the order using the all or none option, which avoids partial fills
+    /// Is the [`Order`] using the all or none option, which avoids partial fills
     /// on your order. Your order will either be filled in full or not at all
     /// when using this option.
     ///
     /// NOTE: Only valid for equities and options.
     pub all_or_none: Option<bool>,
 
-    /// Is the order using the add liquidity option, which allows you to place
+    /// Is the [`Order`] using the add liquidity option, which allows you to place
     /// orders that will only add liquidity on the route you selected.
     ///
-    /// NOTE: Only valid if you're also using the `book_only` option on the order.
+    /// NOTE: Only valid if you're also using the `book_only` option on the [`Order`].
     ///
     /// NOTE: Only valid for equities.
     pub add_liquidity: Option<bool>,
@@ -160,14 +161,14 @@ pub struct OrderConfirmation {
     /// NOTE: Only valid for futures orders.
     pub account_currency: Option<String>,
 
-    /// The initial margin display cost of the order.
+    /// The initial margin display cost of the [`Order`].
     ///
     /// NOTE: Only valid for futures orders.
     pub initial_margin_display: Option<String>,
 }
 
 impl Order {
-    /// Confirm an order getting back an estimated cost
+    /// Confirm an [`Order`] getting back an estimated cost
     /// and commission information for the order without
     /// actually placing the order.
     ///
@@ -242,9 +243,11 @@ impl Order {
         }
     }
 
-    /// Creates an Order Confirmation for a group order. Request valid for
-    /// Order Cancels Order (OCO) and Bracket (BRK) order types as well as
-    /// grouped orders of other types (NORMAL).
+    /// Creates an [`OrderConfirmation`] for a group [`Order`].
+    ///
+    /// Request valid for Order Cancels Order [`crate::orders::OrderRelationship::OCO`]
+    /// and Bracket [`crate::orders::OrderRelationship::BRK`] order types as well as
+    /// grouped orders of other types [`crate::orders::OrderRelationship::NORMAL`].
     ///
     /// # Order Cancels Order (OCO)
     ///
@@ -378,7 +381,7 @@ impl Order {
 }
 
 impl OrderRequest {
-    /// Confirm an order getting back an estimated cost
+    /// Confirm an [`OrderRequest`] getting back an estimated cost
     /// and commission information for the order without
     /// actually placing the order.
     ///
@@ -430,7 +433,9 @@ impl OrderRequest {
 }
 
 impl OrderRequestGroup {
-    /// Creates an Order Confirmation for a group order. Request valid for
+    /// Create an [`OrderConfirmation`] for a group [`Order`].
+    ///
+    /// Request valid for
     /// Order Cancels Order (OCO) and Bracket (BRK) order types as well as
     /// grouped orders of other types (NORMAL).
     ///

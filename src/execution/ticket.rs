@@ -10,20 +10,20 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// A transactional receipt from placing, replacing, or canceling an [`Order`].
+/// A transactional receipt from placing, replacing, or canceling an [`crate::orders::Order`].
 pub struct OrderTicket {
-    /// Short text summary/description of the [`Order`] execution result.
+    /// Short text summary/description of the [`crate::orders::Order`] execution result.
     pub message: String,
 
     #[serde(rename = "OrderID")]
-    /// The id of the resulting [`Order`] from execution.
+    /// The id of the resulting [`crate::orders::Order`] from execution.
     pub order_id: String,
 
-    /// The error for the [`Order`], if there was any errors.
+    /// The error for the [`crate::orders::Order`], if there was any errors.
     pub error: Option<String>,
 }
 impl OrderTicket {
-    /// Instantiate an [`OrderTicket`] using a provided [`crate::accounting::Order`] id.
+    /// Instantiate an [`OrderTicket`] using a provided [`crate::orders::Order`] id.
     ///
     /// NOTE: The created [`OrderTicket`] is NOT guaranteed to be valid
     /// for use. The provided order id must be valid to do anything with
@@ -49,7 +49,7 @@ impl OrderTicket {
         }
     }
 
-    /// Replace an [`crate::accounting::Order`] with a new [`crate::accounting::Order`].
+    /// Replace an [`crate::orders::Order`] with a new [`crate::orders::Order`].
     ///
     /// # Example
     /// ---
@@ -109,7 +109,7 @@ impl OrderTicket {
         }
     }
 
-    /// Cancel an active [`crate::accounting::Order`].
+    /// Cancel an active [`crate::orders::Order`].
     ///
     /// # Example
     /// ---
