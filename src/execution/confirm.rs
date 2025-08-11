@@ -182,20 +182,33 @@ impl Order {
     /// March 2025 contract @ 96.0725 with a quantity of 50 contracts
     /// and a duration of Good Till Close (GTC).
     ///
-    /// ```ignore
+    /// ```rust,no_run
     /// use tradestation::{
-    ///     ClientBuilder, Error, Token,
-    ///     execution::{Duration, OrderRequestBuilder, Order},
+    ///     ClientBuilder, Error,
+    ///     token::{Token, Scope},
+    ///     orders::{
+    ///         Duration, OrderRequestBuilder, Order, OrderTimeInForce, OrderType,
+    ///         TradeAction
+    ///     },
     /// };
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
-    ///     // Create client
-    ///     let client = ClientBuilder::new()?
-    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
-    ///         .build()
-    ///         .await?;
+    /// let client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: vec![
+    ///             Scope::Trade,
+    ///             /* ... Your Other Desired Scopes */
+    ///         ],
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
     ///
     ///     let order_req = OrderRequestBuilder::new()
     ///         .account_id("YOUR_FUTURES_ACCOUNT_ID")
@@ -214,6 +227,7 @@ impl Order {
     ///         Ok(confirmation) => println!("Confirmed Order: {confirmation:?}"),
     ///         Err(e) => println!("Issue Confirming Order: {e:?}"),
     ///     };
+    ///
     ///     Ok(())
     /// }
     ///```
@@ -286,21 +300,33 @@ impl Order {
     /// for opening the position, one order for closing the position at a
     /// take profit price, and one order for closing the position at a stop
     /// loss price. A total of 3 orders making up this position.
-    /// ```ignore
+    /// ```rust,no_run
     /// use tradestation::{
-    ///     accounting::OrderRelationship,
-    ///     execution::{Duration, Order, OrderRequestBuilder},
-    ///     ClientBuilder, Error, Token,
+    ///     ClientBuilder, Error,
+    ///     token::{Token, Scope},
+    ///     orders::{
+    ///         Duration, OrderRequestBuilder, OrderRequestGroupBuilder, Order,
+    ///         OrderTimeInForce, OrderType, TradeAction, OrderRelationship
+    ///     },
     /// };
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
-    ///     // Create client
-    ///     let client = ClientBuilder::new()?
-    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
-    ///         .build()
-    ///         .await?;
+    /// let client = ClientBuilder::new()?
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    ///     .token(Token {
+    ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///         id_token: String::from("YOUR_ID_TOKEN"),
+    ///         token_type: String::from("Bearer"),
+    ///         scope: vec![
+    ///             Scope::Trade,
+    ///             /* ... Your Other Desired Scopes */
+    ///         ],
+    ///         expires_in: 1200,
+    ///     })?
+    ///     .build()
+    ///     .await?;
     ///
     ///     let entry_order_req = OrderRequestBuilder::new()
     ///         .account_id("YOUR_EQUITIES_ACCOUNT_ID")
@@ -349,8 +375,10 @@ impl Order {
     ///         .group_type(OrderRelationship::BRK)
     ///         .build()?;
     ///
-    ///     let order_confirmations = Order::confirm(&order_group, &client).await?;
+    ///     let order_confirmations = Order::confirm_group(&order_group, &client).await?;
     ///     println!("Confirm Orders Result: {order_confirmations:?}");
+    ///
+    ///     Ok(())
     /// }
     /// ```
     pub async fn confirm_group(
@@ -395,15 +423,30 @@ impl OrderRequest {
     /// March 2025 contract @ 96.0725 with a quantity of 50 contracts
     /// and a duration of Good Till Close (GTC).
     ///
-    /// ```ignore
-    /// use tradestation::{ClientBuilder, Error, Token, execution::Duration};
+    /// ```rust,no_run
+    /// use tradestation::{
+    ///     orders::{
+    ///         Duration, Order, OrderRequestBuilder, OrderTimeInForce,
+    ///         OrderType, TradeAction
+    ///     },
+    ///     ClientBuilder, Error, Token, Scope
+    /// };
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
-    ///     // Create client
     ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .token(Token {
+    ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///             id_token: String::from("YOUR_ID_TOKEN"),
+    ///             token_type: String::from("Bearer"),
+    ///             scope: vec![
+    ///                 Scope::Trade,
+    ///                 /* ... Your Other Desired Scopes */
+    ///             ],
+    ///             expires_in: 1200,
+    ///         })?
     ///         .build()
     ///         .await?;
     ///
@@ -476,19 +519,30 @@ impl OrderRequestGroup {
     /// for opening the position, one order for closing the position at a
     /// take profit price, and one order for closing the position at a stop
     /// loss price. A total of 3 orders making up this position.
-    /// ```ignore
+    /// ```rust,no_run
     /// use tradestation::{
-    ///     accounting::OrderRelationship,
-    ///     execution::{Duration, Order, OrderRequestBuilder},
-    ///     ClientBuilder, Error, Token,
+    ///     orders::{
+    ///         Duration, Order, OrderRelationship, OrderRequestBuilder, OrderRequestGroupBuilder,
+    ///         OrderTimeInForce, OrderType, TradeAction
+    ///     },
+    ///     ClientBuilder, Error, Token, Scope
     /// };
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
-    ///     // Create client
     ///     let client = ClientBuilder::new()?
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///         .token(Token {
+    ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///             id_token: String::from("YOUR_ID_TOKEN"),
+    ///             token_type: String::from("Bearer"),
+    ///             scope: vec![
+    ///                 Scope::Trade,
+    ///                 /* ... Your Other Desired Scopes */
+    ///             ],
+    ///             expires_in: 1200,
+    ///         })?
     ///         .build()
     ///         .await?;
     ///
@@ -541,6 +595,7 @@ impl OrderRequestGroup {
     ///
     ///     let order_confirmations = order_group.confirm(&client).await?;
     ///     println!("Confirm Orders Result: {order_confirmations:?}");
+    ///     Ok(())
     /// }
     /// ```
     pub async fn confirm(self, client: &Client) -> Result<Vec<OrderConfirmation>, Error> {
