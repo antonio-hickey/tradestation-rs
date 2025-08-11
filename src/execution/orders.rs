@@ -14,7 +14,10 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 impl Order {
-    /// Place the `OrderRequest` getting back the result of the Order Request.
+    /// Place an [`OrderRequest`] to the market.
+    ///
+    /// The result of placing an [`Order`]'s is a [`OrderTicket`]
+    /// which represents the result of placing the order.
     ///
     /// # Example
     /// ---
@@ -67,9 +70,11 @@ impl Order {
         }
     }
 
-    /// Submits a group order. Request valid for Order Cancels Order (OCO)
-    /// and Bracket (BRK) order types as well as grouped orders of other
-    /// types (NORMAL).
+    /// Submits a group [`Order`].
+    ///
+    /// Request valid for Order Cancels Order [`crate::orders::OrderRelationship::OCO`]
+    /// and Bracket [`crate::orders::OrderRelationship::BRK`] order types as well as
+    /// grouped orders of other types [`crate::orders::OrderRelationship::NORMAL`].
     ///
     /// # Order Cancels Order (OCO)
     ///
@@ -204,7 +209,7 @@ impl Order {
         }
     }
 
-    /// Replace an `Order` with an Order Update.
+    /// Replace an [`Order`] with an [`OrderUpdate`].
     ///
     /// # Example
     /// ---
@@ -264,7 +269,7 @@ impl Order {
         }
     }
 
-    /// Cancel an active `Order`.
+    /// Cancel an active [`Order`].
     ///
     /// # Example
     /// ---
@@ -314,7 +319,7 @@ impl Order {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// Advanced options for configuring orders.
+/// Advanced options for configuring [`Order`]'s.
 pub struct AdvancedOrderOptions {
     /// This option allows you to place orders that will
     /// only add liquidity on the route you selected. To
@@ -402,7 +407,7 @@ pub enum PegValue {
 // it should instead just use this enum.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// The different trade actions that can be sent or
-/// received, and conveys the intent of the order.
+/// received, and conveys the intent of the [`Order`].
 pub enum TradeAction {
     #[serde(rename = "BUY")]
     /// NOTE: Only for Equities and Futures
@@ -439,19 +444,18 @@ pub enum TradeAction {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// Defines the duration and expiration of an Order.
+/// Defines the duration and expiration of an [`Order`].
 pub struct OrderTimeInForce {
-    /// The duration type for the order.
+    /// The duration type for the [`Order`].
     pub duration: Duration,
 
-    /// The expiration timestamp for the order.
+    /// The expiration timestamp for the [`Order`].
     pub expiration: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// A sub component order apart of the overall
-/// trade the Order is for.
+/// A sub component [`Order`] apart of the overall trade the [`Order`] is for.
 pub struct OrderRequestLeg {
     /// The symbol used for this leg of the order.
     pub symbol: String,
@@ -496,8 +500,7 @@ pub enum BPWarningStatus {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-/// The length of time for which an order will
-/// remain valid in the market.
+/// The length of time for which an [`Order`] will remain valid in the market.
 pub enum Duration {
     /// Day, valid until the end of the
     /// regular trading session.
@@ -572,11 +575,11 @@ pub enum Duration {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// Order Sends Orders
+/// Order Sends Orders.
 pub struct Oso {
-    /// Other orders in the OSO
+    /// Other orders in the OSO.
     pub orders: Vec<OrderRequest>,
 
-    /// The type of OSO Order
+    /// The type of OSO [`Order`].
     pub r#type: OrderRelationship,
 }
