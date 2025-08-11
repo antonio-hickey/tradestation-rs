@@ -1,7 +1,7 @@
 use crate::{
     accounting::orders::{AssetType, Order, TrailingStop},
     execution::{
-        order::{OrderRequestLeg, OrderTimeInForce, PegValue},
+        orders::{OrderRequestLeg, OrderTimeInForce, PegValue},
         request::{OrderRequest, OrderRequestGroup},
     },
     market_data::OptionSpreadType,
