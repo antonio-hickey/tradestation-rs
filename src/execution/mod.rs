@@ -11,7 +11,7 @@
 /// Functionality and primitives around [`crate::accounting::orders::Order`] confirmations (pre execution).
 pub mod confirm;
 /// Functionality and primitives around [`crate::accounting::orders::Order`] specifically at the execution level.
-pub mod order;
+pub mod orders;
 /// Functionality and abstractions around [`crate::accounting::orders::Order`] requests.
 pub mod request;
 /// Functionality and primitives around execution routes.
@@ -24,12 +24,8 @@ pub mod trigger;
 pub mod update;
 
 // Expose these directly from the [`crate::execution`] level
-pub use crate::accounting::orders::{
-    AssetType, ConditionalOrder, OrderAction, OrderLeg, OrderRelationship, OrderStage, OrderStatus,
-    OrderType,
-};
 pub use confirm::OrderConfirmation;
-pub use order::{
+pub use orders::{
     AdvancedOrderOptions, BPWarningStatus, Duration, OrderRequestLeg, OrderTimeInForce, Oso,
     PegValue, TradeAction,
 };

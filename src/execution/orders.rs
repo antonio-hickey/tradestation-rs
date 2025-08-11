@@ -1,9 +1,10 @@
+pub use super::OrderTicket;
 use crate::{
     accounting::{
         orders::{MarketActivationRule, TimeActivationRule, TrailingStop},
-        OptionType, Order,
+        OptionType, Order, OrderRelationship,
     },
-    execution::{OrderRequest, OrderRequestGroup, OrderTicket, OrderUpdate},
+    execution::{OrderRequest, OrderRequestGroup, OrderUpdate},
     responses::{
         execution::{ModifyOrderResp, ModifyOrderRespRaw, OrderResp, OrderRespRaw},
         ApiResponse,
@@ -11,8 +12,6 @@ use crate::{
     Client, Error,
 };
 use serde::{Deserialize, Serialize};
-
-use super::OrderRelationship;
 
 impl Order {
     /// Place the `OrderRequest` getting back the result of the Order Request.
