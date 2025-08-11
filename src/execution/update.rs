@@ -1,4 +1,4 @@
-use crate::{accounting::orders::OrderType, execution::order::AdvancedOrderOptions};
+use crate::{accounting::orders::OrderType, execution::orders::AdvancedOrderOptions};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]

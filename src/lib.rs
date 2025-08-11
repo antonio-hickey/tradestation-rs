@@ -144,3 +144,26 @@ pub use token::{Scope, Token};
 
 /// Functions, Structs, and primitives related to market data.
 pub mod execution;
+
+/// Abstractions, functions, and primitives related to orders.
+pub mod orders {
+    pub use crate::{
+        accounting::orders::{
+            ConditionalOrder, LogicOp, OptionType, Order, OrderAction, OrderLeg, OrderRelationship,
+            OrderStage, OrderStatus, OrderType,
+        },
+        execution::{
+            confirm::OrderConfirmation,
+            orders::{
+                AdvancedOrderOptions, BPWarningStatus, Duration, OrderRequestLeg, OrderTicket,
+                OrderTimeInForce, Oso, PegValue, TradeAction,
+            },
+            request::{
+                OrderRequest, OrderRequestBuilder, OrderRequestGroup, OrderRequestGroupBuilder,
+            },
+            route::Route,
+            trigger::{ActivationTrigger, ActivationTriggerKey},
+            update::OrderUpdate,
+        },
+    };
+}

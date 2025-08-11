@@ -1,7 +1,7 @@
 use crate::{
     accounting::orders::{Order, OrderRelationship, OrderType},
     execution::{
-        order::{
+        orders::{
             AdvancedOrderOptions, BPWarningStatus, OrderRequestLeg, OrderTimeInForce, Oso,
             TradeAction,
         },
