@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// Valid Activation Triggers for an Order.
+/// Valid Activation Triggers for an [`crate::orders::Order`].
 pub struct ActivationTrigger {
     /// The Activation Trigger Key
     ///
@@ -23,7 +23,7 @@ pub struct ActivationTrigger {
     pub description: String,
 }
 impl ActivationTrigger {
-    /// Fetch Activation Triggers for Order Execution.
+    /// Fetch Activation Triggers for [`crate::orders::Order`] Execution.
     ///
     /// NOTE: This provides the `key` that must be sent with an
     /// order to utilize and be triggered by the activation function.
@@ -61,7 +61,7 @@ impl ActivationTrigger {
     }
 }
 impl Client {
-    /// Fetch Activation Triggers for Order Execution.
+    /// Fetch Activation Triggers for [`crate::orders::Order`] Execution.
     ///
     /// NOTE: This provides the `key` that must be sent with an
     /// order to utilize and be triggered by the activation function.

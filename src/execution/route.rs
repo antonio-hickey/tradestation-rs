@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// A Route for Order Execution
+/// A Route for [`crate::orders::Order`] Execution.
 pub struct Route {
     /// The ID that must be sent in the optional Route
     /// property of a POST order request, when specifying
@@ -24,7 +24,7 @@ pub struct Route {
     pub asset_types: Vec<AssetType>,
 }
 impl Route {
-    /// Fetch valid routes for sending an order for execution.
+    /// Fetch valid routes for sending an [`crate::orders::Order`] for execution.
     ///
     /// # Example
     /// ---
@@ -58,7 +58,7 @@ impl Route {
     }
 }
 impl Client {
-    /// Fetch valid routes for sending an order for execution.
+    /// Fetch valid routes for sending an [`Order`] for execution.
     ///
     /// # Example
     /// ---

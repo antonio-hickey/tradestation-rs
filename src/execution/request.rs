@@ -13,22 +13,24 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// The initial stage of an `Order`, this is what
-/// is sent to the route for creating a `Order`.
+/// A request to open an [`Order`] in a marketplace.
+///
+/// This is the initial stage of an order, and is what's
+/// sent to the execution route when creating an order.
 pub struct OrderRequest {
-    /// The TradeStation Account ID the order is for.
+    /// The TradeStation Account ID the [`Order`] is for.
     pub account_id: String,
 
-    /// Advanced Options for configuring an order.
+    /// Advanced Options for configuring an [`Order`].
     pub advanced_options: Option<AdvancedOrderOptions>,
 
     /// The different statuses for buing power warnings.
     pub buying_power_warning: Option<BPWarningStatus>,
 
-    /// The additional legs to this order.
+    /// The additional legs to this [`Order`].
     pub legs: Option<Vec<OrderRequestLeg>>,
 
-    /// The limit price for this order.
+    /// The limit price for this [`Order`].
     pub limit_price: Option<String>,
 
     /// Order Sends Orders
@@ -39,15 +41,15 @@ pub struct OrderRequest {
     /// key, per order, per user.
     pub order_confirm_id: Option<String>,
 
-    /// The order type of the order.
+    /// The order type of the [`Order`].
     pub order_type: OrderType,
 
-    /// The quantity of shares, or contracts for the order.
+    /// The quantity of shares, or contracts for the [`Order`].
     ///
     /// NOTE: Only required if not provided within order legs.
     pub quantity: Option<String>,
 
-    /// The route of the order.
+    /// The route of the [`Order`].
     ///
     /// NOTE: For Stocks and Options, Route value will
     /// default to Intelligent if no value is set.
@@ -55,7 +57,7 @@ pub struct OrderRequest {
     /// NOTE: Routes can be obtained from `Order::get_routes()`.
     pub route: Option<String>,
 
-    /// The stop price for this order.
+    /// The stop price for this [`Order`].
     ///
     /// NOTE: If a TrailingStop amount or percent is passed
     /// in with the request (in the `AdvancedOrderOptions`),
@@ -63,24 +65,23 @@ pub struct OrderRequest {
     /// Price value is ignored.
     pub stop_price: Option<String>,
 
-    /// The symbol used for this order.
+    /// The symbol used for this [`Order`].
     ///
     /// NOTE: Only required if not provided within order legs.
     pub symbol: Option<String>,
 
-    /// Defines the duration and expiration timestamp of an Order.
+    /// Defines the duration and expiration timestamp of an [`Order`].
     pub time_in_force: OrderTimeInForce,
 
     /// The different trade actions that can be sent or
-    /// received, and conveys the intent of the order.
+    /// received, and conveys the intent of the [`Order`].
     ///
     /// NOTE: Only required if not provided within order legs.
     pub trade_action: Option<TradeAction>,
 }
 
 #[derive(Debug, Default)]
-/// The initial stage of an `Order`, this is what
-/// is sent to the route for creating a `Order`.
+/// A builder pattern for [`OrderRequest`].
 pub struct OrderRequestBuilder {
     account_id: Option<String>,
     advanced_options: Option<AdvancedOrderOptions>,
@@ -98,28 +99,28 @@ pub struct OrderRequestBuilder {
     trade_action: Option<TradeAction>,
 }
 impl OrderRequestBuilder {
-    /// Initialize a new builder for `OrderRequest`.
+    /// Initialize a new builder for [`OrderRequest`].
     pub fn new() -> Self {
         OrderRequestBuilder::default()
     }
 
-    /// Set the Account ID the `OrderRequest` belongs to.
+    /// Set the Account ID the [`OrderRequest`] belongs to.
     ///
-    /// NOTE: Required to be set to build an `OrderRequest`.
+    /// NOTE: Required to be set to build an [`OrderRequest`].
     pub fn account_id(mut self, id: impl Into<String>) -> Self {
         self.account_id = Some(id.into());
         self
     }
 
-    /// Set the Order Type for the `OrderRequest`.
+    /// Set the Order Type for the [`OrderRequest`].
     ///
-    /// NOTE: Required to be set to build an `OrderRequest`.
+    /// NOTE: Required to be set to build an [`OrderRequest`].
     pub fn order_type(mut self, order_type: OrderType) -> Self {
         self.order_type = Some(order_type);
         self
     }
 
-    /// Set the Symbol the `OrderRequest` is for.
+    /// Set the Symbol the [`OrderRequest`] is for.
     ///
     /// NOTE: This is required if no order legs are provided.
     pub fn symbol(mut self, symbol: impl Into<String>) -> Self {
@@ -128,15 +129,15 @@ impl OrderRequestBuilder {
     }
 
     /// Set the Time In Force (Duration or expiration timestamp)
-    /// for the `OrderRequest`.
+    /// for the [`OrderRequest`].
     ///
-    /// NOTE: Required to be set to build an `OrderRequest`.
+    /// NOTE: Required to be set to build an [`OrderRequest`].
     pub fn time_in_force(mut self, time_in_force: OrderTimeInForce) -> Self {
         self.time_in_force = Some(time_in_force);
         self
     }
 
-    /// Set the Quantity of shares or contracts for the `OrderRequest`.
+    /// Set the Quantity of shares or contracts for the [`OrderRequest`].
     ///
     /// NOTE: This is required if no order legs are provided.
     pub fn quantity(mut self, quantity: impl Into<String>) -> Self {
@@ -144,7 +145,7 @@ impl OrderRequestBuilder {
         self
     }
 
-    /// Set the Trade Action for the `OrderRequest`.
+    /// Set the Trade Action for the [`OrderRequest`].
     ///
     /// NOTE: This is required if no order legs are provided.
     pub fn trade_action(mut self, action: TradeAction) -> Self {
@@ -152,55 +153,55 @@ impl OrderRequestBuilder {
         self
     }
 
-    /// Set the Execution Route for the `OrderRequest`.
+    /// Set the Execution Route for the [`OrderRequest`].
     pub fn route(mut self, route: impl Into<String>) -> Self {
         self.route = Some(route.into());
         self
     }
 
-    /// Set a Stop Price for the `OrderRequest`.
+    /// Set a Stop Price for the [`OrderRequest`].
     pub fn stop_price(mut self, price: impl Into<String>) -> Self {
         self.stop_price = Some(price.into());
         self
     }
 
-    /// Set an Order Confirm ID for the `OrderRequest`.
+    /// Set an Order Confirm ID for the [`OrderRequest`].
     pub fn order_confirm_id(mut self, id: impl Into<String>) -> Self {
         self.order_confirm_id = Some(id.into());
         self
     }
 
-    /// Set the Order Sends Order for the `OrderRequest`.
+    /// Set the Order Sends Order for the [`OrderRequest`].
     pub fn osos(mut self, osos: Vec<Oso>) -> Self {
         self.osos = Some(osos);
         self
     }
 
-    /// Set a Limit Price for the `OrderRequest`.
+    /// Set a Limit Price for the [`OrderRequest`].
     pub fn limit_price(mut self, price: impl Into<String>) -> Self {
         self.limit_price = Some(price.into());
         self
     }
 
-    /// Set the Legs of the `OrderRequest`.
+    /// Set the Legs of the [`OrderRequest`].
     pub fn legs(mut self, legs: Vec<OrderRequestLeg>) -> Self {
         self.legs = Some(legs);
         self
     }
 
-    /// Set the Buying Power Warning Status for the `OrderRequest`.
+    /// Set the Buying Power Warning Status for the [`OrderRequest`].
     pub fn buying_power_warning(mut self, status: BPWarningStatus) -> Self {
         self.buying_power_warning = Some(status);
         self
     }
 
-    /// Set the Advanced Options for the `OrderRequest`.
+    /// Set the Advanced Options for the [`OrderRequest`].
     pub fn advanced_options(mut self, options: AdvancedOrderOptions) -> Self {
         self.advanced_options = Some(options);
         self
     }
 
-    /// Finish building the `OrderRequest`.
+    /// Finish building the [`OrderRequest`].
     ///
     /// NOTE: `account_id`, `order_type`, and `time_in_force` are all required.
     pub fn build(self) -> Result<OrderRequest, Error> {
@@ -224,15 +225,17 @@ impl OrderRequestBuilder {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-/// An collection of `OrderRequest`'s to be sent together.
+/// An collection of [`OrderRequest`]'s to be sent together.
 pub struct OrderRequestGroup {
     pub order_requests: Vec<OrderRequest>,
     pub group_type: OrderRelationship,
 }
 impl OrderRequestGroup {
-    /// Submits a group order. Request valid for Order Cancels Order (OCO)
-    /// and Bracket (BRK) order types as well as grouped orders of other
-    /// types (NORMAL).
+    /// Submits a group [`Order`].
+    ///
+    /// Request valid for Order Cancels Order [`crate::orders::OrderRelationship::OCO`]
+    /// and Bracket [`crate::orders::OrderRelationship::BRK`] order types as well as
+    /// grouped orders of other types [`crate::orders::OrderRelationship::NORMAL`].
     ///
     /// # Order Cancels Order (OCO)
     ///
@@ -344,18 +347,18 @@ impl OrderRequestGroup {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
-/// `OrderRequestGroup` builder
+/// A builder pattern for [`OrderRequestGroup`].
 pub struct OrderRequestGroupBuilder {
     order_requests: Option<Vec<OrderRequest>>,
     group_type: Option<OrderRelationship>,
 }
 impl OrderRequestGroupBuilder {
-    /// Initialize a default builder struct for an `OrderRequestGroup`.
+    /// Initialize a default builder struct for an [`OrderRequestGroup`].
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Set the Order Requests (`Vec<execution::OrderRequest>`) for the group.
+    /// Set the Order Requests [`Vec<OrderRequest>`] for the group.
     pub fn order_requests(mut self, order_reqs: Vec<OrderRequest>) -> Self {
         self.order_requests = Some(order_reqs);
         self
@@ -367,7 +370,7 @@ impl OrderRequestGroupBuilder {
         self
     }
 
-    /// Finish building the `OrderRequestGroup`.
+    /// Finish building the [`OrderRequestGroup`].
     ///
     /// NOTE: Setting `order_requests` is required before building.
     ///
