@@ -1,5 +1,6 @@
 use crate::{
     execution::OrderUpdate,
+    orders::Order,
     responses::{
         execution::{ModifyOrderResp, ModifyOrderRespRaw},
         ApiResponse,
@@ -47,6 +48,64 @@ impl OrderTicket {
             order_id: order_id.into(),
             error: None,
         }
+    }
+
+    /// Find the [`Order`] associated with this [`OrderTicket`].
+    ///
+    /// Uses the stored order id from this [`OrderTicket`] to search for
+    /// the order in the provided account via the given [`Client`].
+    ///
+    /// NOTE: This call will fail with [`Error::OrderNotFound`] if the order id
+    /// does not correspond to any existing order in the account.
+    ///
+    /// # Example
+    /// ---
+    ///
+    /// Attempt to find an order from an existing [`OrderTicket`] in the account
+    /// `DU12345` using a [`Client`] instance.
+    ///
+    /// ```
+    /// use tradestation::execution::OrderTicket;
+    /// # use tradestation::{ClientBuilder, Error, token::{Scope, Token}};
+    /// # use tokio;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Error> {
+    /// # let client = ClientBuilder::new()?
+    /// #     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
+    /// #     .token(Token {
+    /// #         access_token: String::from("YOUR_ACCESS_TOKEN"),
+    /// #         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    /// #         id_token: String::from("YOUR_ID_TOKEN"),
+    /// #         token_type: String::from("Bearer"),
+    /// #         scope: vec![
+    /// #             Scope::Trade,
+    /// #             /* ... Your Other Desired Scopes */
+    /// #         ],
+    /// #         expires_in: 1200,
+    /// #     })?
+    /// #     .build()
+    /// #     .await?;
+    ///
+    /// let ticket = OrderTicket::from_id("11111111");
+    /// match ticket.find_order("ACCOUNT_ID", &client).await {
+    ///     Ok(order) => println!("Found order: {order:?}"),
+    ///     Err(e) => eprintln!("Error: {e}"),
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn find_order<S: Into<String>>(
+        &self,
+        account_id: S,
+        client: &Client,
+    ) -> Result<Order, Error> {
+        let orders = Order::find(vec![&self.order_id], account_id.into(), client).await?;
+
+        orders
+            .into_iter()
+            .next()
+            .ok_or(Error::OrderNotFound(self.order_id.clone()))
     }
 
     /// Replace an [`crate::orders::Order`] with a new [`crate::orders::Order`].

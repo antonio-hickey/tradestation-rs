@@ -48,6 +48,9 @@ pub enum Error {
     /// Order Type not set when one was required.
     OrderTypeNotSet,
 
+    /// An [`crate::orders::Order`] was not found for a give order id.
+    OrderNotFound(String),
+
     /// Quantity not set when one was required.
     QuantityNotSet,
 
@@ -111,6 +114,9 @@ impl std::fmt::Display for Error {
                     f,
                     "Couldn't find a position with id: {position_id} in account with id: {account_id}",
                 )
+            }
+            Self::OrderNotFound(order_id) => {
+                write!(f, "Failed to find an order for: #{order_id}")
             }
             Self::Request(e) => write!(f, "{e:?}"),
             Self::BoxedError(e) => write!(f, "{e:?}"),
