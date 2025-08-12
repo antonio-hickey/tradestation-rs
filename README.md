@@ -17,13 +17,13 @@ An ergonomic Rust client for the [TradeStation API](https://www.tradestation.com
 
 Features
 ---
-- 🧮 Accounting: Monitor your risk, positions, balances, order history, and more
+- 🧮 [Accounting](https://docs.rs/tradestation/latest/tradestation/accounting/index.html): Monitor your risk, positions, balances, order history, and more
 across multiple accounts.
-- 📈 Market Data: Easily fetch and stream real time and historic market data
+- 📈 [Market Data](https://docs.rs/tradestation/latest/tradestation/market_data/index.html): Easily fetch and stream real time and historic market data
 on thousands of assets and derivatives.
-- ⚡ Execution: Lightning fast trade execution allowing you to place, update,
+- ⚡ [Execution](https://docs.rs/tradestation/latest/tradestation/execution/index.html): Lightning fast trade execution allowing you to place, update,
 and cancel orders with all kinds of custom configuration.
-- 🧪 Testing: Supports mocking so you can seamlessly build out environments to test
+- 🧪 [Testing](https://github.com/antonio-hickey/tradestation-rs/blob/master/examples/mocking.rs): Supports mocking so you can seamlessly build out environments to test
 your trading systems and applications.
 
 Install
