@@ -138,7 +138,7 @@ impl Order {
     }
 
     /// Fetches orders by order id for the given `Account`.
-    pub(super) async fn find<S: Into<String>>(
+    pub async fn find<S: Into<String>>(
         order_ids: Vec<S>,
         account_id: String,
         client: &Client,
