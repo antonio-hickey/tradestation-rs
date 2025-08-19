@@ -4,12 +4,15 @@ use crate::{
 };
 use futures::{Stream, TryStreamExt};
 use reqwest::{header, Response};
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use std::{collections::HashMap, sync::Arc};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::sync::Mutex;
-use tokio_util::io::StreamReader;
+use tokio_util::{
+    codec::{FramedRead, LinesCodec},
+    io::StreamReader,
+};
 
 #[derive(Clone, Debug)]
 /// TradeStation API Client
@@ -183,6 +186,66 @@ impl Client {
                 yield json;
             }
         }
+    }
+
+    /// Streams a newline delimited JSON response into a provided callback.
+    pub async fn stream_into<T, F>(&self, endpoint: &str, mut process_chunk: F) -> Result<(), Error>
+    where
+        T: DeserializeOwned,
+        F: FnMut(T) -> Result<(), Error>,
+    {
+        let url = format!("{}/{}", self.base_url, endpoint);
+
+        let resp = self
+            .clone()
+            .send_request(|access_token| {
+                self.http_client
+                    .get(&url)
+                    .header(
+                        reqwest::header::AUTHORIZATION,
+                        format!("Bearer {access_token}"),
+                    )
+                    .send()
+            })
+            .await?;
+
+        if !resp.status().is_success() {
+            return Err(Error::StreamIssue(format!(
+                "Request failed with status: {}",
+                resp.status()
+            )));
+        }
+
+        let byte_stream = resp.bytes_stream().map_err(std::io::Error::other);
+        let reader = StreamReader::new(byte_stream);
+
+        let mut lines = FramedRead::with_capacity(reader, LinesCodec::new(), 64 * 1024);
+
+        while let Some(line) = lines
+            .try_next()
+            .await
+            .map_err(|e| Error::StreamIssue(e.to_string()))?
+        {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+
+            match serde_json::from_str::<T>(line) {
+                Ok(json) => {
+                    if let Err(e) = process_chunk(json) {
+                        if matches!(e, Error::StopStream) {
+                            return Ok(());
+                        } else {
+                            return Err(e);
+                        }
+                    }
+                }
+                Err(e) => return Err(Error::Json(e)),
+            }
+        }
+
+        Ok(())
     }
 
     /// Refresh your clients bearer token used for
