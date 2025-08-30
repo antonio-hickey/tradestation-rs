@@ -21,6 +21,9 @@ pub enum Error {
 
     BoxedError(Box<dyn StdErrorTrait + Send + Sync>),
 
+    /// An error during URL parsing.
+    Url(url::ParseError),
+
     /// Error while in stream
     StreamIssue(String),
 
@@ -119,6 +122,7 @@ impl std::fmt::Display for Error {
                 write!(f, "Failed to find an order for: #{order_id}")
             }
             Self::Request(e) => write!(f, "{e:?}"),
+            Self::Url(e) => write!(f, "{e:?}"),
             Self::BoxedError(e) => write!(f, "{e:?}"),
             Self::StreamIssue(e) => write!(f, "Issue during stream: {e}"),
             Self::StopStream => write!(f, "WARNING: You've stopped a stream!"),
@@ -173,5 +177,10 @@ impl From<serde_json::Error> for Error {
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         Error::IoError(err)
+    }
+}
+impl From<url::ParseError> for Error {
+    fn from(err: url::ParseError) -> Self {
+        Error::Url(err)
     }
 }

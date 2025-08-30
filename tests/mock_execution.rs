@@ -1,11 +1,13 @@
 use mockito::Server;
-use tradestation::accounting::{AssetType, Order, OrderType};
-use tradestation::execution::{
-    Duration, OrderRequestBuilder, OrderRequestLeg, OrderTicket, OrderTimeInForce, OrderUpdate,
-    TradeAction,
+use tradestation::{
+    accounting::{AssetType, Order, OrderType},
+    execution::{
+        Duration, OrderRequestBuilder, OrderRequestLeg, OrderTicket, OrderTimeInForce, OrderUpdate,
+        TradeAction,
+    },
+    market_data::OptionSpreadType,
+    ClientBuilder,
 };
-use tradestation::ClientBuilder;
-use tradestation::MarketData::OptionSpreadType;
 
 #[test]
 /// This test ensures that the parsing of
@@ -28,8 +30,7 @@ fn test_equity_confirm_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
@@ -98,8 +99,7 @@ fn test_stock_option_confirm_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
@@ -229,8 +229,7 @@ fn test_future_confirm_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
@@ -297,8 +296,7 @@ fn test_place_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
@@ -355,8 +353,7 @@ fn test_replace_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
@@ -401,8 +398,7 @@ fn test_cancel_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();

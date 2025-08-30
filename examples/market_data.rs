@@ -16,25 +16,24 @@ use tradestation::{
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    // Example: initialize client
-    // NOTE: With the `Client` you can directly interact with all of TradeStation's API endpoints,
-    // but it's suggested to use the higher level abstractions provided in the examples below.
-    let client = ClientBuilder::new()?
-        .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-        .token(Token {
+    // Create client
+    //
+    // TIP: Use environment variables instead of hardcoding.
+    let client = ClientBuilder::new()
+        .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+        .with_token(Token {
             access_token: String::from("YOUR_ACCESS_TOKEN"),
             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
             id_token: String::from("YOUR_ID_TOKEN"),
             token_type: String::from("Bearer"),
             scope: vec![
-                Scope::MarketData,
+                Scope::Trade,
                 /* ... Your Other Desired Scopes */
             ],
             expires_in: 1200,
-        })?
+        })
         .build()
         .await?;
-    println!("Your TradeStation API Bearer Token: {:?}", client.token);
     //--
 
     //--

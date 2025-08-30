@@ -20,8 +20,7 @@ fn test_get_bars_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
@@ -69,8 +68,7 @@ fn test_get_quotes_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
@@ -113,8 +111,7 @@ fn test_futures_get_symbol_details_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
@@ -164,8 +161,7 @@ fn test_stock_get_symbol_details_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
@@ -215,8 +211,7 @@ fn test_options_get_symbol_details_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
@@ -268,8 +263,7 @@ fn test_get_option_expirations_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
@@ -310,8 +304,7 @@ fn test_analyze_option_risk_reward_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .unwrap()
-            .testing_url(&server.url())
+            .testing_url(server.url())
             .build()
             .await
             .unwrap();
