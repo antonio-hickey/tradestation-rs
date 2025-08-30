@@ -208,6 +208,26 @@ impl Order {
         }
     }
 
+    /// Central facade around [`Order`] 'stream_*_into' methods.
+    async fn _stream_into(
+        endpoint: String,
+        client: &Client,
+        mut callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        client
+            .stream_into(&endpoint, |stream_event| {
+                let parsed_event: StreamOrdersResp = serde_json::from_value(stream_event)?;
+                callback(parsed_event)?;
+
+                Ok(())
+            })
+            .await
+            .or_else(|e| match e {
+                Error::StopStream => Ok(()),
+                other => Err(other),
+            })
+    }
+
     /// Stream `Order`(s) for the given `Account`.
     pub(super) fn stream<S: Into<String>>(
         account_id: S,
@@ -224,6 +244,17 @@ impl Order {
                 Err(e) => Some(Err(e)),
             }
         })
+    }
+
+    /// Stream [`Order`]'s into a provided callback function.
+    pub(super) async fn stream_into(
+        account_id: impl Into<String>,
+        client: &Client,
+        callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!("brokerage/stream/accounts/{}/orders", account_id.into());
+
+        Order::_stream_into(endpoint, client, callback).await
     }
 
     /// Stream `Order`(s) by order id's for the given `Account`.
@@ -249,6 +280,22 @@ impl Order {
         })
     }
 
+    /// Stream specific [`Order`]'s into a provided callback function.
+    pub(super) async fn stream_by_ids_into(
+        order_ids: Vec<&str>,
+        account_id: impl Into<String>,
+        client: &Client,
+        callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!(
+            "brokerage/stream/accounts/{}/orders/{}",
+            account_id.into(),
+            order_ids.join(",")
+        );
+
+        Order::_stream_into(endpoint, client, callback).await
+    }
+
     /// Stream `Order`(s) for the given `Account`.
     pub(super) fn stream_by_accounts<'a>(
         account_ids: Vec<&'a str>,
@@ -265,6 +312,17 @@ impl Order {
                 Err(e) => Some(Err(e)),
             }
         })
+    }
+
+    /// Stream [`Order`]'s from specific accounts into a provided callback function.
+    pub(super) async fn stream_by_accounts_into(
+        account_ids: Vec<&str>,
+        client: &Client,
+        callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!("brokerage/stream/accounts/{}/orders", account_ids.join(","),);
+
+        Order::_stream_into(endpoint, client, callback).await
     }
 
     /// Stream `Order`s by order id's for the given `Account`(s).
@@ -288,6 +346,21 @@ impl Order {
                 Err(e) => Some(Err(e)),
             }
         })
+    }
+
+    pub(super) async fn stream_by_ids_and_accounts_into(
+        order_ids: Vec<&str>,
+        account_ids: Vec<&str>,
+        client: &Client,
+        callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!(
+            "brokerage/stream/accounts/{}/orders/{}",
+            account_ids.join(","),
+            order_ids.join(","),
+        );
+
+        Order::_stream_into(endpoint, client, callback).await
     }
 }
 

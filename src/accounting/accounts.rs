@@ -453,6 +453,55 @@ impl Account {
         Order::stream(&self.account_id, client)
     }
 
+    /// Stream [`Order`]'s into a provided callback function.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// # Parameters
+    ///
+    /// - `order_ids`: A list of order id's ([`Vec<&str>`]) to filter the order streams.
+    /// - `client`: The [`Client`] used to establish the stream connection.
+    /// - `callback`: A closure invoked for each [`StreamOrdersResp`] event.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] if the underlying stream cannot be established,
+    /// if JSON parsing of a stream event fails, or if the `callback`
+    /// returns an error.
+    ///
+    /// # Example
+    /// ---
+    /// Stream events on all orders from 2 seperate accounts.
+    ///
+    /// ```rust,no_run
+    /// # use tradestation::{client::Client, accounting::{Account}, responses::account::StreamOrdersResp, Error };
+    /// # async fn example(account: &Account, client: &Client) -> Result<(), Error> {
+    /// account.stream_orders_into(
+    ///     client,
+    ///     |stream_event: StreamOrdersResp| -> Result<(), Error> {
+    ///         println!("Order Stream Event: {stream_event:?}");
+    ///         Ok(())
+    ///     }
+    /// ).await?;
+    ///
+    /// #  Ok(()) }
+    /// ```
+    pub async fn stream_orders_into(
+        &self,
+        client: &Client,
+        callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        Order::stream_into(&self.account_id, client, callback).await
+    }
+
     /// Stream `Order`(s) by order id's for the given `Account`.
     ///
     /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
@@ -533,6 +582,57 @@ impl Account {
         Order::stream_by_ids(order_ids, &self.account_id, client)
     }
 
+    /// Stream [`Order`]'s for specific id's into a provided callback function.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// # Parameters
+    ///
+    /// - `order_ids`: A list of order id's ([`Vec<&str>`]) to filter the order streams.
+    /// - `client`: The [`Client`] used to establish the stream connection.
+    /// - `callback`: A closure invoked for each [`StreamOrdersResp`] event.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] if the underlying stream cannot be established,
+    /// if JSON parsing of a stream event fails, or if the `callback`
+    /// returns an error.
+    ///
+    /// # Example
+    /// ---
+    /// Stream events on all orders from 2 seperate accounts.
+    ///
+    /// ```rust,no_run
+    /// # use tradestation::{client::Client, accounting::{Account}, responses::account::StreamOrdersResp, Error };
+    /// # async fn example(account: &Account, orders: Vec<&str>, client: &Client) -> Result<(), Error> {
+    /// account.stream_orders_by_ids_into(
+    ///     orders,
+    ///     client,
+    ///     |stream_event: StreamOrdersResp| -> Result<(), Error> {
+    ///         println!("Order Stream Event: {stream_event:?}");
+    ///         Ok(())
+    ///     }
+    /// ).await?;
+    ///
+    /// #  Ok(()) }
+    /// ```
+    pub async fn stream_orders_by_ids_into(
+        &self,
+        order_ids: Vec<&str>,
+        client: &Client,
+        callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        Order::stream_by_ids_into(order_ids, &self.account_id, client, callback).await
+    }
+
     /// Stream `Order`s by order IDs across multiple `Account`s.
     ///
     /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
@@ -596,6 +696,56 @@ impl Account {
         client: &'a Client,
     ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
         Order::stream_by_accounts(account_ids, client)
+    }
+
+    /// Stream [`Order`]'s for specific [`Account`] id's into a provided callback function.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// # Parameters
+    ///
+    /// - `account_ids`: A list of account id's ([`Vec<&str>`]) to scope the order streams.
+    /// - `client`: The [`Client`] used to establish the stream connection.
+    /// - `callback`: A closure invoked for each [`StreamOrdersResp`] event.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] if the underlying stream cannot be established,
+    /// if JSON parsing of a stream event fails, or if the `callback`
+    /// returns an error.
+    ///
+    /// # Example
+    /// ---
+    /// Stream events on all orders from 2 seperate accounts.
+    ///
+    /// ```rust,no_run
+    /// # use tradestation::{client::Client, accounting::{Account}, responses::account::StreamOrdersResp, Error };
+    /// # async fn example(accounts: Vec<&str>, client: &Client) -> Result<(), Error> {
+    /// Account::stream_orders_for_accounts_into(
+    ///     accounts,
+    ///     client,
+    ///     |stream_event: StreamOrdersResp| -> Result<(), Error> {
+    ///         println!("Order Stream Event: {stream_event:?}");
+    ///         Ok(())
+    ///     }
+    /// ).await?;
+    ///
+    /// #  Ok(()) }
+    /// ```
+    pub async fn stream_orders_for_accounts_into(
+        account_ids: Vec<&str>,
+        client: &Client,
+        callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        Order::stream_by_accounts_into(account_ids, client, callback).await
     }
 
     /// Stream `Order`s by order id's for the given `Account`(s).
@@ -662,12 +812,89 @@ impl Account {
     ///     }
     /// }
     /// ```
-    fn stream_orders_by_id_for_accounts<'a>(
+    pub fn stream_orders_by_id_for_accounts<'a>(
         order_ids: Vec<&'a str>,
         account_ids: Vec<&'a str>,
         client: &'a Client,
     ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
         Order::stream_by_ids_and_accounts(client, order_ids, account_ids)
+    }
+
+    /// Stream [`Order`]'s by id's and [`Account`] id's into a provided callback function.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// # Parameters
+    ///
+    /// - `order_ids`: A list of order id's ([`Vec<&str>`]) to stream updates for.
+    /// - `account_ids`: A list of account id's ([`Vec<&str>`]) to scope the order streams.
+    /// - `client`: The [`Client`] used to establish the stream connection.
+    /// - `callback`: A closure invoked for each [`StreamOrdersResp`] event.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] if the underlying stream cannot be established,
+    /// if JSON parsing of a stream event fails, or if the `callback`
+    /// returns an error.
+    ///
+    /// # Example
+    /// ---
+    /// Stream events on 2 orders from 2 seperate accounts until both are filled.
+    ///
+    /// ```rust,no_run
+    /// # use tradestation::{client::Client, accounting::{Account, Order, OrderStatus}, responses::account::StreamOrdersResp, Error};
+    ///
+    /// # async fn example(
+    /// #     orders: Vec<&str>,
+    /// #     accounts: Vec<&str>,
+    /// #     client: &Client
+    /// # ) -> Result<(), Error> {
+    /// let mut remaining_unfilled_orders = orders.clone();
+    ///
+    /// // Callback function to process each order stream event.
+    /// //
+    /// // For this example it tracks the order status until filled.
+    /// let mut process_orders = move |stream_event: StreamOrdersResp| -> Result<(), Error> {
+    ///     match stream_event {
+    ///         StreamOrdersResp::Order(order_event) => {
+    ///             if matches!(order_event.status, OrderStatus::FLL) {
+    ///                 remaining_unfilled_orders.retain(|o_id| *o_id != order_event.order_id.as_str());
+    ///                 if remaining_unfilled_orders.is_empty() {
+    ///                     // gracefully stop the stream after all orders are filled.
+    ///                     return Err(Error::StopStream)
+    ///                 }
+    ///             }
+    ///         },
+    ///         other => println!("{other:?}"),
+    ///     }
+    ///
+    ///     Ok(())
+    /// };
+    ///
+    /// Account::stream_orders_by_ids_for_accounts_into(
+    ///     orders,
+    ///     accounts,
+    ///     client,
+    ///     process_orders,
+    /// ).await?;
+    ///
+    /// # Ok(()) }
+    /// ```
+    pub async fn stream_orders_by_ids_for_accounts_into(
+        order_ids: Vec<&str>,
+        account_ids: Vec<&str>,
+        client: &Client,
+        callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        Order::stream_by_ids_and_accounts_into(order_ids, account_ids, client, callback).await
     }
 
     /// Stream `Position`s for the given `Account`.
