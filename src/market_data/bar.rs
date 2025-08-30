@@ -205,6 +205,77 @@ impl Bar {
             }
         })
     }
+
+    /// Streams bar chart updates for a given symbol.
+    ///
+    /// This method builds a stream connection from the provided [`GetBarsQuery`]
+    /// and continuously passes incoming stream events ([`StreamBarsResp`]) to
+    /// the provided `callback` closure for processing.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamBarsResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    /// Receive 5 bars from the stream and then stop streaming:
+    /// ```rust,no_run
+    /// use tradestation::{Error, Client, market_data::{Bar, StreamBarsQuery}};
+    ///
+    /// async fn example(client: &Client, query: &StreamBarsQuery) -> Result<(), Error> {
+    ///     let mut count = 0;
+    ///
+    ///     Bar::stream_into(client, query, |bar| {
+    ///         println!("bar {count}: {:?}", bar);
+    ///         count += 1;
+    ///
+    ///         if count >= 5 {
+    ///             // Gracefully stop the stream
+    ///             return Err(Error::StopStream);
+    ///         }
+    ///
+    ///         Ok(())
+    ///     }).await?;
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn stream_into(
+        client: &Client,
+        query: &StreamBarsQuery,
+        mut callback: impl FnMut(StreamBarsResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!(
+            "marketdata/stream/barcharts/{}{}",
+            query.symbol,
+            query.as_query_string()
+        );
+
+        client
+            .stream_into(&endpoint, |stream_event| {
+                let parsed_event: StreamBarsResp = serde_json::from_value(stream_event)?;
+                callback(parsed_event)
+            })
+            .await
+            .or_else(|e| {
+                if matches!(e, Error::StopStream) {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            })
+    }
 }
 impl Client {
     /// Fetch `Vec<Bar>` for a given query `GetBarsQuery`.
@@ -275,6 +346,59 @@ impl Client {
         query: &'a StreamBarsQuery,
     ) -> impl Stream<Item = Result<StreamBarsResp, Error>> + 'a {
         Bar::stream(self, query)
+    }
+
+    /// Streams bar chart updates for a given symbol.
+    ///
+    /// This method builds a stream connection from the provided [`GetBarsQuery`]
+    /// and continuously passes incoming stream events ([`StreamBarsResp`]) to
+    /// the provided `callback` closure for processing.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamBarsResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    /// Receive 5 bars from the stream and then stop streaming:
+    /// ```rust,no_run
+    /// use tradestation::{Error, Client, market_data::StreamBarsQuery};
+    ///
+    /// async fn example(client: &Client, query: &StreamBarsQuery) -> Result<(), Error> {
+    ///     let mut count = 0;
+    ///
+    ///     client.stream_bars_into(query, |bar| {
+    ///         println!("bar {count}: {:?}", bar);
+    ///         count += 1;
+    ///
+    ///         if count >= 5 {
+    ///             // Gracefully stop the stream
+    ///             return Err(Error::StopStream);
+    ///         }
+    ///
+    ///         Ok(())
+    ///     }).await?;
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn stream_bars_into(
+        &self,
+        query: &StreamBarsQuery,
+        callback: impl FnMut(StreamBarsResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        Bar::stream_into(self, query, callback).await
     }
 }
 
