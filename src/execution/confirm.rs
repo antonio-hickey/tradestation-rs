@@ -194,9 +194,9 @@ impl Order {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
-    /// let client = ClientBuilder::new()?
-    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
+    /// let client = ClientBuilder::new()
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+    ///     .with_token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///         id_token: String::from("YOUR_ID_TOKEN"),
@@ -206,7 +206,7 @@ impl Order {
     ///             /* ... Your Other Desired Scopes */
     ///         ],
     ///         expires_in: 1200,
-    ///     })?
+    ///     })
     ///     .build()
     ///     .await?;
     ///
@@ -312,9 +312,9 @@ impl Order {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
-    /// let client = ClientBuilder::new()?
-    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
+    /// let client = ClientBuilder::new()
+    ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+    ///     .with_token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///         id_token: String::from("YOUR_ID_TOKEN"),
@@ -324,7 +324,7 @@ impl Order {
     ///             /* ... Your Other Desired Scopes */
     ///         ],
     ///         expires_in: 1200,
-    ///     })?
+    ///     })
     ///     .build()
     ///     .await?;
     ///
@@ -434,9 +434,9 @@ impl OrderRequest {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
-    ///     let client = ClientBuilder::new()?
-    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .token(Token {
+    ///     let client = ClientBuilder::new()
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+    ///         .with_token(Token {
     ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///             id_token: String::from("YOUR_ID_TOKEN"),
@@ -446,7 +446,7 @@ impl OrderRequest {
     ///                 /* ... Your Other Desired Scopes */
     ///             ],
     ///             expires_in: 1200,
-    ///         })?
+    ///         })
     ///         .build()
     ///         .await?;
     ///
@@ -530,9 +530,9 @@ impl OrderRequestGroup {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
-    ///     let client = ClientBuilder::new()?
-    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .token(Token {
+    ///     let client = ClientBuilder::new()
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+    ///         .with_token(Token {
     ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///             id_token: String::from("YOUR_ID_TOKEN"),
@@ -542,7 +542,7 @@ impl OrderRequestGroup {
     ///                 /* ... Your Other Desired Scopes */
     ///             ],
     ///             expires_in: 1200,
-    ///         })?
+    ///         })
     ///         .build()
     ///         .await?;
     ///

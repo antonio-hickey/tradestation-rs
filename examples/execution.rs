@@ -13,9 +13,11 @@ use tradestation::{
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // Create client
-    let client = ClientBuilder::new()?
-        .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-        .token(Token {
+    //
+    // TIP: Use environment variables instead of hardcoding.
+    let client = ClientBuilder::new()
+        .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+        .with_token(Token {
             access_token: String::from("YOUR_ACCESS_TOKEN"),
             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
             id_token: String::from("YOUR_ID_TOKEN"),
@@ -25,10 +27,10 @@ async fn main() -> Result<(), Error> {
                 /* ... Your Other Desired Scopes */
             ],
             expires_in: 1200,
-        })?
+        })
         .build()
         .await?;
-    println!("Your TradeStation API Bearer Token: {:?}", client.token);
+    //--
 
     //--
     // Example: Fetch a list of routes to send orders for execution.
