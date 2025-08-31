@@ -1641,6 +1641,65 @@ impl OptionQuote {
             }
         })
     }
+
+    /// Streams [`OptionQuote`]'s for the provided [`OptionQuoteQuery`].
+    ///
+    /// This method builds a stream connection and continuously passes
+    /// incoming stream events ([`StreamOptionQuotesResp`]) to the provided
+    /// `callback` closure for processing.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamOptionQuotesResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    ///
+    /// ```rust,no_run
+    /// # use tradestation::{Error, Client, market_data::{OptionQuote, OptionQuoteQuery}};
+    /// # async fn example(client: &Client, query: &OptionQuoteQuery) -> Result<(), Error> {
+    /// OptionQuote::stream_into(client, query, |stream_event| {
+    ///     println!("Option Quote Stream Event: {stream_event:?}");
+    ///     Ok(())
+    /// }).await?;
+    ///
+    /// # Ok(()) }
+    /// ```
+    pub async fn stream_into(
+        client: &Client,
+        query: &OptionQuoteQuery,
+        mut callback: impl FnMut(StreamOptionQuotesResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!(
+            "marketdata/stream/options/quotes{}",
+            query.as_query_string()
+        );
+
+        client
+            .stream_into(&endpoint, |stream_event| {
+                let event: StreamOptionQuotesResp = serde_json::from_value(stream_event)?;
+                callback(event)
+            })
+            .await
+            .or_else(|e| {
+                if matches!(e, Error::StopStream) {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            })
+    }
 }
 impl Client {
     /// Stream quotes of an options spread for given a query [`OptionQuoteQuery`].
@@ -1743,6 +1802,48 @@ impl Client {
         query: &'a OptionQuoteQuery,
     ) -> impl Stream<Item = Result<StreamOptionQuotesResp, Error>> + 'a {
         OptionQuote::stream(self, query)
+    }
+
+    /// Streams [`OptionQuote`]'s for the provided [`OptionQuoteQuery`].
+    ///
+    /// This method builds a stream connection and continuously passes
+    /// incoming stream events ([`StreamOptionQuotesResp`]) to the provided
+    /// `callback` closure for processing.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamOptionQuotesResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    ///
+    /// ```rust,no_run
+    /// # use tradestation::{Error, Client, market_data::{OptionQuote, OptionQuoteQuery}};
+    /// # async fn example(client: &Client, query: &OptionQuoteQuery) -> Result<(), Error> {
+    /// client.stream_option_quotes_into(query, |stream_event| {
+    ///     println!("Option Quote Stream Event: {stream_event:?}");
+    ///     Ok(())
+    /// }).await?;
+    ///
+    /// # Ok(()) }
+    /// ```
+    pub async fn stream_option_quotes_into(
+        &self,
+        query: &OptionQuoteQuery,
+        callback: impl FnMut(StreamOptionQuotesResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        OptionQuote::stream_into(self, query, callback).await
     }
 }
 
