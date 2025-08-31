@@ -1,3 +1,4 @@
+use crate::responses::account::StreamPositionsResp;
 use crate::responses::market_data::{
     GetQuoteSnapshotsResp, GetQuoteSnapshotsRespRaw, StreamQuotesResp,
 };
@@ -244,6 +245,63 @@ impl Quote {
             }
         })
     }
+
+    /// Streams [`Quote`]'s for the provided symbol's.
+    ///
+    /// This method builds a stream connection and continuously passes
+    /// incoming stream events ([`StreamQuotesResp`]) to the provided
+    /// `callback` closure for processing.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamQuotesResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    ///
+    /// ```rust,no_run
+    /// # use tradestation::{Error, Client, market_data::Quote};
+    ///
+    /// # async fn example(client: &Client) -> Result<(), Error> {
+    /// Quote::stream_into(client, vec!["SPY", "NEE", "PLTR"], |stream_event| {
+    ///     println!("Quote Stream Event: {stream_event:?}");
+    ///     Ok(())
+    /// }).await?;
+    ///
+    /// # Ok(()) }
+    /// ```
+    pub async fn stream_into(
+        client: &Client,
+        symbols: Vec<&str>,
+        mut callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!("marketdata/stream/quotes/{}", symbols.join(","));
+
+        client
+            .stream_into(&endpoint, |stream_event| {
+                let parsed_event: StreamPositionsResp = serde_json::from_value(stream_event)?;
+                callback(parsed_event)
+            })
+            .await
+            .or_else(|e| {
+                if matches!(e, Error::StopStream) {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            })
+    }
 }
 impl Client {
     /// Fetches a full snapshot of the latest Quote for the given Symbol.
@@ -354,6 +412,49 @@ impl Client {
         symbols: Vec<&'a str>,
     ) -> impl Stream<Item = Result<StreamQuotesResp, Error>> + 'a {
         Quote::stream(self, symbols)
+    }
+
+    /// Streams [`Quote`]'s for the provided symbol's.
+    ///
+    /// This method builds a stream connection and continuously passes
+    /// incoming stream events ([`StreamQuotesResp`]) to the provided
+    /// `callback` closure for processing.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamQuotesResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    ///
+    /// ```rust,no_run
+    /// # use tradestation::{Error, Client};
+    ///
+    /// # async fn example(client: &Client) -> Result<(), Error> {
+    /// client.stream_quotes_into(vec!["SPY", "NEE", "PLTR"], |stream_event| {
+    ///     println!("Quote Stream Event: {stream_event:?}");
+    ///     Ok(())
+    /// }).await?;
+    ///
+    /// # Ok(()) }
+    /// ```
+    pub async fn stream_quotes_into(
+        &self,
+        symbols: Vec<&str>,
+        callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        Quote::stream_into(self, symbols, callback).await
     }
 }
 
