@@ -963,6 +963,62 @@ impl OptionChain {
             }
         })
     }
+
+    /// Streams [`OptionChain`]'s for the provided [`OptionChainQuery`].
+    ///
+    /// This method builds a stream connection and continuously passes
+    /// incoming stream events ([`StreamOptionChainResp`]) to the provided
+    /// `callback` closure for processing.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamOptionChainResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    /// Stream events on an options chain.
+    /// ```rust,no_run
+    /// # use tradestation::{Error, Client, market_data::{OptionChain, OptionChainQuery}};
+    /// # async fn example(client: &Client, query: &OptionChainQuery) -> Result<(), Error> {
+    /// OptionChain::stream_into(client, query, |stream_event| {
+    ///     println!("Option Chain Stream Event: {stream_event:?}");
+    ///     Ok(())
+    /// }).await?;
+    /// # Ok(()) }
+    /// ```
+    pub async fn stream_into(
+        client: &Client,
+        query: &OptionChainQuery,
+        mut callback: impl FnMut(StreamOptionChainResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!(
+            "marketdata/stream/options/chains/{}{}",
+            query.underlying,
+            query.as_query_string()
+        );
+
+        client
+            .stream_into(&endpoint, |stream_event| {
+                let event: StreamOptionChainResp = serde_json::from_value(stream_event)?;
+                callback(event)
+            })
+            .await
+            .or_else(|e| match e {
+                Error::StopStream => Ok(()),
+                other => Err(other),
+            })
+    }
 }
 impl Client {
     /// Stream an options chain for a given query `OptionChainQuery`.
@@ -1035,6 +1091,47 @@ impl Client {
         query: &'a OptionChainQuery,
     ) -> impl Stream<Item = Result<StreamOptionChainResp, Error>> + 'a {
         OptionChain::stream(self, query)
+    }
+
+    /// Streams [`OptionChain`]'s for the provided [`OptionChainQuery`].
+    ///
+    /// This method builds a stream connection and continuously passes
+    /// incoming stream events ([`StreamOptionChainResp`]) to the provided
+    /// `callback` closure for processing.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamOptionChainResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    /// Stream events on an options chain.
+    /// ```rust,no_run
+    /// # use tradestation::{Error, Client, market_data::{OptionChain, OptionChainQuery}};
+    /// # async fn example(client: &Client, query: &OptionChainQuery) -> Result<(), Error> {
+    /// client.stream_option_chain_into(query, |stream_event| {
+    ///     println!("Option Chain Stream Event: {stream_event:?}");
+    ///     Ok(())
+    /// }).await?;
+    /// # Ok(()) }
+    /// ```
+    pub async fn stream_option_chain_into(
+        &self,
+        query: &OptionChainQuery,
+        callback: impl FnMut(StreamOptionChainResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        OptionChain::stream_into(self, query, callback).await
     }
 }
 
