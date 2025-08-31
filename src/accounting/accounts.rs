@@ -973,6 +973,54 @@ impl Account {
         Position::stream(&self.account_id, client)
     }
 
+    /// Stream [`Position`]'s for an [`Account`] into a provided callback function.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// # Parameters
+    ///
+    /// - `client`: The [`Client`] used to establish the stream connection.
+    /// - `callback`: A closure invoked for each [`StreamOrdersResp`] event.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] if the underlying stream cannot be established,
+    /// if JSON parsing of a stream event fails, or if the `callback`
+    /// returns an error.
+    ///
+    /// # Example
+    /// ---
+    /// Stream events on all positions for an account.
+    ///
+    /// ```rust,no_run
+    /// # use tradestation::{client::Client, accounting::{Account}, responses::account::StreamPositionsResp, Error};
+    /// # async fn example(account: &Account, client: &Client) -> Result<(), Error> {
+    /// account.stream_positions_into(
+    ///     client,
+    ///     |stream_event: StreamPositionsResp| -> Result<(), Error> {
+    ///         println!("Positions Stream Event: {stream_event:?}");
+    ///         Ok(())
+    ///     }
+    /// ).await?;
+    ///
+    /// #  Ok(()) }
+    /// ```
+    pub async fn stream_positions_into(
+        &self,
+        client: &Client,
+        callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        Position::stream_into(&self.account_id, client, callback).await
+    }
+
     /// Stream `Position`s for the given `Account`(s).
     ///
     /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
@@ -1050,6 +1098,56 @@ impl Account {
         client: &Client,
     ) -> impl Stream<Item = Result<StreamPositionsResp, Error>> + '_ {
         Position::stream_for_accounts(account_ids, client)
+    }
+
+    /// Stream [`Position`]'s for specific [`Account`]'s into a provided callback function.
+    ///
+    /// <div class="warning">WARNING: There's a max of 10 concurrent streams allowed.</div>
+    ///
+    /// # Parameters
+    ///
+    /// - `account_ids`: A list of account id's ([`Vec<&str>`]) to scope the order streams.
+    /// - `client`: The [`Client`] used to establish the stream connection.
+    /// - `callback`: A closure invoked for each [`StreamOrdersResp`] event.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] if the underlying stream cannot be established,
+    /// if JSON parsing of a stream event fails, or if the `callback`
+    /// returns an error.
+    ///
+    /// # Example
+    /// ---
+    /// Stream events on all positions for 3 seperate accounts.
+    ///
+    /// ```rust,no_run
+    /// # use tradestation::{client::Client, accounting::{Account}, responses::account::StreamPositionsResp, Error};
+    /// # async fn example(client: &Client) -> Result<(), Error> {
+    /// Account::stream_positions_for_accounts_into(
+    ///     vec!["AccountA", "AccountB", "AccountC"],
+    ///     client,
+    ///     |stream_event: StreamPositionsResp| -> Result<(), Error> {
+    ///         println!("Positions Stream Event: {stream_event:?}");
+    ///         Ok(())
+    ///     }
+    /// ).await?;
+    ///
+    /// #  Ok(()) }
+    /// ```
+    pub async fn stream_positions_for_accounts_into(
+        account_ids: Vec<&str>,
+        client: &Client,
+        callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        Position::stream_for_accounts_into(account_ids, client, callback).await
     }
 }
 

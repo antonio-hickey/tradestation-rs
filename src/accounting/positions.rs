@@ -268,6 +268,24 @@ impl Position {
         }
     }
 
+    /// Central facade for streaming [`Position`]'s into a callback.
+    async fn _stream_into(
+        endpoint: String,
+        client: &Client,
+        mut callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        client
+            .stream_into(&endpoint, |stream_event| {
+                let parsed_event: StreamPositionsResp = serde_json::from_value(stream_event)?;
+                callback(parsed_event)?;
+
+                Ok(())
+            })
+            .await?;
+
+        Ok(())
+    }
+
     /// Stream `Position`s for the given `Account`.
     pub(super) fn stream<S: Into<String>>(
         account_id: S,
@@ -284,6 +302,17 @@ impl Position {
                 Err(e) => Some(Err(e)),
             }
         })
+    }
+
+    /// Stream [`Position`]'s for a given [`crate::accounting::Account`] into a provided callback function.
+    pub(super) async fn stream_into(
+        account_id: impl Into<String>,
+        client: &Client,
+        callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!("brokerage/stream/accounts/{}/positions", account_id.into());
+
+        Position::_stream_into(endpoint, client, callback).await
     }
 
     /// Stream `Position`s for the given `Account`(s).
@@ -309,6 +338,24 @@ impl Position {
                 Err(e) => Some(Err(e)),
             }
         })
+    }
+
+    /// Stream [`Position`]'s for specific [`crate::accounting::Account`]'s into a provided callback function.
+    pub(super) async fn stream_for_accounts_into(
+        account_ids: Vec<&str>,
+        client: &Client,
+        callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!(
+            "brokerage/stream/accounts/{}/positions",
+            account_ids
+                .into_iter()
+                .map(|id| id.into())
+                .collect::<Vec<String>>()
+                .join(",")
+        );
+
+        Position::_stream_into(endpoint, client, callback).await
     }
 }
 
