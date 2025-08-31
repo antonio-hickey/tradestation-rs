@@ -189,7 +189,11 @@ impl Client {
     }
 
     /// Streams a newline delimited JSON response into a provided callback.
-    pub async fn stream_into<T, F>(&self, endpoint: &str, mut process_chunk: F) -> Result<(), Error>
+    pub(crate) async fn stream_into<T, F>(
+        &self,
+        endpoint: &str,
+        mut process_chunk: F,
+    ) -> Result<(), Error>
     where
         T: DeserializeOwned,
         F: FnMut(T) -> Result<(), Error>,
