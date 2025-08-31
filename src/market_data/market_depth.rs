@@ -103,6 +103,66 @@ impl MarketDepthQuotes {
             }
         })
     }
+
+    /// Streams [`MarketDepthQuotes`] for the provided symbol.
+    ///
+    /// This method builds a stream connection and continuously passes
+    /// incoming stream events ([`StreamMarketDepthQuotesResp`]) to the
+    /// provided `callback` closure for processing.
+    ///
+    /// # Depth Levels
+    /// Pass the number of market depth levels you wish to stream.
+    /// NOTE: Default's to a level of 20 when not provided.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamMarketDepthQuotesResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    /// Stream events on the market depth for the S&P 500 ETF.
+    /// ```rust,no_run
+    /// # use tradestation::{Error, Client, market_data::MarketDepthQuotes};
+    /// # async fn example(client: &Client) -> Result<(), Error> {
+    /// MarketDepthQuotes::stream_into(client, "SPY", Some(5), |stream_event| {
+    ///     println!("Market Depth Stream Event: {stream_event:?}");
+    ///     Ok(())
+    /// }).await?;
+    /// # Ok(()) }
+    pub async fn stream_into(
+        client: &Client,
+        symbol: impl Into<String>,
+        levels: Option<u32>,
+        mut callback: impl FnMut(StreamMarketDepthQuotesResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!(
+            "marketdata/stream/marketdepth/quotes/{}?maxlevels={}",
+            symbol.into(),
+            levels.unwrap_or(20),
+        );
+
+        client
+            .stream_into(&endpoint, |stream_event| {
+                let event: StreamMarketDepthQuotesResp = serde_json::from_value(stream_event)?;
+                callback(event)
+            })
+            .await
+            .or_else(|e| match e {
+                Error::StopStream => Ok(()),
+                other => Err(other),
+            })
+    }
 }
 impl Client {
     /// Stream realtime market depth quotes for the given Symbol.
@@ -177,6 +237,51 @@ impl Client {
         levels: Option<i32>,
     ) -> impl Stream<Item = Result<StreamMarketDepthQuotesResp, Error>> + '_ {
         MarketDepthQuotes::stream(self, symbol, levels)
+    }
+
+    /// Streams [`MarketDepthQuotes`] for the provided symbol.
+    ///
+    /// This method builds a stream connection and continuously passes
+    /// incoming stream events ([`StreamMarketDepthQuotesResp`]) to the
+    /// provided `callback` closure for processing.
+    ///
+    /// # Depth Levels
+    /// Pass the number of market depth levels you wish to stream.
+    /// NOTE: Default's to a level of 20 when not provided.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamMarketDepthQuotesResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    /// Stream events on the market depth for the S&P 500 ETF.
+    /// ```rust,no_run
+    /// # use tradestation::{Error, Client, market_data::MarketDepthQuotes};
+    /// # async fn example(client: &Client) -> Result<(), Error> {
+    /// client.stream_market_depth_quotes_into("SPY", Some(5), |stream_event| {
+    ///     println!("Market Depth Stream Event: {stream_event:?}");
+    ///     Ok(())
+    /// }).await?;
+    /// # Ok(()) }
+    pub async fn stream_market_depth_quotes_into(
+        &self,
+        symbol: impl Into<String>,
+        levels: Option<u32>,
+        callback: impl FnMut(StreamMarketDepthQuotesResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        MarketDepthQuotes::stream_into(self, symbol, levels, callback).await
     }
 }
 
@@ -305,6 +410,66 @@ impl MarketDepthAggregates {
             }
         })
     }
+
+    /// Streams [`MarketDepthAggregates`] for the provided symbol.
+    ///
+    /// This method builds a stream connection and continuously passes
+    /// incoming stream events ([`StreamMarketDepthAggregatesResp`]) to
+    /// the provided `callback` closure for processing.
+    ///
+    /// # Depth Levels
+    /// Pass the number of market depth levels you wish to stream.
+    /// NOTE: Default's to a level of 20 when not provided.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamMarketDepthAggregatesResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    /// Stream events on the market depth aggregates for the S&P 500 ETF.
+    /// ```rust,no_run
+    /// # use tradestation::{Error, Client, market_data::MarketDepthAggregates};
+    /// # async fn example(client: &Client) -> Result<(), Error> {
+    /// MarketDepthAggregates::stream_into(client, "SPY", Some(5), |stream_event| {
+    ///     println!("Market Depth Aggregates Stream Event: {stream_event:?}");
+    ///     Ok(())
+    /// }).await?;
+    /// # Ok(()) }
+    pub async fn stream_into(
+        client: &Client,
+        symbol: impl Into<String>,
+        levels: Option<u32>,
+        mut callback: impl FnMut(StreamMarketDepthAggregatesResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        let endpoint = format!(
+            "marketdata/stream/marketdepth/aggregates/{}?maxlevels={}",
+            symbol.into(),
+            levels.unwrap_or(20),
+        );
+
+        client
+            .stream_into(&endpoint, |stream_event| {
+                let event: StreamMarketDepthAggregatesResp = serde_json::from_value(stream_event)?;
+                callback(event)
+            })
+            .await
+            .or_else(|e| match e {
+                Error::StopStream => Ok(()),
+                other => Err(other),
+            })
+    }
 }
 impl Client {
     /// Stream realtime aggregates of market depth for the given Symbol.
@@ -379,6 +544,51 @@ impl Client {
         levels: Option<i32>,
     ) -> impl Stream<Item = Result<StreamMarketDepthAggregatesResp, Error>> + '_ {
         MarketDepthAggregates::stream(self, symbol, levels)
+    }
+
+    /// Streams [`MarketDepthAggregates`] for the provided symbol.
+    ///
+    /// This method builds a stream connection and continuously passes
+    /// incoming stream events ([`StreamMarketDepthAggregatesResp`]) to
+    /// the provided `callback` closure for processing.
+    ///
+    /// # Depth Levels
+    /// Pass the number of market depth levels you wish to stream.
+    /// NOTE: Default's to a level of 20 when not provided.
+    ///
+    /// # Stopping the stream
+    ///
+    /// To stop the stream gracefully from within the callback, return
+    /// `Err(Error::StopStream)`. This is treated as a control signal and will
+    /// terminate the stream without propagating an error. Any other error
+    /// returned from the callback will abort the stream and be returned to
+    /// the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if:
+    /// - the underlying HTTP/WebSocket stream fails,
+    /// - deserialization of a stream event into [`StreamMarketDepthAggregatesResp`] fails,
+    /// - or the `callback` returns an error other than [`Error::StopStream`].
+    ///
+    /// # Examples
+    ///
+    /// Stream events on the market depth aggregates for the S&P 500 ETF.
+    /// ```rust,no_run
+    /// # use tradestation::{Error, Client, market_data::MarketDepthAggregates};
+    /// # async fn example(client: &Client) -> Result<(), Error> {
+    /// client.stream_market_depth_aggregates_into("SPY", Some(5), |stream_event| {
+    ///     println!("Market Depth Aggregates Stream Event: {stream_event:?}");
+    ///     Ok(())
+    /// }).await?;
+    /// # Ok(()) }
+    pub async fn stream_market_depth_aggregates_into(
+        &self,
+        symbol: impl Into<String>,
+        levels: Option<u32>,
+        callback: impl FnMut(StreamMarketDepthAggregatesResp) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        MarketDepthAggregates::stream_into(self, symbol, levels, callback).await
     }
 }
 
