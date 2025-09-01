@@ -1,5 +1,5 @@
-use super::accounts::AccountType;
 use crate::{
+    accounting::accounts::AccountType,
     responses::{
         account::{GetBODBalanceResp, GetBalanceResp},
         ApiResponse,

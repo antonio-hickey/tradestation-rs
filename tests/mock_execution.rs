@@ -1,11 +1,12 @@
 use mockito::Server;
 use tradestation::{
-    accounting::{AssetType, Order, OrderType},
-    execution::{
-        Duration, OrderRequestBuilder, OrderRequestLeg, OrderTicket, OrderTimeInForce, OrderUpdate,
-        TradeAction,
-    },
+    accounting::AssetType,
+    execution::{Duration, TradeAction},
     market_data::OptionSpreadType,
+    orders::{
+        Order, OrderRequestBuilder, OrderRequestLeg, OrderTicket, OrderTimeInForce, OrderType,
+        OrderUpdate,
+    },
     ClientBuilder,
 };
 

@@ -1,6 +1,8 @@
 use mockito::Server;
-use tradestation::ClientBuilder;
-use tradestation::MarketData::{BarUnit, GetBarsQueryBuilder, OptionTradeAction, OptionsLeg};
+use tradestation::{
+    market_data::{BarUnit, GetBarsQueryBuilder, OptionTradeAction, OptionsLeg},
+    ClientBuilder,
+};
 
 #[test]
 /// This test ensures that the parsing of

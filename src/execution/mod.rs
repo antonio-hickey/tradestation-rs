@@ -24,7 +24,6 @@ pub mod trigger;
 pub mod update;
 
 // Expose these directly from the [`crate::execution`] level
-pub use confirm::OrderConfirmation;
 pub use orders::{
     AdvancedOrderOptions, BPWarningStatus, Duration, OrderRequestLeg, OrderTimeInForce, Oso,
     PegValue, TradeAction,
@@ -33,4 +32,3 @@ pub use request::{OrderRequest, OrderRequestBuilder, OrderRequestGroup, OrderReq
 pub use route::Route;
 pub use ticket::OrderTicket;
 pub use trigger::{ActivationTrigger, ActivationTriggerKey};
-pub use update::OrderUpdate;

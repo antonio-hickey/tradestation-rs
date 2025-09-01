@@ -1,6 +1,5 @@
 use crate::{
-    execution::OrderUpdate,
-    orders::Order,
+    orders::{Order, OrderUpdate},
     responses::{
         execution::{ModifyOrderResp, ModifyOrderRespRaw},
         ApiResponse,

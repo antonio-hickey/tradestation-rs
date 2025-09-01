@@ -3,8 +3,8 @@
 use tradestation::{
     accounting::orders::{Order, OrderRelationship, OrderType},
     execution::{
-        Duration, OrderRequestBuilder, OrderRequestGroupBuilder, OrderTimeInForce, OrderUpdate,
-        TradeAction,
+        update::OrderUpdate, Duration, OrderRequestBuilder, OrderRequestGroupBuilder,
+        OrderTimeInForce, TradeAction,
     },
     token::{Scope, Token},
     ClientBuilder, Error,

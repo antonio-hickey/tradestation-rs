@@ -1,6 +1,7 @@
-use super::ApiError;
 use crate::{
-    execution::{ActivationTrigger, OrderConfirmation, OrderTicket, Route},
+    execution::{ActivationTrigger, Route},
+    orders::{OrderConfirmation, OrderTicket},
+    responses::ApiError,
     Error,
 };
 use serde::{Deserialize, Serialize};

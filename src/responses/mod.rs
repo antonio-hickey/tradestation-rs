@@ -1,12 +1,13 @@
-use serde::de::{self, DeserializeOwned, Deserializer};
-use serde::{self, Deserialize, Serialize};
+use serde::{
+    self,
+    de::{DeserializeOwned, Deserializer, Error as DeError},
+    Deserialize, Serialize,
+};
 
 pub mod account;
 pub mod execution;
 pub mod market_data;
 pub mod stream;
-
-pub use market_data as MarketData;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -42,10 +43,10 @@ where
         // Check if "error" and "message" keys are available at the root
         // if so then it's an error response, else it's a success response
         if helper.get("error").is_some() && helper.get("message").is_some() {
-            let err: ApiError = serde_json::from_value(helper).map_err(de::Error::custom)?;
+            let err: ApiError = serde_json::from_value(helper).map_err(DeError::custom)?;
             Ok(ApiResponse::Error(err))
         } else {
-            let data: T = serde_json::from_value(helper).map_err(de::Error::custom)?;
+            let data: T = serde_json::from_value(helper).map_err(DeError::custom)?;
             Ok(ApiResponse::Success(data))
         }
     }

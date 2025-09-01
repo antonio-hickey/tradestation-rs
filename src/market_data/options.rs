@@ -1,14 +1,14 @@
 use crate::{
     responses::{
         market_data::{
+            GetOptionExpirationsResp, GetOptionExpirationsRespRaw, GetOptionsRiskRewardResp,
+            GetOptionsRiskRewardRespRaw,
+        },
+        market_data::{
             OptionSpreadStrikesResp, OptionSpreadStrikesRespRaw, StreamOptionChainResp,
             StreamOptionQuotesResp,
         },
         ApiResponse,
-        MarketData::{
-            GetOptionExpirationsResp, GetOptionExpirationsRespRaw, GetOptionsRiskRewardResp,
-            GetOptionsRiskRewardRespRaw,
-        },
     },
     Client, Error,
 };
@@ -255,7 +255,7 @@ impl OptionSpreadType {
     /// Get all the spread types and print information about them:
     ///
     /// ```rust
-    /// use tradestation::MarketData::OptionSpreadType;
+    /// use tradestation::market_data::OptionSpreadType;
     ///
     /// let option_spread_types = OptionSpreadType::all();
     /// for spread_type in option_spread_types.iter() {
@@ -315,7 +315,7 @@ impl Client {
     /// Get all the spread types and print information about them:
     ///
     /// ```rust
-    /// use tradestation::MarketData::OptionSpreadType;
+    /// use tradestation::market_data::OptionSpreadType;
     ///
     /// let option_spread_types = OptionSpreadType::all();
     /// for spread_type in option_spread_types.iter() {
@@ -441,7 +441,7 @@ impl Client {
     /// a max potential loss.
     ///
     /// ```ignore
-    /// use tradestation::{ClientBuilder, Error, MarketData::options::{OptionsLeg, OptionTradeAction}};
+    /// use tradestation::{ClientBuilder, Error, market_data::options::{OptionsLeg, OptionTradeAction}};
     ///
     /// let mut client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
@@ -624,7 +624,7 @@ pub struct OptionSpreadStrikesQuery {
     /// NOTE: The underlying symbol must be an equity or index.
     pub underlying: String,
 
-    /// The type of spread `MarketData::OptionSpreadType`
+    /// The type of spread `market_data::OptionSpreadType`
     pub spread_type: OptionSpreadType,
 
     /// The desired interval between the strike prices
@@ -670,7 +670,7 @@ impl OptionSpreadStrikesQueryBuilder {
         self
     }
 
-    /// Set the type of spread `MarketData::OptionSpreadType`
+    /// Set the type of spread `market_data::OptionSpreadType`
     pub fn spread_type(mut self, spread: OptionSpreadType) -> Self {
         self.spread_type = Some(spread);
 
@@ -888,7 +888,7 @@ impl OptionChain {
     /// Example: Stream an option chain for Apple `"AAPL"`.
     ///
     /// ```ignore
-    /// let stream_aapl_option_chain_query = MarketData::OptionChainQueryBuilder::new()
+    /// let stream_aapl_option_chain_query = market_data::OptionChainQueryBuilder::new()
     ///     .underlying("AAPL")
     ///     .build()?;
     ///
@@ -1031,7 +1031,7 @@ impl Client {
     /// Example: Stream an option chain for Apple `"AAPL"`.
     ///
     /// ```ignore
-    /// let stream_aapl_option_chain_query = MarketData::OptionChainQueryBuilder::new()
+    /// let stream_aapl_option_chain_query = market_data::OptionChainQueryBuilder::new()
     ///     .underlying("AAPL")
     ///     .build()?;
     ///
@@ -1432,7 +1432,7 @@ pub struct OptionSpreadLeg {
     /// E.g: `2021-12-17T00:00:00Z`.
     pub expiration: String,
 
-    /// The option type `MarketData::OptionType`
+    /// The option type `market_data::OptionType`
     pub option_type: OptionType,
 
     /// The asset category for this leg.
@@ -1641,7 +1641,7 @@ impl OptionQuote {
     /// of action based on market conditions.
     ///
     /// ```ignore
-    /// let stream_tlt_iron_butterfly_query = MarketData::OptionQuoteQueryBuilder::new()
+    /// let stream_tlt_iron_butterfly_query = market_data::OptionQuoteQueryBuilder::new()
     ///     .legs(vec![
     ///         OptionQouteLeg {
     ///             symbol: "TLT 241011P93".into(),
@@ -1816,7 +1816,7 @@ impl Client {
     /// of action based on market conditions.
     ///
     /// ```ignore
-    /// let stream_tlt_iron_butterfly_query = MarketData::OptionQuoteQueryBuilder::new()
+    /// let stream_tlt_iron_butterfly_query = market_data::OptionQuoteQueryBuilder::new()
     ///     .legs(vec![
     ///         OptionQouteLeg {
     ///             symbol: "TLT 241011P93".into(),

@@ -6,7 +6,6 @@
 //!   <img src="https://img.shields.io/crates/l/tradestation" />
 //!   <img alt="docs.rs" src="https://img.shields.io/docsrs/tradestation">
 //!   <img src="https://img.shields.io/github/commit-activity/m/antonio-hickey/tradestation-rs" />
-//!
 //! </p>
 //!
 //! An ergonomic Rust client for the [TradeStation API](https://www.tradestation.com/platforms-and-tools/trading-api/) empowering you to build fast, scalable, and production ready trading systems and applications.
@@ -14,25 +13,26 @@
 //! * [Crates.io Homepage](https://crates.io/crates/tradestation)
 //! * [Documentation](https://docs.rs/tradestation/latest/tradestation)
 //! * [GitHub Repository](https://github.com/antonio-hickey/tradestation-rs)
+//! * [Examples](https://github.com/antonio-hickey/tradestation-rs/tree/v0.0.8/examples)
 //!
 //! Features
 //! ---
-//! - 🧮 Accounting: Monitor your risk, positions, balances, order history, and more across multiple accounts.
-//! - 📈 Market Data: Easily fetch and stream real time and historic market data on thousands of assets and derivatives.
-//! - ⚡ Execution: Lightning fast trade execution allowing you to place, update, and cancel orders with all kinds of custom configuration.
-//! - 🧪 Testing: Supports mock testing so you can seamlessly build out testing environments to ensure your trading systems or applications work as expected.
+//! - 🧮 [Accounting](https://docs.rs/tradestation/latest/tradestation/accounting/index.html): Monitor your risk, positions, balances, order history, and more across multiple accounts.
+//! - 📈 [Market Data](https://docs.rs/tradestation/latest/tradestation/market_data/index.html): Easily fetch and stream real time and historic market data on thousands of assets and derivatives.
+//! - ⚡ [Execution](https://docs.rs/tradestation/latest/tradestation/execution/index.html): Lightning fast trade execution allowing you to place, update, and cancel orders with all kinds of custom configuration.
+//! - 🧪 [Testing](https://github.com/antonio-hickey/tradestation-rs/blob/master/examples/mocking.rs): Supports mocking so you can seamlessly build out environments to test your trading systems and applications.
 //!
 //! Install
 //! ---
 //! Use cargo CLI:
 //! ```sh
-//! cargo install tradestation
+//! cargo add tradestation
 //! ```
 //!
 //! Or manually add it into your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! tradestation = "0.0.7"
+//! tradestation = "0.0.8"
 //! ```
 //!
 //! Usage
@@ -40,70 +40,47 @@
 //!
 //! For more thorough information, read the [docs](https://docs.rs/tradestation/latest/tradestation/).
 //!
+//! NOTE: See initial auth example on how to get your token (if not already done): https://github.com/antonio-hickey/tradestation-rs/blob/master/examples/initial_auth.rs
+//!
 //! Simple example for streaming bars of trading activity:
-//! ```ignore
-//! use futures::StreamExt;
+//! ```rust,no_run
 //! use tradestation::{
-//!     responses::MarketData::StreamBarsResp,
-//!     ClientBuilder, Error, Scope,
-//!     MarketData::{self, BarUnit},
+//!     responses::market_data::StreamBarsResp,
+//!     ClientBuilder, Error,
+//!     market_data::{BarUnit, StreamBarsQueryBuilder},
 //! };
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Error> {
 //!     // Build the TradeStation Client
-//!     let mut client = ClientBuilder::new()?
-//!         .credentials("YOUR_ACCESS_KEY", "YOUR_SECRET_KEY")?
-//!         .token(Token {
+//!     let mut client = ClientBuilder::new()
+//!         .credentials("YOUR_ACCESS_KEY", "YOUR_SECRET_KEY")
+//!         .with_token(Token {
 //!             access_token: "YOUR_ACCESS_TOKEN".into(),
 //!             refresh_token: "YOUR_REFRESH_TOKEN".into(),
 //!             id_token: "YOUR_ID_TOKEN".into(),
 //!             token_type: String::from("Bearer"),
-//!             scope: vec![
-//!                 Scope::Profile,
-//!                 Scope::ReadAccount,
-//!                 Scope::MarketData,
-//!             ],
+//!             scope: vec![Scope::MarketData],
 //!             expires_in: 1200,
-//!         })?
+//!         })
 //!         .build()
 //!         .await?;
 //!
 //!     // Build a query to stream Crude Oil Futures
-//!     let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
-//!         .set_symbol("CLX30")
-//!         .set_unit(BarUnit::Minute)
-//!         .set_interval("240")
+//!     let stream_bars_query = StreamBarsQueryBuilder::new()
+//!         .symbol("CLX30")
+//!         .unit(BarUnit::Minute)
+//!         .interval("240")
 //!         .build()?;
 //!
-//!     // Start the stream and pin it to the stack
-//!     let mut bars_stream = client.stream_bars(&stream_bars_query);
-//!     tokio::pin!(bars_stream); // NOTE: You must pin the stream before polling
-//!
-//!     // Poll the stream for responses
-//!     while let Some(stream_resp) = bars_stream.next().await {
-//!         match stream_resp {
-//!             StreamBarsResp::Bar(bar) => {
-//!                 // Do something with the bars like making a chart
-//!                 println!("{bar:?}");
-//!             }
-//!             StreamBarsResp::Heartbeat(heartbeat) => {
-//!                 if heartbeat.heartbeat > 10 {
-//!                     return Err(Error::StopStream);
-//!                 }
-//!             }
-//!             StreamBarsResp::Status(status) => {
-//!                 println!("{status:?}");
-//!             }
-//!             StreamBarsResp::Error(err) => {
-//!                 eprintln!("{err:?}");
-//!             }
-//!             Err(err) => {
-//!                 // Stream / network error
-//!                 eprintln!("{err:?}");
-//!             }
-//!         }
-//!     }
+//!     // Stream the bars based on the query built above into
+//!     // a custom function to process each bar streamed in.
+//!     client
+//!         .stream_bars_into(&stream_bars_query, |stream_event| {
+//!             println!("Stream Bar Event: {stream_event:?}");
+//!             Ok(())
+//!         })
+//!         .await?;
 //!
 //!     Ok(())
 //! }
@@ -129,14 +106,12 @@ pub mod client;
 pub use client::{Client, ClientBuilder};
 
 /// The tradestation-rs error definitions.
-pub mod error;
+mod error;
 /// The tradestation-rs error type.
 pub use error::Error;
 
 /// Functions, Structs, and primitives related to market data.
 pub mod market_data;
-/// Functions, Structs, and primitives related to market data.
-pub use market_data as MarketData;
 
 /// Functions, structs, and primitives related to auth tokens.
 pub mod token;
@@ -155,13 +130,14 @@ pub mod orders {
         execution::{
             confirm::OrderConfirmation,
             orders::{
-                AdvancedOrderOptions, BPWarningStatus, Duration, OrderRequestLeg, OrderTicket,
-                OrderTimeInForce, Oso, PegValue, TradeAction,
+                AdvancedOrderOptions, BPWarningStatus, Duration, OrderRequestLeg, OrderTimeInForce,
+                Oso, PegValue, TradeAction,
             },
             request::{
                 OrderRequest, OrderRequestBuilder, OrderRequestGroup, OrderRequestGroupBuilder,
             },
             route::Route,
+            ticket::OrderTicket,
             trigger::{ActivationTrigger, ActivationTriggerKey},
             update::OrderUpdate,
         },

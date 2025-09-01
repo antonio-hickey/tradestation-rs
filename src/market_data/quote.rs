@@ -1,9 +1,11 @@
-use crate::responses::account::StreamPositionsResp;
-use crate::responses::market_data::{
-    GetQuoteSnapshotsResp, GetQuoteSnapshotsRespRaw, StreamQuotesResp,
+use crate::{
+    responses::{
+        account::StreamPositionsResp,
+        market_data::{GetQuoteSnapshotsResp, GetQuoteSnapshotsRespRaw, StreamQuotesResp},
+        ApiResponse,
+    },
+    Client, Error,
 };
-use crate::responses::ApiResponse;
-use crate::{Client, Error};
 use futures::{Stream, StreamExt};
 use serde::{Deserialize, Serialize};
 

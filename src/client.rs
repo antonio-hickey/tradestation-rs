@@ -7,8 +7,10 @@ use reqwest::{header, Response};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use std::{collections::HashMap, sync::Arc};
-use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::sync::Mutex;
+use tokio::{
+    io::{AsyncBufReadExt, BufReader},
+    sync::Mutex,
+};
 use tokio_util::{
     codec::{FramedRead, LinesCodec},
     io::StreamReader,

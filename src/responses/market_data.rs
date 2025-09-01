@@ -1,14 +1,12 @@
-use crate::market_data::market_depth::{MarketDepthAggregates, MarketDepthQuotes};
-use crate::market_data::quote::Quote;
-use crate::market_data::SymbolDetails;
-use crate::market_data::{
-    OptionChain, OptionExpiration, OptionQuote, OptionRiskRewardAnalysis, OptionSpreadStrikes,
-    OptionSpreadType,
+use crate::{
+    market_data::{
+        Bar, MarketDepthAggregates, MarketDepthQuotes, OptionChain, OptionExpiration, OptionQuote,
+        OptionRiskRewardAnalysis, OptionSpreadStrikes, OptionSpreadType, Quote, SymbolDetails,
+    },
+    responses::{stream, ApiError},
+    Error,
 };
-use crate::{responses::stream, Error, MarketData::Bar};
 use serde::{de, Deserialize, Serialize};
-
-use super::ApiError;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]

@@ -1,7 +1,7 @@
 use crate::{
     responses::{
+        market_data::{GetBarsResp, GetBarsRespRaw, StreamBarsResp},
         ApiResponse,
-        MarketData::{GetBarsResp, GetBarsRespRaw, StreamBarsResp},
     },
     Client, Error,
 };

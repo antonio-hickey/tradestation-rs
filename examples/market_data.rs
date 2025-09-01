@@ -2,16 +2,14 @@
 
 use futures::StreamExt;
 use tradestation::{
-    responses::MarketData::{
+    market_data::{
+        bar::{BarUnit, StreamBarsQueryBuilder},
+        options::{OptionChainQueryBuilder, OptionSpreadType, OptionTradeAction, OptionsLeg},
+    },
+    responses::market_data::{
         StreamBarsResp, StreamMarketDepthQuotesResp, StreamOptionChainResp, StreamQuotesResp,
     },
-    ClientBuilder, Error,
-    MarketData::{
-        self,
-        options::{OptionSpreadType, OptionTradeAction, OptionsLeg},
-        BarUnit,
-    },
-    Scope, Token,
+    ClientBuilder, Error, Scope, Token,
 };
 
 #[tokio::main]
@@ -60,7 +58,7 @@ async fn main() -> Result<(), Error> {
     //--
     // Example: Stream bars of November 2030 Crude Oil Futures trading activity in
     // 4 hour (240 minute) intervals.
-    let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
+    let stream_bars_query = StreamBarsQueryBuilder::new()
         .symbol("CLX30")
         .unit(BarUnit::Minute)
         .interval(240)
@@ -146,7 +144,7 @@ async fn main() -> Result<(), Error> {
     //--
     // Example: Stream an option chain of iron butterfly's for Apple `"AAPL"`
     // expiring December 20th 2024.
-    let stream_aapl_option_chain_query = MarketData::OptionChainQueryBuilder::new()
+    let stream_aapl_option_chain_query = OptionChainQueryBuilder::new()
         .underlying("AAPL")
         .spread_type(OptionSpreadType::IronButterfly)
         .expiration("12-20-2024")
