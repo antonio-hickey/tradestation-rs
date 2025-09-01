@@ -46,8 +46,9 @@
 //! ```rust,no_run
 //! use tradestation::{
 //!     responses::market_data::StreamBarsResp,
-//!     ClientBuilder, Error,
 //!     market_data::{BarUnit, StreamBarsQueryBuilder},
+//!     token::{Token, Scope},
+//!     ClientBuilder, Error,
 //! };
 //!
 //! #[tokio::main]
@@ -70,7 +71,7 @@
 //!     let stream_bars_query = StreamBarsQueryBuilder::new()
 //!         .symbol("CLX30")
 //!         .unit(BarUnit::Minute)
-//!         .interval("240")
+//!         .interval(240)
 //!         .build()?;
 //!
 //!     // Stream the bars based on the query built above into

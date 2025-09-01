@@ -13,7 +13,8 @@ An ergonomic Rust client for the [TradeStation API](https://www.tradestation.com
 
 * [Crates.io Homepage](https://crates.io/crates/tradestation)
 * [Documentation](https://docs.rs/tradestation/latest/tradestation)
-* [GitHub Repository]()
+* [GitHub Repository](https://github.com/antonio-hickey/tradestation-rs)
+* [Examples](https://github.com/antonio-hickey/tradestation-rs/tree/v0.0.8/examples)
 
 Features
 ---
@@ -30,13 +31,13 @@ Install
 ---
 Use cargo CLI:
 ```
-cargo install tradestation
+cargo add tradestation
 ```
 
 Or manually add it into your `Cargo.toml`:
 ```toml
 [dependencies]
-tradestation = "0.0.7"
+tradestation = "0.0.8"
 ```
 
 Usage
@@ -45,69 +46,45 @@ Usage
 For more thorough information, read the [docs](https://docs.rs/tradestation/latest/tradestation/).
 
 Simple example for streaming bars of trading activity:
-```rust
-use futures::StreamExt;
+```rust,no_run
 use tradestation::{
-    responses::MarketData::StreamBarsResp,
+    responses::market_data::StreamBarsResp,
+    market_data::{BarUnit, StreamBarsQueryBuilder},
+    token::{Token, Scope},
     ClientBuilder, Error,
-    MarketData::{self, BarUnit},
 };
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // Build the TradeStation Client
-    let mut client = ClientBuilder::new()?
-        .credentials("YOUR_ACCESS_KEY", "YOUR_SECRET_KEY")?
-        .token(Token {
+    let mut client = ClientBuilder::new()
+        .credentials("YOUR_ACCESS_KEY", "YOUR_SECRET_KEY")
+        .with_token(Token {
             access_token: "YOUR_ACCESS_TOKEN".into(),
             refresh_token: "YOUR_REFRESH_TOKEN".into(),
             id_token: "YOUR_ID_TOKEN".into(),
             token_type: String::from("Bearer"),
-            scope: vec![
-                Scope::Profile,
-                Scope::ReadAccount,
-                Scope::MarketData,
-            ],
+            scope: vec![Scope::MarketData],
             expires_in: 1200,
-        })?
+        })
         .build()
         .await?;
 
     // Build a query to stream Crude Oil Futures
-    let stream_bars_query = MarketData::StreamBarsQueryBuilder::new()
-        .set_symbol("CLX30")
-        .set_unit(BarUnit::Minute)
-        .set_interval("240")
+    let stream_bars_query = StreamBarsQueryBuilder::new()
+        .symbol("CLX30")
+        .unit(BarUnit::Minute)
+        .interval(240)
         .build()?;
 
-    // Start the stream and pin it to the stack
-    let mut bars_stream = client.stream_bars(&stream_bars_query);
-    tokio::pin!(bars_stream); // NOTE: You must pin the stream before polling
-
-    // Poll the stream for responses
-    while let Some(stream_resp) = bars_stream.next().await {
-        match stream_resp {
-            StreamBarsResp::Bar(bar) => {
-                // Do something with the bars like making a chart
-                println!("{bar:?}");
-            }
-            StreamBarsResp::Heartbeat(heartbeat) => {
-                if heartbeat.heartbeat > 10 {
-                    return Err(Error::StopStream);
-                }
-            }
-            StreamBarsResp::Status(status) => {
-                println!("{status:?}");
-            }
-            StreamBarsResp::Error(err) => {
-                eprintln!("{err:?}");
-            }
-            Err(err) => {
-                // Stream / network error
-                eprintln!("{err:?}");
-            }
-        }
-    }
+    // Stream the bars based on the query built above into
+    // a custom function to process each bar streamed in.
+    client
+        .stream_bars_into(&stream_bars_query, |stream_event| {
+            println!("Stream Bar Event: {stream_event:?}");
+            Ok(())
+        })
+        .await?;
 
     Ok(())
 }
