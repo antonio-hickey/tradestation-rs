@@ -23,5 +23,8 @@ pub struct StreamStatus {
 pub struct ErrorResp {
     pub error: String,
     pub message: String,
-    pub account_id: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// DEPRECATED: Removed by TradeStation.
+    pub account_id: Option<String>,
 }
