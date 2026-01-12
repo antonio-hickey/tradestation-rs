@@ -1006,6 +1006,7 @@ dependencies = [
  "rustls-platform-verifier",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "sync_wrapper",
  "tokio",
  "tokio-rustls",
@@ -1518,7 +1519,7 @@ dependencies = [
 
 [[package]]
 name = "tradestation"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "async-stream",
  "futures",

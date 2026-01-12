@@ -14,7 +14,7 @@ An ergonomic Rust client for the [TradeStation API](https://www.tradestation.com
 * [Crates.io Homepage](https://crates.io/crates/tradestation)
 * [Documentation](https://docs.rs/tradestation/latest/tradestation)
 * [GitHub Repository](https://github.com/antonio-hickey/tradestation-rs)
-* [Examples](https://github.com/antonio-hickey/tradestation-rs/tree/v0.0.8/examples)
+* [Examples](https://github.com/antonio-hickey/tradestation-rs/tree/v0.0.9/examples)
 
 Features
 ---
@@ -37,7 +37,7 @@ cargo add tradestation
 Or manually add it into your `Cargo.toml`:
 ```toml
 [dependencies]
-tradestation = "0.0.8"
+tradestation = "0.0.9"
 ```
 
 Usage
@@ -57,6 +57,8 @@ use tradestation::{
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // Build the TradeStation Client
+    //
+    // NOTE: If you don't have your token yet, see the inital auth example.
     let mut client = ClientBuilder::new()
         .credentials("YOUR_ACCESS_KEY", "YOUR_SECRET_KEY")
         .with_token(Token {
