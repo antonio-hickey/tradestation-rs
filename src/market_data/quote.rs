@@ -462,6 +462,124 @@ impl Client {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// A streamed in update event of a specific [`Quote`].
+///
+/// A quote update is a partial update of a [`Quote`] meaning only a subset of the fields may be
+/// present in the update streamed in. For example, a quote update where only the bid size changed
+/// since the last stream event means that the only fields available would be `symbol` and `bid_size`.
+pub struct QuoteStreamUpdate {
+    /// The price at which a security, futures contract, or other
+    /// financial instrument is offered for sale.
+    pub ask: Option<String>,
+
+    /// The number of trading units that prospective sellers are
+    /// prepared to sell.
+    pub ask_size: Option<String>,
+
+    /// The highest price a prospective buyer is prepared to pay
+    /// at a particular time for a trading unit of a given symbol.
+    pub bid: Option<String>,
+
+    /// The number of trading units that prospective buyers are
+    /// prepared to purchase for a symbol.
+    pub bid_size: Option<String>,
+
+    /// The closing price of the day.
+    pub close: Option<String>,
+
+    /// The total number of open or outstanding (not closed or delivered)
+    /// options and/or futures contracts that exist on a given day, delivered
+    /// on a particular day.
+    pub daily_open_interest: Option<String>,
+
+    /// The highest price of the day.
+    pub high: Option<String>,
+
+    /// The lowest price of the day.
+    pub low: Option<String>,
+
+    /// The highest price of the past 52 weeks.
+    pub high_52_week: Option<String>,
+
+    /// Date of the highest price in the past 52 week.
+    pub high_52_week_timestamp: Option<String>,
+
+    /// The last price at which the symbol traded.
+    pub last: Option<String>,
+
+    /// The minimum price a commodity futures contract may be traded for
+    /// the current session.
+    pub min_price: Option<String>,
+
+    /// The maximum price a commodity futures contract may be traded for
+    /// the current session.
+    pub max_price: Option<String>,
+
+    /// The day after which an investor who has purchased a futures contract
+    /// may be required to take physical delivery of the contracts underlying
+    /// commodity.
+    pub first_notice_date: Option<String>,
+
+    /// The final day that a futures contract may trade or be closed out before
+    /// the delivery of the underlying asset or cash settlement must occur.
+    pub last_trading_date: Option<String>,
+
+    /// The lowest price of the past 52 weeks.
+    pub low_52_week: Option<String>,
+
+    /// Date of the lowest price of the past 52 weeks.
+    pub low_52_week_timestamp: Option<String>,
+
+    /// Market specific information for a symbol.
+    pub market_flags: Option<MarketFlag>,
+
+    /// The difference between the last displayed price and the previous day's
+    /// close.
+    pub net_change: Option<String>,
+
+    /// The percentage difference between the current price and previous day's
+    /// close, expressed as a percentage. E.g: Option<a price change from 100 to 103.>5
+    /// would be expressed as `"3.5"`.
+    pub net_change_pct: Option<String>,
+
+    /// The opening price of the day.
+    pub open: Option<String>,
+
+    /// The closing price of the previous day.
+    pub previous_volume: Option<String>,
+
+    /// Restriction if any returns array.
+    pub restrictions: Option<Vec<String>>,
+
+    /// The name identifying the financial instrument for which the data is displayed.
+    pub symbol: String,
+
+    /// Trading increment based on a level group.
+    pub tick_size_tier: Option<String>,
+
+    /// Time of the last trade.
+    pub trade_time: Option<String>,
+
+    /// Daily volume in shares/contracts.
+    pub volume: Option<String>,
+
+    /// Number of contracts/shares last traded.
+    pub last_size: Option<String>,
+
+    /// Exchange name of last trade.
+    pub last_venue: Option<String>,
+
+    #[serde(rename = "VWAP")]
+    /// VWAP (Volume Weighted Average Price) is a measure of the price at which the
+    /// majority of a given day's trading in a given security took place. It is
+    /// calculated by adding the dollars traded for the average price of the bar
+    /// throughout the day ("avgprice" x "number of shares traded" per bar) and
+    /// dividing by the total shares traded for the day.
+    pub vwap: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
 /// The different kinds of market flags.
 pub struct MarketFlag {
     /// Is using BATS

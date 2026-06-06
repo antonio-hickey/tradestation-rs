@@ -17,7 +17,7 @@ pub use symbol::{
     Format, IncrementSchedule, IncrementStyle, PriceFormat, QuantityFormat, SymbolDetails,
 };
 
-pub use quote::{MarketFlag, Quote};
+pub use quote::{MarketFlag, Quote, QuoteStreamUpdate};
 
 pub use market_depth::{
     MarketDepthAggregate, MarketDepthAggregates, MarketDepthQuote, MarketDepthQuotes,

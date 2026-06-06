@@ -1,7 +1,8 @@
 use crate::{
     market_data::{
         Bar, MarketDepthAggregates, MarketDepthQuotes, OptionChain, OptionExpiration, OptionQuote,
-        OptionRiskRewardAnalysis, OptionSpreadStrikes, OptionSpreadType, Quote, SymbolDetails,
+        OptionRiskRewardAnalysis, OptionSpreadStrikes, OptionSpreadType, Quote, QuoteStreamUpdate,
+        SymbolDetails,
     },
     responses::{stream, ApiError},
     Error,
@@ -484,7 +485,7 @@ impl From<GetQuoteSnapshotsRespRaw> for GetQuoteSnapshotsResp {
 #[serde(rename_all = "PascalCase")]
 pub enum StreamQuotesResp {
     /// The main response which contains the option chain data.
-    Quote(Box<self::Quote>),
+    Quote(Box<QuoteStreamUpdate>),
 
     /// Periodic signal to know the connection is still alive.
     Heartbeat(stream::Heartbeat),
@@ -502,22 +503,22 @@ impl<'de> Deserialize<'de> for StreamQuotesResp {
     {
         let value = serde_json::Value::deserialize(deserializer)?;
 
-        if value.get("Open").is_some() {
-            // Deserialize into the `Quotes` variant
-            let quote = serde_json::from_value(value).map_err(de::Error::custom)?;
-            Ok(StreamQuotesResp::Quote(Box::new(quote)))
-        } else if value.get("StreamStatus").is_some() {
-            // Deserialize into the `Status` variant
+        if value.get("StreamStatus").is_some() {
+            // Deserialize into the `StreamStatus` variant
             let status = serde_json::from_value(value).map_err(de::Error::custom)?;
             Ok(StreamQuotesResp::Status(status))
         } else if value.get("Heartbeat").is_some() {
             // Deserialize into the `Heartbeat` variant
             let heartbeat = serde_json::from_value(value).map_err(de::Error::custom)?;
             Ok(StreamQuotesResp::Heartbeat(heartbeat))
-        } else {
-            // Default to `Error` variant if nothing else matches
+        } else if value.get("Error").is_some() {
+            // Default to `ErrorResp` variant if nothing else matches
             let error = serde_json::from_value(value).map_err(de::Error::custom)?;
             Ok(StreamQuotesResp::Error(error))
+        } else {
+            // Deserialize into the `QuoteStreamUpdate` variant
+            let quote = serde_json::from_value(value).map_err(de::Error::custom)?;
+            Ok(StreamQuotesResp::Quote(Box::new(quote)))
         }
     }
 }
