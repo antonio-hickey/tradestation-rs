@@ -1,7 +1,8 @@
 use crate::{
     market_data::{
         Bar, MarketDepthAggregates, MarketDepthQuotes, OptionChain, OptionExpiration, OptionQuote,
-        OptionRiskRewardAnalysis, OptionSpreadStrikes, OptionSpreadType, Quote, SymbolDetails,
+        OptionRiskRewardAnalysis, OptionSpreadStrikes, OptionSpreadType, Quote, QuoteStreamUpdate,
+        SymbolDetails,
     },
     responses::{stream, ApiError},
     Error,
@@ -484,7 +485,7 @@ impl From<GetQuoteSnapshotsRespRaw> for GetQuoteSnapshotsResp {
 #[serde(rename_all = "PascalCase")]
 pub enum StreamQuotesResp {
     /// The main response which contains the option chain data.
-    Quote(Box<self::Quote>),
+    Quote(Box<QuoteStreamUpdate>),
 
     /// Periodic signal to know the connection is still alive.
     Heartbeat(stream::Heartbeat),
