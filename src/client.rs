@@ -1,6 +1,6 @@
 use crate::{
     token::{RefreshedToken, Token},
-    Error, Scope,
+    Error,
 };
 use futures::{Stream, TryStreamExt};
 use reqwest::{header, Response};
@@ -292,13 +292,16 @@ impl Client {
 }
 
 #[derive(Debug, Default)]
-/// First step to building a `Client`.
+/// Initial builder state before the API environment has been selected.
 pub struct Configure;
 #[derive(Debug, Default)]
-/// Second step to building a `Client`.
+/// Builder state after the API environment has been selected.
+pub struct Configured;
+#[derive(Debug, Default)]
+/// Authorization flow state.
 pub struct Authorize;
 #[derive(Debug, Default)]
-/// Third step to building a `Client`.
+/// Final builder state with a token available.
 pub struct Ready;
 
 #[derive(Debug, Default)]
@@ -312,7 +315,7 @@ pub struct ClientBuilderStep<CurrentStep> {
     redirect_uri: Option<String>,
     audience: Option<String>,
     scopes: Vec<String>,
-    testing_url: Option<String>,
+    base_url: String,
     token: Option<Token>,
 }
 
@@ -334,50 +337,11 @@ impl ClientBuilder {
 impl ClientBuilderStep<Configure> {
     #[must_use]
     /// Set the API key and secret.
-    pub fn credentials<S: Into<String>>(self, client_id: S, client_secret: S) -> Self {
-        ClientBuilderStep {
-            _current_step: std::marker::PhantomData::<Configure>,
-            http_client: self.http_client,
-            client_id: Some(client_id.into()),
-            client_secret: Some(client_secret.into()),
-            ..Default::default()
-        }
-    }
+    pub fn credentials<S: Into<String>>(mut self, client_id: S, client_secret: S) -> Self {
+        self.client_id = Some(client_id.into());
+        self.client_secret = Some(client_secret.into());
 
-    #[must_use]
-    /// Set the [`Token`] for the [`Client`] to use.
-    ///
-    /// This is very useful if you already have a token
-    /// stored that you can use to skip the authorize
-    /// redirect flow with.
-    ///
-    /// As long as the redirect token is not expired the
-    /// [`Token`] itself is still valid, as we auto handle
-    /// refreshing the token when the access token expires.
-    pub fn with_token(self, token: Token) -> ClientBuilderStep<Ready> {
-        let ClientBuilderStep {
-            _current_step: _,
-            http_client,
-            client_id,
-            client_secret,
-            redirect_uri,
-            audience,
-            scopes,
-            token: _,
-            testing_url,
-        } = self;
-
-        ClientBuilderStep {
-            _current_step: std::marker::PhantomData::<Ready>,
-            http_client,
-            client_id,
-            client_secret,
-            redirect_uri,
-            audience,
-            scopes,
-            token: Some(token),
-            testing_url,
-        }
+        self
     }
 
     #[must_use]
@@ -408,27 +372,20 @@ impl ClientBuilderStep<Configure> {
     }
 
     #[must_use]
-    /// Set the testing url for the client to use for sending
-    /// ALL the requests to your test/mock server instead of
-    /// the default TradeStation API url.
+    /// Set the environment for the client to run in.
     ///
-    /// NOTE: This should ONLY be set for testing and
-    /// mocking purposes. This should NOT be set used
-    /// with a production `Client`.
-    pub fn testing_url(self, url: impl Into<String>) -> ClientBuilderStep<Ready> {
-        // Generate a test dummy token, when using a test url.
-        let test_token = Token {
-            access_token: "ACCESS_TOKEN".to_owned(),
-            id_token: "ID_TOKEN".to_owned(),
-            refresh_token: "REFRESH_TOKEN".to_owned(),
-            token_type: "Bearer".to_owned(),
-            expires_in: 3600,
-            scope: vec![
-                Scope::MarketData,
-                Scope::Profile,
-                Scope::OpenId,
-                Scope::OfflineAccess,
-            ],
+    /// There's only 3 valid client environments:
+    /// - [`ClientEnvironment::Live`] uses real TradeStation accounts and can place
+    ///   real orders.
+    /// - [`ClientEnvironment::Simulation`] uses TradeStation's SIM API for paper
+    ///   trading with simulated accounts and simulated fills.
+    /// - [`ClientEnvironment::Mock`] is intended for local mock tests, CI, and
+    ///   other flows that should not require or expose live credentials.
+    pub fn environment(self, environment: ClientEnvironment) -> ClientBuilderStep<Configured> {
+        let base_url = match environment {
+            ClientEnvironment::Live => "https://api.tradestation.com/v3".to_owned(),
+            ClientEnvironment::Simulation => "https://sim-api.tradestation.com/v3".to_owned(),
+            ClientEnvironment::Mock(mock_url) => mock_url,
         };
 
         let ClientBuilderStep {
@@ -439,8 +396,45 @@ impl ClientBuilderStep<Configure> {
             redirect_uri,
             audience,
             scopes,
+            token,
+            base_url: _,
+        } = self;
+
+        ClientBuilderStep {
+            _current_step: std::marker::PhantomData::<Configured>,
+            http_client,
+            client_id,
+            client_secret,
+            redirect_uri,
+            audience,
+            scopes,
+            token,
+            base_url,
+        }
+    }
+}
+impl ClientBuilderStep<Configured> {
+    #[must_use]
+    /// Set the [`Token`] for the [`Client`] to use.
+    ///
+    /// This is very useful if you already have a token
+    /// stored that you can use to skip the authorize
+    /// redirect flow with.
+    ///
+    /// As long as the redirect token is not expired the
+    /// [`Token`] itself is still valid, as we auto handle
+    /// refreshing the token when the access token expires.
+    pub fn with_token(self, token: Token) -> ClientBuilderStep<Ready> {
+        let ClientBuilderStep {
+            _current_step: _,
+            http_client,
+            client_id,
+            client_secret,
+            redirect_uri,
+            audience,
+            scopes,
             token: _,
-            testing_url: _,
+            base_url,
         } = self;
 
         ClientBuilderStep {
@@ -451,8 +445,8 @@ impl ClientBuilderStep<Configure> {
             redirect_uri,
             audience,
             scopes,
-            token: Some(test_token),
-            testing_url: Some(url.into()),
+            token: Some(token),
+            base_url,
         }
     }
 
@@ -469,7 +463,7 @@ impl ClientBuilderStep<Configure> {
             audience,
             scopes,
             token: _,
-            testing_url,
+            base_url,
         } = self;
 
         ClientBuilderStep {
@@ -481,7 +475,7 @@ impl ClientBuilderStep<Configure> {
             audience,
             scopes,
             token: self.token,
-            testing_url,
+            base_url,
         }
     }
 }
@@ -568,7 +562,7 @@ impl ClientBuilderStep<Authorize> {
             audience,
             scopes,
             token: _,
-            testing_url,
+            base_url,
         } = self;
 
         Ok(ClientBuilderStep {
@@ -580,7 +574,7 @@ impl ClientBuilderStep<Authorize> {
             audience,
             scopes,
             token: Some(token),
-            testing_url,
+            base_url,
         })
     }
 
@@ -604,7 +598,7 @@ impl ClientBuilderStep<Authorize> {
             audience,
             scopes,
             token: _,
-            testing_url,
+            base_url,
         } = self;
 
         ClientBuilderStep {
@@ -616,7 +610,7 @@ impl ClientBuilderStep<Authorize> {
             audience,
             scopes,
             token: Some(token),
-            testing_url,
+            base_url,
         }
     }
 }
@@ -624,12 +618,8 @@ impl ClientBuilderStep<Ready> {
     /// Finish building into a [`Client`].
     pub async fn build(self) -> Result<Client, Error> {
         let token = self.token.ok_or_else(|| {
-            Error::TokenConfig("no token: call exchange_code() or with_token()".into())
+            Error::TokenConfig("no token: use exchange_code() or with_token()".into())
         })?;
-
-        let base_url = self
-            .testing_url
-            .unwrap_or_else(|| "https://api.tradestation.com/v3".to_string());
 
         Ok(Client {
             http_client: self.http_client,
@@ -639,7 +629,56 @@ impl ClientBuilderStep<Ready> {
             redirect_uri: self
                 .redirect_uri
                 .unwrap_or_else(|| "http://localhost:8080/".to_string()),
-            base_url,
+            base_url: self.base_url,
         })
     }
+}
+
+/// Selects which TradeStation API environment a [`Client`] should use.
+///
+/// This controls the base URL and the safety level of account/order access.
+///
+/// - [`ClientEnvironment::Live`] uses real TradeStation accounts and can place
+///   real orders.
+/// - [`ClientEnvironment::Simulation`] uses TradeStation's SIM API for paper
+///   trading with simulated accounts and simulated fills.
+/// - [`ClientEnvironment::Mock`] is intended for local mock tests, CI, and
+///   other flows that should not require or expose live credentials.
+pub enum ClientEnvironment {
+    /// The live TradeStation API environment.
+    ///
+    /// This environment uses the live API base URL:
+    ///
+    /// `https://api.tradestation.com/v3`
+    ///
+    /// NOTE: Transactional requests, such as order placement, can affect real
+    /// brokerage accounts and real money.
+    Live,
+
+    /// The TradeStation simulator environment.
+    ///
+    /// This environment uses the SIM API base URL:
+    ///
+    /// `https://sim-api.tradestation.com/v3`
+    ///
+    /// NOTE: The simulator is intended for paper trading. It mirrors the live API
+    /// behavior, but uses fake trading accounts seeded with fake money. Orders
+    /// are not actually routed or executed in the market; simulated executions
+    /// occur instead, typically with instant fills.
+    ///
+    /// This is useful for learning the API, testing application behavior,
+    /// paper-trading workflows, demos, competitions, or validating order flows
+    /// before exposing them to live users.
+    Simulation,
+
+    /// A local mock testing environment.
+    ///
+    /// This environment is intended for CI, unit tests, integration tests,
+    /// mocked clients, fixtures, and other non-networked or non-production test
+    /// flows.
+    ///
+    /// NOTE: Unlike [`ClientEnvironment::Simulation`], this is not TradeStation's SIM
+    /// API. It should be used when tests should avoid real API calls, avoid
+    /// real account access, and avoid exposing live or simulator credentials.
+    Mock(String),
 }

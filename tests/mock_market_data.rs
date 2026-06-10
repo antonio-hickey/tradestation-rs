@@ -1,7 +1,7 @@
 use mockito::Server;
 use tradestation::{
     market_data::{BarUnit, GetBarsQueryBuilder, OptionTradeAction, OptionsLeg},
-    ClientBuilder,
+    ClientBuilder, ClientEnvironment, Token,
 };
 
 #[test]
@@ -22,7 +22,8 @@ fn test_get_bars_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -70,7 +71,8 @@ fn test_get_quotes_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -113,7 +115,8 @@ fn test_futures_get_symbol_details_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -163,7 +166,8 @@ fn test_stock_get_symbol_details_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -213,7 +217,8 @@ fn test_options_get_symbol_details_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -265,7 +270,8 @@ fn test_get_option_expirations_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -306,7 +312,8 @@ fn test_analyze_option_risk_reward_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();

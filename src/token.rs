@@ -31,6 +31,25 @@ pub struct Token {
     /// How many seconds until the `Token` expires.
     pub expires_in: u64,
 }
+impl Token {
+    /// Create a dummy bearer token for local mock/testing environments.
+    ///
+    /// This token is not valid for TradeStation's live or simulation APIs.
+    ///
+    /// NOTE: It should only be used with [`ClientEnvironment::Mock`] or other
+    /// non-networked/local test clients.
+    #[must_use]
+    pub fn dummy() -> Self {
+        Self {
+            access_token: "ACCESS_TOKEN".to_owned(),
+            refresh_token: "REFRESH_TOKEN".to_owned(),
+            id_token: "ID_TOKEN".to_owned(),
+            token_type: "Bearer".to_owned(),
+            scope: default_scopes(),
+            expires_in: 3600,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 /// Builder for a TradeStation API Bearer Token.

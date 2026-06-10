@@ -65,13 +65,14 @@ impl OrderTicket {
     ///
     /// ```
     /// use tradestation::execution::OrderTicket;
-    /// # use tradestation::{ClientBuilder, Error, token::{Scope, Token}};
+    /// # use tradestation::{ClientBuilder, ClientEnvironment, Error, token::{Scope, Token}};
     /// # use tokio;
     ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Error> {
     /// # let client = ClientBuilder::new()
     /// #     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+    /// #     .environment(ClientEnvironment::Simulation)
     /// #     .with_token(Token {
     /// #         access_token: String::from("YOUR_ACCESS_TOKEN"),
     /// #         refresh_token: String::from("YOUR_REFRESH_TOKEN"),

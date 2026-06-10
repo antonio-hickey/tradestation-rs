@@ -7,7 +7,7 @@ use tradestation::{
         OrderTimeInForce, TradeAction,
     },
     token::{Scope, Token},
-    ClientBuilder, Error,
+    ClientBuilder, ClientEnvironment, Error,
 };
 
 #[tokio::main]
@@ -17,6 +17,7 @@ async fn main() -> Result<(), Error> {
     // TIP: Use environment variables instead of hardcoding.
     let client = ClientBuilder::new()
         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+        .environment(ClientEnvironment::Simulation)
         .with_token(Token {
             access_token: String::from("YOUR_ACCESS_TOKEN"),
             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
