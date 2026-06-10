@@ -48,7 +48,7 @@
 //!     responses::market_data::StreamBarsResp,
 //!     market_data::{BarUnit, StreamBarsQueryBuilder},
 //!     token::{Token, Scope},
-//!     ClientBuilder, Error,
+//!     ClientBuilder, ClientEnvironment, Error
 //! };
 //!
 //! #[tokio::main]
@@ -58,6 +58,7 @@
 //!     // NOTE: If you don't have your token yet, see the inital auth example.
 //!     let mut client = ClientBuilder::new()
 //!         .credentials("YOUR_ACCESS_KEY", "YOUR_SECRET_KEY")
+//!         .environment(ClientEnvironment::Simulation)
 //!         .with_token(Token {
 //!             access_token: "YOUR_ACCESS_TOKEN".into(),
 //!             refresh_token: "YOUR_REFRESH_TOKEN".into(),
@@ -106,7 +107,7 @@ pub mod responses;
 
 /// Functions, structs, and primitives related to the tradestation-rs `Client`.
 pub mod client;
-pub use client::{Client, ClientBuilder};
+pub use client::{Client, ClientBuilder, ClientEnvironment};
 
 /// The tradestation-rs error definitions.
 mod error;

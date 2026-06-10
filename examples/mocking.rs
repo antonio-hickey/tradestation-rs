@@ -1,17 +1,18 @@
 // Example on how to set up the `Client` to use a mocking/testing server
 // to send requests to instead of the default TradeStation API.
-use tradestation::{ClientBuilder, Error};
+use tradestation::{ClientBuilder, ClientEnvironment, Error, Token};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // The address to your test/mock server
-    let mock_server_url = "http://127.0.0.1:3865";
+    let mock_server_url = "http://127.0.0.1:3865".to_owned();
 
     // Example: Initialize a `Client` for a test/mock server
     let client = ClientBuilder::new()
         // This will tell the `Client` to send requests
         // to your test/mock server address.
-        .testing_url(mock_server_url)
+        .environment(ClientEnvironment::Mock(mock_server_url))
+        .with_token(Token::dummy())
         .build()
         .await?;
 

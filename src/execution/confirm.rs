@@ -184,8 +184,7 @@ impl Order {
     ///
     /// ```rust,no_run
     /// use tradestation::{
-    ///     ClientBuilder, Error,
-    ///     token::{Token, Scope},
+    ///     ClientBuilder, ClientEnvironment, Error, Token, Scope,
     ///     orders::{
     ///         Duration, OrderRequestBuilder, Order, OrderTimeInForce, OrderType,
     ///         TradeAction
@@ -196,6 +195,7 @@ impl Order {
     /// async fn main() -> Result<(), Error> {
     /// let client = ClientBuilder::new()
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+    ///     .environment(ClientEnvironment::Simulation)
     ///     .with_token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
@@ -302,8 +302,7 @@ impl Order {
     /// loss price. A total of 3 orders making up this position.
     /// ```rust,no_run
     /// use tradestation::{
-    ///     ClientBuilder, Error,
-    ///     token::{Token, Scope},
+    ///     ClientBuilder, ClientEnvironment, Error, Token, Scope,
     ///     orders::{
     ///         Duration, OrderRequestBuilder, OrderRequestGroupBuilder, Order,
     ///         OrderTimeInForce, OrderType, TradeAction, OrderRelationship
@@ -314,6 +313,7 @@ impl Order {
     /// async fn main() -> Result<(), Error> {
     /// let client = ClientBuilder::new()
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+    ///     .environment(ClientEnvironment::Simulation)
     ///     .with_token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
@@ -429,13 +429,14 @@ impl OrderRequest {
     ///         Duration, Order, OrderRequestBuilder, OrderTimeInForce,
     ///         OrderType, TradeAction
     ///     },
-    ///     ClientBuilder, Error, Token, Scope
+    ///     ClientBuilder, ClientEnvironment, Error, Token, Scope
     /// };
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     let client = ClientBuilder::new()
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+    ///         .environment(ClientEnvironment::Simulation)
     ///         .with_token(Token {
     ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
@@ -525,13 +526,14 @@ impl OrderRequestGroup {
     ///         Duration, Order, OrderRelationship, OrderRequestBuilder, OrderRequestGroupBuilder,
     ///         OrderTimeInForce, OrderType, TradeAction
     ///     },
-    ///     ClientBuilder, Error, Token, Scope
+    ///     ClientBuilder, ClientEnvironment, Error, Token, Scope
     /// };
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     let client = ClientBuilder::new()
     ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+    ///         .environment(ClientEnvironment::Simulation)
     ///         .with_token(Token {
     ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///             refresh_token: String::from("YOUR_REFRESH_TOKEN"),

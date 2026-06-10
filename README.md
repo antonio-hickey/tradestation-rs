@@ -61,6 +61,7 @@ async fn main() -> Result<(), Error> {
     // NOTE: If you don't have your token yet, see the inital auth example.
     let mut client = ClientBuilder::new()
         .credentials("YOUR_ACCESS_KEY", "YOUR_SECRET_KEY")
+        .environment(ClientEnvironment::Simulation)
         .with_token(Token {
             access_token: "YOUR_ACCESS_TOKEN".into(),
             refresh_token: "YOUR_REFRESH_TOKEN".into(),
