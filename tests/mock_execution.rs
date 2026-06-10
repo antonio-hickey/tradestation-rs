@@ -7,7 +7,7 @@ use tradestation::{
         Order, OrderRequestBuilder, OrderRequestLeg, OrderTicket, OrderTimeInForce, OrderType,
         OrderUpdate,
     },
-    ClientBuilder,
+    ClientBuilder, ClientEnvironment, Token,
 };
 
 #[test]
@@ -31,7 +31,8 @@ fn test_equity_confirm_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -100,7 +101,8 @@ fn test_stock_option_confirm_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -230,7 +232,8 @@ fn test_future_confirm_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -297,7 +300,8 @@ fn test_place_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -354,7 +358,8 @@ fn test_replace_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -399,7 +404,8 @@ fn test_cancel_order_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();

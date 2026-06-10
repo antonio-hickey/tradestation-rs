@@ -1,7 +1,7 @@
 use mockito::Server;
 use tradestation::{
     accounting::{accounts::AccountType, Account, AssetType},
-    ClientBuilder,
+    ClientBuilder, ClientEnvironment, Token,
 };
 
 /// Account is the core abstraction around this API
@@ -39,7 +39,8 @@ fn test_get_accounts_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -80,7 +81,8 @@ fn test_get_non_existant_account_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -124,7 +126,8 @@ fn test_get_cash_account_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -168,7 +171,8 @@ fn test_get_margin_account_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -210,7 +214,8 @@ fn test_get_futures_account_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -255,7 +260,8 @@ fn test_get_account_balance_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -298,7 +304,8 @@ fn test_get_account_bod_balance_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -344,7 +351,8 @@ fn test_get_historic_orders_futures_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -395,7 +403,8 @@ fn test_get_historic_orders_stocks_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();
@@ -447,7 +456,8 @@ fn test_get_positions_mocked() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let client = ClientBuilder::new()
-            .testing_url(server.url())
+            .environment(ClientEnvironment::Mock(server.url()))
+            .with_token(Token::dummy())
             .build()
             .await
             .unwrap();

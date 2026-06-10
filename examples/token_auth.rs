@@ -5,13 +5,14 @@
 //! so you don't have a token saved yet, then see the initial auth example.
 //! (https://github.com/antonio-hickey/tradestation-rs/blob/master/examples/initial_auth.rs)
 
-use tradestation::{ClientBuilder, Error, Scope, Token};
+use tradestation::{ClientBuilder, ClientEnvironment, Error, Scope, Token};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // TIP: Use environment variables instead of hardcoding.
     let client = ClientBuilder::new()
         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+        .environment(ClientEnvironment::Simulation)
         // NOTE: Once you already performed the initial auth, AND have your
         // token stored then you can skip the whole multi step auth flow.
         //
