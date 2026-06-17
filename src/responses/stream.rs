@@ -21,8 +21,11 @@ pub struct StreamStatus {
 #[serde(rename_all = "PascalCase")]
 /// A stream response to tell you of an error during stream
 pub struct ErrorResp {
+    /// The title of the error.
     pub error: String,
-    pub message: String,
+
+    /// The description of the error.
+    pub message: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     /// DEPRECATED: Removed by TradeStation.
