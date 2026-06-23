@@ -34,7 +34,7 @@ pub struct Bar {
 
     /// Set when there is data in the bar and the data
     /// is being built in "real time" from a trade.
-    pub is_real_time: Option<bool>,
+    pub is_realtime: Option<bool>,
 
     /// The lowest price traded in the current bar.
     pub low: String,
