@@ -589,7 +589,6 @@ impl<'de> Deserialize<'de> for StreamMarketDepthAggregatesResp {
         D: serde::Deserializer<'de>,
     {
         let value = serde_json::Value::deserialize(deserializer)?;
-        println!("{value:?}");
 
         if value.get("Asks").is_some() {
             // Deserialize into the `Quote` variant
