@@ -3,18 +3,20 @@ use crate::{
     Error,
 };
 use futures::{Stream, TryStreamExt};
-use reqwest::{header, Response};
+use reqwest::{header, Method, Response};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use std::{collections::HashMap, fmt::Display, sync::Arc};
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
     sync::Mutex,
+    time::Instant,
 };
 use tokio_util::{
     codec::{FramedRead, LinesCodec},
     io::StreamReader,
 };
+use tracing::{debug, error, warn};
 
 #[derive(Clone, Debug)]
 /// TradeStation API Client
@@ -46,34 +48,130 @@ impl Client {
     /// token refreshing near, at, or after auth token expiration.
     ///
     /// NOTE: You should use `Client::post()` or `Client::get()` in favor of this method.
-    pub async fn send_request<F, T>(&self, request_fn: F) -> Result<Response, Error>
+    pub async fn send_request<F, Fut>(
+        &self,
+        method: Method,
+        endpoint: &str,
+        request_fn: F,
+    ) -> Result<Response, Error>
     where
-        F: Fn(String) -> T,
-        T: std::future::Future<Output = Result<Response, reqwest::Error>>,
+        F: Fn(String) -> Fut,
+        Fut: std::future::Future<Output = Result<Response, reqwest::Error>>,
     {
         let token_guard = self.token.lock().await;
         let access_token = token_guard.access_token.clone();
         drop(token_guard);
 
+        debug!(
+            target: "tradestation::http",
+            method = %method,
+            endpoint,
+            attempt = 1,
+            "sending request"
+        );
+
+        let started_at = Instant::now();
         match request_fn(access_token).await {
             Ok(resp) => {
+                let status = resp.status();
+
+                debug!(
+                    target: "tradestation::http",
+                    method = %method,
+                    endpoint,
+                    attempt = 1,
+                    status = status.as_u16(),
+                    latency_ms = started_at.elapsed().as_millis(),
+                    "received response"
+                );
+
                 // Check if the client gets a 401 unauthorized to try and re auth the client
                 // this happens when auth token expires.
-                if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
+                if status == reqwest::StatusCode::UNAUTHORIZED {
+                    warn!(
+                        target: "tradestation::http",
+                        method = %method,
+                        endpoint,
+                        "received an unauthorized error response; attempting to refresh the token..."
+                    );
+
                     // Refresh the clients token
-                    self.refresh_token().await?;
+                    self.refresh_token().await.inspect_err(|refresh_err| {
+                        error!(
+                            target: "tradestation::http",
+                            method = %method,
+                            endpoint,
+                            error = %refresh_err,
+                            "failed to refresh the access token"
+                        );
+                    })?;
+
                     let token_guard = self.token.lock().await;
                     let access_token = token_guard.access_token.clone();
                     drop(token_guard);
 
-                    // Retry sending the request to TradeStation's API
-                    let retry_response = request_fn(access_token).await?;
+                    debug!(
+                        target: "tradestation::http",
+                        method = %method,
+                        endpoint,
+                        attempt = 2,
+                        "retrying request"
+                    );
+
+                    let retry_started_at = Instant::now();
+                    let retry_response =
+                        request_fn(access_token).await.inspect_err(|request_err| {
+                            error!(
+                                target: "tradestation::http",
+                                method = %method,
+                                endpoint,
+                                attempt = 2,
+                                latency_ms = retry_started_at.elapsed().as_millis(),
+                                error = %request_err,
+                                "received error response"
+                            )
+                        })?;
+                    let retry_status = retry_response.status();
+
+                    debug!(
+                        target: "tradestation::http",
+                        method = %method,
+                        endpoint,
+                        attempt = 2,
+                        status = retry_status.as_u16(),
+                        latency_ms = retry_started_at.elapsed().as_millis(),
+                        "received response"
+                    );
+
+                    if !retry_status.is_success() {
+                        warn!(
+                            target: "tradestation::http",
+                            method = %method,
+                            endpoint,
+                            attempt = 2,
+                            status = retry_status.as_u16(),
+                            "retried request was unsuccessful"
+                        );
+                    }
+
                     Ok(retry_response)
                 } else {
                     Ok(resp)
                 }
             }
-            Err(e) => Err(Error::Request(e)),
+            Err(request_err) => {
+                error!(
+                    target: "tradestation::http",
+                    method = %method,
+                    endpoint,
+                    attempt = 1,
+                    latency_ms = started_at.elapsed().as_millis(),
+                    error = %request_err,
+                    "request failed"
+                );
+
+                Err(Error::Request(request_err))
+            }
         }
     }
 
@@ -82,7 +180,7 @@ impl Client {
         let url = format!("{}/{}", self.environment.base_url(), endpoint);
         let resp = self
             .clone()
-            .send_request(|access_token| {
+            .send_request(Method::POST, endpoint, |access_token| {
                 self.http_client
                     .post(&url)
                     .header("Content-Type", "application/json")
@@ -100,7 +198,7 @@ impl Client {
         let url = format!("{}/{}", self.environment.base_url(), endpoint);
         let resp = self
             .clone()
-            .send_request(|access_token| {
+            .send_request(Method::GET, endpoint, |access_token| {
                 self.http_client
                     .get(&url)
                     .header(header::AUTHORIZATION, format!("Bearer {access_token}"))
@@ -116,7 +214,7 @@ impl Client {
         let url = format!("{}/{}", self.environment.base_url(), endpoint);
         let resp = self
             .clone()
-            .send_request(|access_token| {
+            .send_request(Method::PUT, endpoint, |access_token| {
                 self.http_client
                     .put(&url)
                     .header("Content-Type", "application/json")
@@ -134,7 +232,7 @@ impl Client {
         let url = format!("{}/{}", self.environment.base_url(), endpoint);
         let resp = self
             .clone()
-            .send_request(|access_token| {
+            .send_request(Method::DELETE, endpoint, |access_token| {
                 self.http_client
                     .delete(&url)
                     .header("Content-Type", "application/json")
@@ -152,10 +250,17 @@ impl Client {
     pub fn stream(&self, endpoint: String) -> impl Stream<Item = Result<Value, Error>> + '_ {
         async_stream::try_stream! {
             let url = format!("{}/{}", self.environment.base_url(), endpoint);
+            let started_at = Instant::now();
+
+            debug!(
+                target: "tradestation::stream",
+                endpoint,
+                "opening stream connection"
+            );
 
             let resp = self
             .clone()
-            .send_request(|access_token| {
+            .send_request(Method::GET, &endpoint, |access_token| {
                 self.http_client
                     .get(&url)
                     .header(
@@ -166,27 +271,73 @@ impl Client {
             })
             .await?;
 
-            if !resp.status().is_success() {
+            let resp_status = resp.status();
+            if !resp_status.is_success() {
+                warn!(
+                    target: "tradestation::stream",
+                    endpoint,
+                    status = resp_status.as_u16(),
+                    elapsed_ms = started_at.elapsed().as_millis(),
+                    "stream connection rejected"
+                );
+
                 Err(Error::StreamIssue(format!(
                     "Request failed with status: {}",
-                    resp.status()
+                    resp_status
                 )))?
             }
+
+            debug!(
+                target: "tradestation::stream",
+                endpoint,
+                status = resp_status.as_u16(),
+                elapsed_ms = started_at.elapsed().as_millis(),
+                "stream connection opened"
+            );
 
             let byte_stream = resp.bytes_stream().map_err(std::io::Error::other);
             let stream_reader = StreamReader::new(byte_stream);
             let buf_reader = BufReader::new(stream_reader);
             let mut lines = buf_reader.lines();
 
-            while let Some(line) = lines.next_line().await? {
+            while let Some(line) = lines.next_line().await.inspect_err(|e| {
+                warn!(
+                    target: "tradestation::stream",
+                    endpoint,
+                    elapsed_ms = started_at.elapsed().as_millis(),
+                    reason = "read_error",
+                    error = %e,
+                    "stream connection closed"
+                );
+            })? {
                 let trimmed = line.trim();
                 if trimmed.is_empty() {
                     continue;
                 }
 
-                let json: Value = serde_json::from_str(trimmed).map_err(Error::Json)?;
+                let json: Value = serde_json::from_str(trimmed)
+                    .inspect_err(|e| {
+                        warn!(
+                            target: "tradestation::stream",
+                            endpoint,
+                            elapsed_ms = started_at.elapsed().as_millis(),
+                            reason = "decode_error",
+                            error = %e,
+                            "stream connection closed"
+                        );
+                    })
+                    .map_err(Error::Json)?;
+
                 yield json;
             }
+
+            warn!(
+                target: "tradestation::stream",
+                endpoint,
+                elapsed_ms = started_at.elapsed().as_millis(),
+                reason = "remote_eof",
+                "stream connection closed"
+            );
         }
     }
 
@@ -201,10 +352,17 @@ impl Client {
         F: FnMut(T) -> Result<(), Error>,
     {
         let url = format!("{}/{}", self.environment.base_url(), endpoint);
+        let started_at = Instant::now();
+
+        debug!(
+            target: "tradestation::stream",
+            endpoint,
+            "opening stream connection"
+        );
 
         let resp = self
             .clone()
-            .send_request(|access_token| {
+            .send_request(Method::GET, endpoint, |access_token| {
                 self.http_client
                     .get(&url)
                     .header(
@@ -215,12 +373,29 @@ impl Client {
             })
             .await?;
 
-        if !resp.status().is_success() {
+        let resp_status = resp.status();
+        if !resp_status.is_success() {
+            warn!(
+                target: "tradestation::stream",
+                endpoint,
+                status = resp_status.as_u16(),
+                elapsed_ms = started_at.elapsed().as_millis(),
+                "stream connection rejected"
+            );
+
             return Err(Error::StreamIssue(format!(
                 "Request failed with status: {}",
-                resp.status()
+                resp_status
             )));
         }
+
+        debug!(
+            target: "tradestation::stream",
+            endpoint,
+            status = resp_status.as_u16(),
+            elapsed_ms = started_at.elapsed().as_millis(),
+            "stream connection opened"
+        );
 
         let byte_stream = resp.bytes_stream().map_err(std::io::Error::other);
         let reader = StreamReader::new(byte_stream);
@@ -230,6 +405,16 @@ impl Client {
         while let Some(line) = lines
             .try_next()
             .await
+            .inspect_err(|e| {
+                warn!(
+                    target: "tradestation::stream",
+                    endpoint,
+                    elapsed_ms = started_at.elapsed().as_millis(),
+                    reason = "read_error",
+                    error = %e,
+                    "stream connection closed"
+                );
+            })
             .map_err(|e| Error::StreamIssue(e.to_string()))?
         {
             let line = line.trim();
@@ -240,16 +425,52 @@ impl Client {
             match serde_json::from_str::<T>(line) {
                 Ok(json) => {
                     if let Err(e) = process_chunk(json) {
-                        if matches!(e, Error::StopStream) {
+                        if matches!(&e, Error::StopStream) {
+                            debug!(
+                                target: "tradestation::stream",
+                                endpoint,
+                                elapsed_ms = started_at.elapsed().as_millis(),
+                                reason = "requested",
+                                "stream connection closed"
+                            );
+
                             return Ok(());
                         } else {
+                            warn!(
+                                target: "tradestation::stream",
+                                endpoint,
+                                elapsed_ms = started_at.elapsed().as_millis(),
+                                reason = "callback_error",
+                                error = %e,
+                                "stream connection closed"
+                            );
+
                             return Err(e);
                         }
                     }
                 }
-                Err(e) => return Err(Error::Json(e)),
+                Err(e) => {
+                    warn!(
+                        target: "tradestation::stream",
+                        endpoint,
+                        elapsed_ms = started_at.elapsed().as_millis(),
+                        reason = "decode_error",
+                        error = %e,
+                        "stream connection closed"
+                    );
+
+                    return Err(Error::Json(e));
+                }
             }
         }
+
+        warn!(
+            target: "tradestation::stream",
+            endpoint,
+            elapsed_ms = started_at.elapsed().as_millis(),
+            reason = "remote_eof",
+            "stream connection closed"
+        );
 
         Ok(())
     }
@@ -266,6 +487,13 @@ impl Client {
             ("refresh_token".into(), token_guard.refresh_token.clone()),
             ("redirect_uri".into(), self.redirect_uri.clone()),
         ]);
+
+        let started_at = Instant::now();
+
+        debug!(
+            target: "tradestation::auth",
+            "refreshing access token"
+        );
 
         let new_token = self
             .http_client
@@ -286,6 +514,12 @@ impl Client {
             token_type: new_token.token_type,
             expires_in: new_token.expires_in,
         };
+
+        debug!(
+            target: "tradestation::auth",
+            elapsed_ms = started_at.elapsed().as_millis(),
+            "access token refreshed"
+        );
 
         Ok(())
     }
@@ -540,6 +774,12 @@ impl ClientBuilderStep<Authorize> {
             ("redirect_uri", redirect),
         ];
 
+        let started_at = Instant::now();
+        debug!(
+            target: "tradestation::auth",
+            "exchanging authorization code for oauth token"
+        );
+
         let token = self
             .http_client
             .post("https://signin.tradestation.com/oauth/token")
@@ -553,6 +793,12 @@ impl ClientBuilderStep<Authorize> {
             .error_for_status()?
             .json::<Token>()
             .await?;
+
+        debug!(
+            target: "tradestation::auth",
+            elapsed_ms = started_at.elapsed().as_millis(),
+            "exchanged authorization code for oauth token"
+        );
 
         self.token = Some(token.clone());
 
@@ -639,6 +885,12 @@ impl ClientBuilderStep<Ready> {
                 .unwrap_or_else(|| "http://localhost:8080/".to_string()),
             environment,
         };
+
+        debug!(
+            target: "tradestation::client",
+            environment = %client.environment,
+            "client initialized"
+        );
 
         Ok(client)
     }
