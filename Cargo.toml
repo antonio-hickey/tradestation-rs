@@ -21,6 +21,7 @@ path = "src/lib.rs"
 reqwest = { version = "0.13.4", features = ["json", "stream", "form"] }
 tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7"
+tracing = "0.1"
 async-stream = "0.3"
 futures = "0.3"
 serde = { version = "1.0.228", features = ["derive"] }
