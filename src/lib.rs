@@ -102,7 +102,7 @@
 //!
 //! Keep an eye out on open issues :)
 
-/// Functions, structs, and primitives related to accounting.
+// Functions, structs, and primitives related to accounting.
 pub mod accounting;
 
 /// Structs for all TradeStation API responses.
