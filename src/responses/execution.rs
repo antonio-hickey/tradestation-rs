@@ -80,7 +80,7 @@ pub(crate) struct ModifyOrderResp {
     pub order_id: String,
 
     /// The message related to the `Order` modification.
-    message: Option<String>,
+    pub message: Option<String>,
 
     /// The error from TradeStation's API.
     ///
