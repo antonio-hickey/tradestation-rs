@@ -1159,6 +1159,9 @@ pub trait MultipleAccounts {
     /// Find an `Account` by it's id.
     fn find_by_id(&self, id: &str) -> Option<Account>;
 
+    /// The future returned by [`MultipleAccounts::get_orders`].
+    ///
+    /// Resolves to all orders for the accounts or a thread-safe boxed error.
     type GetOrdersFuture<'a>: Future<Output = Result<Vec<Order>, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
         + 'a
@@ -1253,6 +1256,9 @@ pub trait MultipleAccounts {
         client: &'a Client,
     ) -> Self::GetOrdersFuture<'a>;
 
+    /// The future returned by [`MultipleAccounts::get_balances`].
+    ///
+    /// Resolves to the balances the accounts or a thread-safe boxed error.
     type GetBalanceFuture<'a>: Future<Output = Result<Vec<Balance>, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
         + 'a
@@ -1261,6 +1267,9 @@ pub trait MultipleAccounts {
     /// Get the current balance of multiple `Account`(s).
     fn get_balances<'a>(&'a self, client: &'a Client) -> Self::GetBalanceFuture<'a>;
 
+    /// The future returned by [`MultipleAccounts::get_bod_balances`].
+    ///
+    /// Resolves to the Beginning of Day balances the accounts or a thread-safe boxed error.
     type GetBODBalanceFuture<'a>: Future<Output = Result<Vec<BODBalance>, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
         + 'a
@@ -1269,6 +1278,9 @@ pub trait MultipleAccounts {
     /// Get the beginning of day balances for multiple `Account`(s) by account id.
     fn get_bod_balances<'a>(&'a self, client: &'a Client) -> Self::GetBODBalanceFuture<'a>;
 
+    /// The future returned by [`MultipleAccounts::get_historic_orders`].
+    ///
+    /// Resolves to the historic orders of the accounts or a thread-safe boxed error.
     type GetHistoricOrdersFuture<'a>: Future<Output = Result<Vec<Order>, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
         + 'a
@@ -1286,6 +1298,9 @@ pub trait MultipleAccounts {
         client: &'a Client,
     ) -> Self::GetHistoricOrdersFuture<'a>;
 
+    /// The future returned by [`MultipleAccounts::get_position`].
+    ///
+    /// Resolves to a specific position from the accounts or a thread-safe boxed error.
     type GetPositionFuture<'a>: Future<Output = Result<Position, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
         + 'a
@@ -1331,6 +1346,9 @@ pub trait MultipleAccounts {
         client: &'a Client,
     ) -> Self::GetPositionFuture<'a>;
 
+    /// The future returned by [`MultipleAccounts::get_positions`].
+    ///
+    /// Resolves to the positions within the accounts or a thread-safe boxed error.
     type GetPositionsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
         + 'a
@@ -1382,6 +1400,9 @@ pub trait MultipleAccounts {
         client: &'a Client,
     ) -> Self::GetPositionsFuture<'a>;
 
+    /// The future returned by [`MultipleAccounts::get_positions_in_symbols`].
+    ///
+    /// Resolves to the positions within specific symbols from the accounts or a thread-safe boxed error.
     type GetPositionsInSymbolsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
         + Send
         + 'a
@@ -1394,6 +1415,9 @@ pub trait MultipleAccounts {
         client: &'a Client,
     ) -> Self::GetPositionsFuture<'a>;
 
+    /// The future returned by [`MultipleAccounts::stream_orders`].
+    ///
+    /// Resolves to the open orders within the accounts or a thread-safe boxed error.
     type StreamOrders<'a>: Stream<Item = Result<StreamOrdersResp, Error>> + Send + 'a
     where
         Self: 'a;
@@ -1544,6 +1568,9 @@ pub trait MultipleAccounts {
         client: &'a Client,
     ) -> Self::StreamOrders<'a>;
 
+    /// The future returned by [`MultipleAccounts::stream_positions`].
+    ///
+    /// Resolves to the positions within the accounts or a thread-safe boxed error.
     type StreamPositions<'a>: Stream<Item = Result<StreamPositionsResp, Error>> + Send + 'a
     where
         Self: 'a;

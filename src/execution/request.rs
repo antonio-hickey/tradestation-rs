@@ -227,7 +227,15 @@ impl OrderRequestBuilder {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// An collection of [`OrderRequest`]'s to be sent together.
 pub struct OrderRequestGroup {
+    /// The orders which make up the group order.
     pub order_requests: Vec<OrderRequest>,
+
+    /// The group order type.
+    ///
+    /// Valid values are:
+    /// - [`crate::orders::OrderRelationship::BRK`]: Bracket group order type
+    /// - [`crate::orders::OrderRelationship::OCO`]: Order Cancels Order group order type.
+    /// - [`crate::orders::OrderRelationship::NORMAL`]: Normal group order type.
     pub group_type: OrderRelationship,
 }
 impl OrderRequestGroup {

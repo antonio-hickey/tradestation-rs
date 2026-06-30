@@ -22,6 +22,7 @@ pub enum Error {
     /// An HTTP request error.
     Request(reqwest::Error),
 
+    /// An error from a dynamically dispatched error source.
     BoxedError(Box<dyn StdErrorTrait + Send + Sync>),
 
     /// An error during URL parsing.

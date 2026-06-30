@@ -515,6 +515,11 @@ pub struct StreamBarsQuery {
     pub session_template: SessionTemplate,
 }
 impl StreamBarsQuery {
+    /// Convert the [`StreamBarsQuery`] into a URL query string.
+    ///
+    /// The returned string begins with `?` and includes all required query
+    /// parameters. Optional parameters are included only when their values
+    /// are [`Some`].
     pub fn as_query_string(&self) -> String {
         let mut query_string = String::from("?");
 

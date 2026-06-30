@@ -1,6 +1,13 @@
+/// Types and functionality for working with brokerage accounts.
 pub mod accounts;
+
+/// Types and functionality for working with account balances.
 pub mod balances;
+
+/// Types and functionality for working with account orders.
 pub mod orders;
+
+/// Types and functionality for working with account positions.
 pub mod positions;
 
 pub use accounts::{Account, MultipleAccounts};

@@ -494,6 +494,7 @@ pub enum OrderStatus {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
+/// The configuration for a trailing stop [`Order`].
 pub struct TrailingStop {
     /// Currency Offset from current price.
     ///
@@ -559,10 +560,12 @@ pub struct MarketActivationRule {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-/// Logic Operators
+/// A logical operator used to combine conditions.
 pub enum LogicOp {
+    /// Logical AND.
     And,
 
+    /// Logical OR.
     Or,
 }
 
