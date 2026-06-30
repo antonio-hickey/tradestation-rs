@@ -2119,13 +2119,13 @@ pub struct AccountDetail {
     ///
     /// For example if you want to short a stock, you need
     /// to "locate" shares to borrow and sell.
-    is_stock_locate_eligible: bool,
+    pub is_stock_locate_eligible: bool,
 
     /// Is account enrolled with Regulation T ?
     ///
     /// Regulation T governs cash accounts and the amount of credit that
     /// broker-dealers can extend to investors for the purchase of securities.
-    enrolled_in_reg_t_program: bool,
+    pub enrolled_in_reg_t_program: bool,
 
     /// Does the account require a buying power warning before order execution?
     ///
@@ -2135,13 +2135,13 @@ pub struct AccountDetail {
     /// In cases where an order exceeds both values, the order will be rejected.
     /// If the order exceeds only one of the values, a Buying Power Warning will
     /// appear to notify you that the order could result in a margin call.
-    requires_buying_power_warning: bool,
+    pub requires_buying_power_warning: bool,
 
     /// Is the `Account` qualified for day trading?
     ///
     /// An `Account` MUST maintain a minimum equity balance of $25,000
     /// to be qualified for day trades. *(As per TradeStation compliance rules)*
-    day_trading_qualified: bool,
+    pub day_trading_qualified: bool,
 
     /// What options level is the `Account` approved for?
     ///
@@ -2155,7 +2155,7 @@ pub struct AccountDetail {
     /// Level 5: Level 4 + Writing of Naked Puts (Index Options), Writing of Naked Calls (Stock Options), Writing of Naked Calls (Index Options).
     ///
     /// These levels vary depending on the funding and type of account.
-    option_approval_level: OptionApprovalLevel,
+    pub option_approval_level: OptionApprovalLevel,
 
     /// Is the `Account` a Pattern Day Trader?
     ///
@@ -2168,12 +2168,12 @@ pub struct AccountDetail {
     /// that the customer day trades. If the account falls below the $25,000
     /// requirement, the pattern day trader will not be permitted to day trade
     /// until the account is restored to the $25,000 minimum equity level.
-    pattern_day_trader: bool,
+    pub pattern_day_trader: bool,
 
     /// Is the `Account` enabled to trade crypto?
     ///
     /// NOTE: As of 2024 TradeStation no longer offer's crypto trading.
-    crypto_enabled: bool,
+    pub crypto_enabled: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
