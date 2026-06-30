@@ -244,9 +244,14 @@ impl Client {
         Ok(resp)
     }
 
-    /// Start a stream from the TradeStation API to the `Client`
+    /// Start a stream from the TradeStation API to the `Client`.
     ///
-    /// NOTE: You need to provide a processing function for handeling the stream chunks
+    /// This is a newline-delimited JSON stream, where each non-emtpy
+    /// line is deserialized into a [`serde_json::Value`].
+    ///
+    /// NOTE: The stream automatically retries the initial request once
+    /// after refreshing an expired access token, all other retries and
+    /// error handling are within the callers control.
     pub fn stream(&self, endpoint: String) -> impl Stream<Item = Result<Value, Error>> + '_ {
         async_stream::try_stream! {
             let url = format!("{}/{}", self.environment.base_url(), endpoint);
