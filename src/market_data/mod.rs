@@ -9,7 +9,7 @@ pub use bar::{
 };
 pub use options::{
     OptionChain, OptionChainQuery, OptionChainQueryBuilder, OptionExpiration, OptionExpirationType,
-    OptionQouteLeg, OptionQuote, OptionQuoteQuery, OptionQuoteQueryBuilder,
+    OptionQuote, OptionQuoteLeg, OptionQuoteQuery, OptionQuoteQueryBuilder,
     OptionRiskRewardAnalysis, OptionSpreadStrikes, OptionSpreadStrikesQuery,
     OptionSpreadStrikesQueryBuilder, OptionSpreadType, OptionTradeAction, OptionsLeg,
 };
