@@ -316,10 +316,10 @@ pub struct MarketDepthQuote {
 /// A collection of [`MarketDepthAggregate`]'s split into `bids` and `asks`.
 pub struct MarketDepthAggregates {
     /// Aggregated bid quotes, ordered from high to low price.
-    bids: Vec<MarketDepthAggregate>,
+    pub bids: Vec<MarketDepthAggregate>,
 
     /// Aggregated ask quotes, ordered from low to high price.
-    asks: Vec<MarketDepthAggregate>,
+    pub asks: Vec<MarketDepthAggregate>,
 }
 impl MarketDepthAggregates {
     /// Stream realtime aggregates of market depth for the given Symbol.
