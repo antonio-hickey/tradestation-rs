@@ -3,9 +3,6 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 /// TradeStation API Bearer Token.
-///
-/// NOTE: You should never want to manually initialize `Token`. Instead let
-/// any initialization of `Token` should be handled directly in the `TsClient`.
 pub struct Token {
     /// Access token used to authenticate API requests.
     pub access_token: String,
