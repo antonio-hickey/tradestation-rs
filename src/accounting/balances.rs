@@ -376,38 +376,38 @@ pub struct BODCurrencyDetails {
 /// NOTE: Only applies to futures.
 pub struct CurrencyDetails {
     /// Base currency.
-    currency: String,
+    pub currency: String,
 
     /// The net Unrealized Profit or Loss for all currently open positions.
     ///
     /// NOTE: This does not include commissions or routing fees.
-    commission: String,
+    pub commission: String,
 
     /// The real time value of an `Account`(s) Cash Balance.
-    cash_balance: String,
+    pub cash_balance: String,
 
     #[serde(rename = "RealizedProfitLoss")]
     /// The net Realized Profit or Loss of an `Account` for the current trading day.
     ///
     /// NOTE: This includes all commissions and routing fees.
-    realized_pnl: String,
+    pub realized_pnl: String,
 
     #[serde(rename = "UnrealizedProfitLoss")]
     /// The net Unrealized Profit or Loss of an `Account` for all currently open positions.
     ///
     /// NOTE: This does not include commissions or routing fees.
-    unrealized_pnl: String,
+    pub unrealized_pnl: String,
 
     /// The real time dollar value of Initial Margin for an `Account`.
     ///
     /// NOTE: SUM(Initial Margin of all open positions in the account).
-    initial_margin: String,
+    pub initial_margin: String,
 
     /// The real time dollar value of Maintenance Margin for an `Account`.
     ///
     /// NOTE: SUM(Maintenance Margins of all open positions in the account).
-    maintenance_margin: String,
+    pub maintenance_margin: String,
 
     /// The real time conversion rate used to translate value from symbol currency to `Account` currency.
-    account_conversion_rate: String,
+    pub account_conversion_rate: String,
 }
