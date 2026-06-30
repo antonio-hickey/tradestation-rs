@@ -132,12 +132,13 @@ impl Account {
     /// // Initialize the client
     /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
+    ///     .environment(ClientEnvironment::Live)
+    ///     .with_token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///         id_token: String::from("YOUR_ID_TOKEN"),
     ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         scope: vec![Scope::ReadAccount],
     ///         expires_in: 1200,
     ///     })?
     ///     .build()
@@ -202,12 +203,13 @@ impl Account {
     /// // Initialize the client
     /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
+    ///     .environment(ClientEnvironment::Live)
+    ///     .with_token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///         id_token: String::from("YOUR_ID_TOKEN"),
     ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         scope: vec![Scope::ReadAccount],
     ///         expires_in: 1200,
     ///     })?
     ///     .build()
@@ -301,12 +303,13 @@ impl Account {
     /// // Initialize the client
     /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
+    ///     .environment(ClientEnvironment::Live)
+    ///     .with_token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///         id_token: String::from("YOUR_ID_TOKEN"),
     ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         scope: vec![Scope::ReadAccount],
     ///         expires_in: 1200,
     ///     })?
     ///     .build()
@@ -1174,12 +1177,13 @@ pub trait MultipleAccounts {
     /// // Initialize the client
     /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
+    ///     .environment(ClientEnvironment::Live)
+    ///     .with_token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///         id_token: String::from("YOUR_ID_TOKEN"),
     ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         scope: vec![Scope::ReadAccount],
     ///         expires_in: 1200,
     ///     })?
     ///     .build()
@@ -1217,12 +1221,13 @@ pub trait MultipleAccounts {
     /// // Initialize the client
     /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
+    ///     .environment(ClientEnvironment::Live)
+    ///     .with_token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///         id_token: String::from("YOUR_ID_TOKEN"),
     ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         scope: vec![Scope::ReadAccount],
     ///         expires_in: 1200,
     ///     })?
     ///     .build()
@@ -1300,12 +1305,13 @@ pub trait MultipleAccounts {
     /// // Initialize the client
     /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
+    ///     .environment(ClientEnvironment::Live)
+    ///     .with_token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///         id_token: String::from("YOUR_ID_TOKEN"),
     ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         scope: vec![Scope::ReadAccount],
     ///         expires_in: 1200,
     ///     })?
     ///     .build()
@@ -1346,12 +1352,13 @@ pub trait MultipleAccounts {
     /// // Initialize the client
     /// let client = ClientBuilder::new()?
     ///     .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///     .token(Token {
+    ///     .environment(ClientEnvironment::Live)
+    ///     .with_token(Token {
     ///         access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///         refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///         id_token: String::from("YOUR_ID_TOKEN"),
     ///         token_type: String::from("Bearer"),
-    ///         scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///         scope: vec![Scope::ReadAccount],
     ///         expires_in: 1200,
     ///     })?
     ///     .build()
