@@ -5,7 +5,7 @@
 //! See this example of token auth instead:
 //! (https://github.com/antonio-hickey/tradestation-rs/blob/master/examples/token_auth.rs)
 
-use tradestation::{ClientBuilder, ClientEnvironment, Error};
+use tradestation::{ClientBuilder, ClientEnvironment, Error, Scope};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -37,7 +37,12 @@ async fn main() -> Result<(), Error> {
     let client = ClientBuilder::new()
         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
         .redirect_uri("http://localhost:8080")
-        .scopes(["openid", "offline_access", "profile", "MarketData"])
+        .scopes([
+            Scope::OpenId,
+            Scope::OfflineAccess,
+            Scope::Profile,
+            Scope::MarketData,
+        ])
         .environment(ClientEnvironment::Simulation)
         .start_authorization();
 

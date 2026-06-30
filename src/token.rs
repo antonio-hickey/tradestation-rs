@@ -99,7 +99,7 @@ impl TokenBuilder {
     }
 
     /// Set the scopes for the `Token`.
-    pub fn scope(mut self, scopes: Vec<Scope>) -> Self {
+    pub fn scope(mut self, scopes: impl IntoIterator<Item = Scope>) -> Self {
         let scopes: Vec<Scope> = scopes
             .into_iter()
             .filter(|scope| !self.scope.contains(scope))

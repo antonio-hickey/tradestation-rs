@@ -1,6 +1,6 @@
 use crate::{
     token::{RefreshedToken, Token},
-    Error,
+    Error, Scope,
 };
 use futures::{Stream, TryStreamExt};
 use reqwest::{header, Method, Response};
@@ -548,8 +548,8 @@ pub struct ClientBuilderStep<CurrentStep> {
     client_secret: Option<String>,
     redirect_uri: Option<String>,
     audience: Option<String>,
-    scopes: Vec<String>,
     environment: Option<ClientEnvironment>,
+    scopes: Vec<Scope>,
     base_url: String,
     token: Option<Token>,
 }
@@ -597,12 +597,11 @@ impl ClientBuilderStep<Configure> {
 
     #[must_use]
     /// Set the desired scopes for the [`Client`] to be authorized for.
-    pub fn scopes<I, S>(mut self, scopes: I) -> Self
+    pub fn scopes<I>(mut self, scopes: I) -> Self
     where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
+        I: IntoIterator<Item = Scope>,
     {
-        self.scopes = scopes.into_iter().map(Into::into).collect();
+        self.scopes = scopes.into_iter().collect();
         self
     }
 
@@ -737,7 +736,12 @@ impl ClientBuilderStep<Authorize> {
         let scope_str = if self.scopes.is_empty() {
             "openid offline_access profile MarketData ReadAccount Trade"
         } else {
-            &self.scopes.join(" ")
+            &self
+                .scopes
+                .iter()
+                .map(|scope| scope.to_string())
+                .collect::<Vec<String>>()
+                .join(" ")
         };
 
         let mut url = Url::parse("https://signin.tradestation.com/authorize")?;
