@@ -58,7 +58,7 @@ impl Route {
     }
 }
 impl Client {
-    /// Fetch valid routes for sending an [`Order`] for execution.
+    /// Fetch valid routes for sending an [`crate::orders::Order`] for execution.
     ///
     /// # Example
     /// ---

@@ -33,7 +33,7 @@ impl Token {
     ///
     /// This token is not valid for TradeStation's live or simulation APIs.
     ///
-    /// NOTE: It should only be used with [`ClientEnvironment::Mock`] or other
+    /// NOTE: It should only be used with [`crate::ClientEnvironment::Mock`] or other
     /// non-networked/local test clients.
     #[must_use]
     pub fn dummy() -> Self {
