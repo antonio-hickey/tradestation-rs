@@ -6,7 +6,7 @@ use futures::{Stream, TryStreamExt};
 use reqwest::{header, Response};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc};
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
     sync::Mutex,
@@ -34,12 +34,12 @@ pub struct Client {
     /// OAuth redirect URI used during auth and refresh flows.
     redirect_uri: String,
 
-    /// The base url used for all endpoints.
+    /// The API environment this client is configured to use.
     ///
-    /// NOTE: You should leave this default unless you
-    /// specifically want to use a custom address for
-    /// testing or mocking purposes.
-    pub base_url: String,
+    /// Determines whether requests are sent to the live, simulation, or mock
+    /// TradeStation API environment. This is also useful for identifying whether
+    /// transactional requests can affect real brokerage accounts.
+    pub environment: ClientEnvironment,
 }
 impl Client {
     /// Send an HTTP request to TradeStation's API, with automatic
@@ -79,7 +79,7 @@ impl Client {
 
     /// Send a POST request from your `Client` to TradeStation's API
     pub async fn post<T: Serialize>(&self, endpoint: &str, payload: &T) -> Result<Response, Error> {
-        let url = format!("{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.environment.base_url(), endpoint);
         let resp = self
             .clone()
             .send_request(|access_token| {
@@ -97,7 +97,7 @@ impl Client {
 
     /// Send a GET request from your `Client` to TradeStation's API
     pub async fn get(&self, endpoint: &str) -> Result<Response, Error> {
-        let url = format!("{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.environment.base_url(), endpoint);
         let resp = self
             .clone()
             .send_request(|access_token| {
@@ -113,7 +113,7 @@ impl Client {
 
     /// Send a PUT request from your `Client` to TradeStation's API
     pub async fn put<T: Serialize>(&self, endpoint: &str, payload: &T) -> Result<Response, Error> {
-        let url = format!("{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.environment.base_url(), endpoint);
         let resp = self
             .clone()
             .send_request(|access_token| {
@@ -131,7 +131,7 @@ impl Client {
 
     /// Send a DELETE request from your `Client` to TradeStation's API
     pub async fn delete(&self, endpoint: &str) -> Result<Response, Error> {
-        let url = format!("{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.environment.base_url(), endpoint);
         let resp = self
             .clone()
             .send_request(|access_token| {
@@ -151,7 +151,7 @@ impl Client {
     /// NOTE: You need to provide a processing function for handeling the stream chunks
     pub fn stream(&self, endpoint: String) -> impl Stream<Item = Result<Value, Error>> + '_ {
         async_stream::try_stream! {
-            let url = format!("{}/{}", self.base_url, endpoint);
+            let url = format!("{}/{}", self.environment.base_url(), endpoint);
 
             let resp = self
             .clone()
@@ -200,7 +200,7 @@ impl Client {
         T: DeserializeOwned,
         F: FnMut(T) -> Result<(), Error>,
     {
-        let url = format!("{}/{}", self.base_url, endpoint);
+        let url = format!("{}/{}", self.environment.base_url(), endpoint);
 
         let resp = self
             .clone()
@@ -315,6 +315,7 @@ pub struct ClientBuilderStep<CurrentStep> {
     redirect_uri: Option<String>,
     audience: Option<String>,
     scopes: Vec<String>,
+    environment: Option<ClientEnvironment>,
     base_url: String,
     token: Option<Token>,
 }
@@ -382,11 +383,7 @@ impl ClientBuilderStep<Configure> {
     /// - [`ClientEnvironment::Mock`] is intended for local mock tests, CI, and
     ///   other flows that should not require or expose live credentials.
     pub fn environment(self, environment: ClientEnvironment) -> ClientBuilderStep<Configured> {
-        let base_url = match environment {
-            ClientEnvironment::Live => "https://api.tradestation.com/v3".to_owned(),
-            ClientEnvironment::Simulation => "https://sim-api.tradestation.com/v3".to_owned(),
-            ClientEnvironment::Mock(mock_url) => mock_url,
-        };
+        let base_url = environment.base_url().to_owned();
 
         let ClientBuilderStep {
             _current_step: _,
@@ -397,6 +394,7 @@ impl ClientBuilderStep<Configure> {
             audience,
             scopes,
             token,
+            environment: _,
             base_url: _,
         } = self;
 
@@ -409,6 +407,7 @@ impl ClientBuilderStep<Configure> {
             audience,
             scopes,
             token,
+            environment: Some(environment),
             base_url,
         }
     }
@@ -434,6 +433,7 @@ impl ClientBuilderStep<Configured> {
             audience,
             scopes,
             token: _,
+            environment,
             base_url,
         } = self;
 
@@ -446,6 +446,7 @@ impl ClientBuilderStep<Configured> {
             audience,
             scopes,
             token: Some(token),
+            environment,
             base_url,
         }
     }
@@ -463,6 +464,7 @@ impl ClientBuilderStep<Configured> {
             audience,
             scopes,
             token: _,
+            environment,
             base_url,
         } = self;
 
@@ -475,6 +477,7 @@ impl ClientBuilderStep<Configured> {
             audience,
             scopes,
             token: self.token,
+            environment,
             base_url,
         }
     }
@@ -562,6 +565,7 @@ impl ClientBuilderStep<Authorize> {
             audience,
             scopes,
             token: _,
+            environment,
             base_url,
         } = self;
 
@@ -574,6 +578,7 @@ impl ClientBuilderStep<Authorize> {
             audience,
             scopes,
             token: Some(token),
+            environment,
             base_url,
         })
     }
@@ -598,6 +603,7 @@ impl ClientBuilderStep<Authorize> {
             audience,
             scopes,
             token: _,
+            environment,
             base_url,
         } = self;
 
@@ -610,6 +616,7 @@ impl ClientBuilderStep<Authorize> {
             audience,
             scopes,
             token: Some(token),
+            environment,
             base_url,
         }
     }
@@ -617,11 +624,12 @@ impl ClientBuilderStep<Authorize> {
 impl ClientBuilderStep<Ready> {
     /// Finish building into a [`Client`].
     pub async fn build(self) -> Result<Client, Error> {
+        let environment = self.environment.ok_or_else(|| Error::EnvironmentNotSet)?;
         let token = self.token.ok_or_else(|| {
             Error::TokenConfig("no token: use exchange_code() or with_token()".into())
         })?;
 
-        Ok(Client {
+        let client = Client {
             http_client: self.http_client,
             client_id: self.client_id.unwrap_or_default(),
             client_secret: self.client_secret.unwrap_or_default(),
@@ -629,11 +637,14 @@ impl ClientBuilderStep<Ready> {
             redirect_uri: self
                 .redirect_uri
                 .unwrap_or_else(|| "http://localhost:8080/".to_string()),
-            base_url: self.base_url,
-        })
+            environment,
+        };
+
+        Ok(client)
     }
 }
 
+#[derive(Clone, Debug)]
 /// Selects which TradeStation API environment a [`Client`] should use.
 ///
 /// This controls the base URL and the safety level of account/order access.
@@ -681,4 +692,29 @@ pub enum ClientEnvironment {
     /// API. It should be used when tests should avoid real API calls, avoid
     /// real account access, and avoid exposing live or simulator credentials.
     Mock(String),
+}
+/// Format the [`ClientEnvironment`] as a short, human readable string.
+impl Display for ClientEnvironment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            Self::Live => f.write_str("LIVE"),
+            Self::Simulation => f.write_str("SIM"),
+            Self::Mock(_) => f.write_str("MOCK"),
+        }
+    }
+}
+impl ClientEnvironment {
+    /// Returns the base URL associated with the environment.
+    ///
+    /// Live and simulation environments use TradeStation's standard API URLs.
+    /// Mock environments return the custom URL provided when the environment
+    /// was created.
+    #[must_use]
+    pub fn base_url(&self) -> &str {
+        match self {
+            Self::Live => "https://api.tradestation.com/v3",
+            Self::Simulation => "https://sim-api.tradestation.com/v3",
+            Self::Mock(url) => url,
+        }
+    }
 }
