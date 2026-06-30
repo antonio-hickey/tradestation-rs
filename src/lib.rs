@@ -55,9 +55,9 @@
 //! async fn main() -> Result<(), Error> {
 //!     // Build the TradeStation Client
 //!     //
-//!     // NOTE: If you don't have your token yet, see the inital auth example.
+//!     // NOTE: If you don't have your token yet, see the initial auth example.
 //!     let mut client = ClientBuilder::new()
-//!         .credentials("YOUR_ACCESS_KEY", "YOUR_SECRET_KEY")
+//!         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
 //!         .environment(ClientEnvironment::Simulation)
 //!         .with_token(Token {
 //!             access_token: "YOUR_ACCESS_TOKEN".into(),
