@@ -1,3 +1,6 @@
+#![deny(rustdoc::broken_intra_doc_links)]
+#![warn(missing_docs)]
+
 //! <h1 align="center">TradeStation Rust Client</h1>
 //!
 //! <p align="center">
