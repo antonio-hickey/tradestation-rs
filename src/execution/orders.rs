@@ -11,6 +11,7 @@ use crate::{
     Client, Error,
 };
 use serde::{Deserialize, Serialize};
+use tracing::{debug, error, info, warn};
 
 impl Order {
     /// Place an [`OrderRequest`] to the market.
@@ -49,23 +50,106 @@ impl Order {
     ) -> Result<Vec<OrderTicket>, Error> {
         let endpoint = String::from("orderexecution/orders");
 
-        match client
+        debug!(
+            target: "tradestation::execution",
+            environment = %client.environment,
+            account = %order_request.account_id,
+            symbol = ?order_request.symbol,
+            trade_action = ?order_request.trade_action,
+            quantity = ?order_request.quantity,
+            order_type = ?order_request.order_type,
+            "submitting order"
+        );
+
+        let response = client
             .post(&endpoint, &order_request)
-            .await?
+            .await
+            .inspect_err(|order_request_err| {
+                error!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    account = %order_request.account_id,
+                    symbol = ?order_request.symbol,
+                    trade_action = ?order_request.trade_action,
+                    quantity = ?order_request.quantity,
+                    order_type = ?order_request.order_type,
+                    error = %order_request_err,
+                    outcome = "unknown",
+                    "order submission failed"
+                );
+            })?
             .json::<ApiResponse<OrderRespRaw>>()
-            .await?
-        {
+            .await
+            .inspect_err(|order_request_err| {
+                warn!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    account = %order_request.account_id,
+                    symbol = ?order_request.symbol,
+                    trade_action = ?order_request.trade_action,
+                    quantity = ?order_request.quantity,
+                    order_type = ?order_request.order_type,
+                    outcome = "unknown",
+                    error = %order_request_err,
+                    "failed to decode order submission response"
+                );
+            })?;
+
+        match response {
             ApiResponse::Success(resp_raw) => {
                 let resp: OrderResp = resp_raw.into();
+
                 if let Some(orders) = resp.orders {
+                    info!(
+                        target: "tradestation::execution",
+                        environment = %client.environment,
+                        account = %order_request.account_id,
+                        symbol = ?order_request.symbol,
+                        trade_action = ?order_request.trade_action,
+                        quantity = ?order_request.quantity,
+                        order_count = orders.len(),
+                        outcome = "accepted",
+                        "order submitted successfully"
+                    );
+
                     Ok(orders)
                 } else {
-                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
+                    let error = resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
                         "Unknown TradeStation API Error While Placing Order.".into(),
-                    )))
+                    ));
+
+                    warn!(
+                        target: "tradestation::execution",
+                        environment = %client.environment,
+                        account = %order_request.account_id,
+                        symbol = ?order_request.symbol,
+                        trade_action = ?order_request.trade_action,
+                        quantity = ?order_request.quantity,
+                        error = %error,
+                        outcome = "rejected",
+                        "order submission returned no order tickets"
+                    );
+
+                    Err(error)
                 }
             }
-            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+            ApiResponse::Error(resp) => {
+                let error = Error::from_api_error(resp);
+
+                warn!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    account = %order_request.account_id,
+                    symbol = ?order_request.symbol,
+                    trade_action = ?order_request.trade_action,
+                    quantity = ?order_request.quantity,
+                    error = %error,
+                    outcome = "rejected",
+                    "order submission was rejected"
+                );
+
+                Err(error)
+            }
         }
     }
 
@@ -187,24 +271,91 @@ impl Order {
         client: &Client,
     ) -> Result<Vec<OrderTicket>, Error> {
         let endpoint = String::from("orderexecution/ordergroups");
+        let order_request_count = order_req_group.order_requests.len();
 
-        match client
+        debug!(
+            target: "tradestation::execution",
+            environment = %client.environment,
+            group_type = ?order_req_group.group_type,
+            order_request_count,
+            "submitting order group"
+        );
+
+        let response = client
             .post(&endpoint, order_req_group)
-            .await?
+            .await
+            .inspect_err(|order_request_err| {
+                error!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    group_type = ?order_req_group.group_type,
+                    order_request_count,
+                    error = %order_request_err,
+                    outcome = "unknown",
+                    "order group submission failed"
+                );
+            })?
             .json::<ApiResponse<OrderRespRaw>>()
-            .await?
-        {
+            .await
+            .inspect_err(|order_request_err| {
+                warn!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    group_type = ?order_req_group.group_type,
+                    order_request_count,
+                    error = %order_request_err,
+                    outcome = "unknown",
+                    "failed to decode response for order group submission"
+                );
+            })?;
+
+        match response {
             ApiResponse::Success(resp_raw) => {
                 let resp: OrderResp = resp_raw.into();
                 if let Some(orders) = resp.orders {
+                    info!(
+                        target: "tradestation::execution",
+                        environment = %client.environment,
+                        group_type = ?order_req_group.group_type,
+                        order_request_count,
+                        order_count = orders.len(),
+                        outcome = "accepted",
+                        "order group submitted successfully"
+                    );
                     Ok(orders)
                 } else {
-                    Err(resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
+                    let error = resp.error.unwrap_or(Error::UnknownTradeStationAPIError(
                         "Unknown TradeStation Error While Placing Group Order.".into(),
-                    )))
+                    ));
+
+                    warn!(
+                        target: "tradestation::execution",
+                        environment = %client.environment,
+                        group_type = ?order_req_group.group_type,
+                        order_request_count,
+                        error = %error,
+                        outcome = "rejected",
+                        "order group submission returned no order tickets"
+                    );
+
+                    Err(error)
                 }
             }
-            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+            ApiResponse::Error(resp) => {
+                let error = Error::from_api_error(resp);
+
+                warn!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    group_type = ?order_req_group.group_type,
+                    order_request_count,
+                    error = %error,
+                    outcome = "rejected",
+                    "order group submission was rejected"
+                );
+
+                Err(error)
+            }
         }
     }
 
@@ -252,19 +403,89 @@ impl Order {
     ) -> Result<OrderTicket, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
-        match client
+        debug!(
+            target: "tradestation::execution",
+            environment = %client.environment,
+            account = %self.account_id,
+            order_id = ?self.order_id,
+            legs_in_order = %self.legs.len(),
+            quantity = ?order_update.quantity,
+            limit_price = ?order_update.limit_price,
+            stop_price = ?order_update.stop_price,
+            order_type = ?order_update.order_type,
+            "replacing order"
+        );
+
+        let response = client
             .put(&endpoint, &order_update)
-            .await?
+            .await
+            .inspect_err(|order_request_err| {
+                error!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    account = %self.account_id,
+                    order_id = %self.order_id,
+                    quantity = ?order_update.quantity,
+                    order_type = ?order_update.order_type,
+                    error = %order_request_err,
+                    outcome = "unknown",
+                    "order replacement submission failed"
+                );
+            })?
             .json::<ApiResponse<ModifyOrderRespRaw>>()
-            .await?
-        {
+            .await
+            .inspect_err(|order_request_err| {
+                warn!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    account = %self.account_id,
+                    order_id = %self.order_id,
+                    quantity = ?order_update.quantity,
+                    order_type = ?order_update.order_type,
+                    error = %order_request_err,
+                    outcome = "unknown",
+                    "failed to decode order replacement submission response"
+                );
+            })?;
+
+        match response {
             ApiResponse::Success(resp_raw) => {
                 let resp: ModifyOrderResp = resp_raw.into();
                 let order: OrderTicket = resp.into();
 
+                info!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    account = %self.account_id,
+                    order_id = ?self.order_id,
+                    legs_in_order = %self.legs.len(),
+                    quantity = ?order_update.quantity,
+                    limit_price = ?order_update.limit_price,
+                    stop_price = ?order_update.stop_price,
+                    order_type = ?order_update.order_type,
+                    outcome = "accepted",
+                    "order replaced successfully"
+                );
+
                 Ok(order)
             }
-            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+            ApiResponse::Error(resp) => {
+                let error = Error::from_api_error(resp);
+
+                warn!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    account = %self.account_id,
+                    order_id = %self.order_id,
+                    quantity = ?order_update.quantity,
+                    order_type = ?order_update.order_type,
+                    error = ?error,
+                    outcome = "rejected",
+                    "order submission was rejected"
+                );
+
+                Err(error)
+            }
         }
     }
 
@@ -299,19 +520,75 @@ impl Order {
     pub async fn cancel(self, client: &Client) -> Result<OrderTicket, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
-        match client
+        debug!(
+            target: "tradestation::execution",
+            environment = %client.environment,
+            account = %self.account_id,
+            order_id = ?self.order_id,
+            legs_in_order = %self.legs.len(),
+            "canceling order"
+        );
+
+        let response = client
             .delete(&endpoint)
-            .await?
+            .await
+            .inspect_err(|order_request_err| {
+                error!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    account = %self.account_id,
+                    order_id = %self.order_id,
+                    error = %order_request_err,
+                    outcome = "unknown",
+                    "order cancellation request failed"
+                );
+            })?
             .json::<ApiResponse<ModifyOrderRespRaw>>()
-            .await?
-        {
+            .await
+            .inspect_err(|order_request_err| {
+                warn!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    account = %self.account_id,
+                    order_id = %self.order_id,
+                    error = %order_request_err,
+                    outcome = "unknown",
+                    "failed to decode order cancellation response"
+                );
+            })?;
+
+        match response {
             ApiResponse::Success(resp_raw) => {
                 let resp: ModifyOrderResp = resp_raw.into();
                 let order: OrderTicket = resp.into();
 
+                info!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    account = %self.account_id,
+                    order_id = ?self.order_id,
+                    legs_in_order = %self.legs.len(),
+                    outcome = "accepted",
+                    "order canceled successfully"
+                );
+
                 Ok(order)
             }
-            ApiResponse::Error(resp) => Err(Error::from_api_error(resp)),
+            ApiResponse::Error(resp) => {
+                let error = Error::from_api_error(resp);
+
+                warn!(
+                    target: "tradestation::execution",
+                    environment = %client.environment,
+                    account = %self.account_id,
+                    order_id = %self.order_id,
+                    error = ?error,
+                    outcome = "rejected",
+                    "order cancellation was rejected"
+                );
+
+                Err(error)
+            }
         }
     }
 }
