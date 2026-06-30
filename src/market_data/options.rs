@@ -1643,19 +1643,19 @@ impl OptionQuote {
     /// ```ignore
     /// let stream_tlt_iron_butterfly_query = market_data::OptionQuoteQueryBuilder::new()
     ///     .legs(vec![
-    ///         OptionQouteLeg {
+    ///         OptionQuoteLeg {
     ///             symbol: "TLT 241011P93".into(),
     ///             ratio: -10,
     ///         },
-    ///         OptionQouteLeg {
+    ///         OptionQuoteLeg {
     ///             symbol: "TLT 241011P95.5".into(),
     ///             ratio: 10,
     ///         },
-    ///         OptionQouteLeg {
+    ///         OptionQuoteLeg {
     ///             symbol: "TLT 241011C95.5".into(),
     ///             ratio: 10,
     ///         },
-    ///         OptionQouteLeg {
+    ///         OptionQuoteLeg {
     ///             symbol: "TLT 241011C98".into(),
     ///             ratio: -10,
     ///         },
@@ -1818,19 +1818,19 @@ impl Client {
     /// ```ignore
     /// let stream_tlt_iron_butterfly_query = market_data::OptionQuoteQueryBuilder::new()
     ///     .legs(vec![
-    ///         OptionQouteLeg {
+    ///         OptionQuoteLeg {
     ///             symbol: "TLT 241011P93".into(),
     ///             ratio: -10,
     ///         },
-    ///         OptionQouteLeg {
+    ///         OptionQuoteLeg {
     ///             symbol: "TLT 241011P95.5".into(),
     ///             ratio: 10,
     ///         },
-    ///         OptionQouteLeg {
+    ///         OptionQuoteLeg {
     ///             symbol: "TLT 241011C95.5".into(),
     ///             ratio: 10,
     ///         },
-    ///         OptionQouteLeg {
+    ///         OptionQuoteLeg {
     ///             symbol: "TLT 241011C98".into(),
     ///             ratio: -10,
     ///         },
@@ -1949,7 +1949,7 @@ impl Client {
 /// The query to stream quotes on an options spread.
 pub struct OptionQuoteQuery {
     /// The individual positions making up a larger trade.
-    pub legs: Vec<OptionQouteLeg>,
+    pub legs: Vec<OptionQuoteLeg>,
 
     /// The theoretical rate of return of an
     /// investment with zero risk.
@@ -1997,7 +1997,7 @@ impl OptionQuoteQuery {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// The leg for an [`OptionQuoteQuery`]
-pub struct OptionQouteLeg {
+pub struct OptionQuoteLeg {
     /// Option contract symbol or underlying
     /// symbol to be traded for this leg.
     pub symbol: String,
@@ -2013,7 +2013,7 @@ pub struct OptionQouteLeg {
 #[derive(Default)]
 /// Builder for [`OptionQuoteQuery`]
 pub struct OptionQuoteQueryBuilder {
-    legs: Option<Vec<OptionQouteLeg>>,
+    legs: Option<Vec<OptionQuoteLeg>>,
     risk_free_rate: Option<f64>,
     enable_greeks: Option<bool>,
 }
@@ -2027,7 +2027,7 @@ impl OptionQuoteQueryBuilder {
     ///
     /// NOTE: For a trade with just a single option you still need to pass
     /// the option as a leg.
-    pub fn legs(mut self, option_legs: Vec<OptionQouteLeg>) -> Self {
+    pub fn legs(mut self, option_legs: Vec<OptionQuoteLeg>) -> Self {
         self.legs = Some(option_legs);
 
         self
