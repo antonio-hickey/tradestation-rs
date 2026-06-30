@@ -10,10 +10,10 @@ use serde::{Deserialize, Serialize};
 /// Market Depth Quotes
 pub struct MarketDepthQuotes {
     /// Contains bid quotes, ordered from high to low price.
-    bids: Vec<MarketDepthQuote>,
+    pub bids: Vec<MarketDepthQuote>,
 
     /// Contains ask quotes, ordered from high to low price.
-    asks: Vec<MarketDepthQuote>,
+    pub asks: Vec<MarketDepthQuote>,
 }
 impl MarketDepthQuotes {
     /// Stream realtime market depth quotes for the given Symbol.
