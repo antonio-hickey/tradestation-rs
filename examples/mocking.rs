@@ -16,7 +16,9 @@ async fn main() -> Result<(), Error> {
         .build()
         .await?;
 
-    println!("Client is using URL: {}", client.base_url);
+    if let ClientEnvironment::Mock(url) = client.environment {
+        println!("Client is using URL: {url}");
+    }
 
     // ...
     // You can now mock whatever endpoints you want and create a

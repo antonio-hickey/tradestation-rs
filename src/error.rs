@@ -10,6 +10,9 @@ pub enum Error {
     /// Issue building a `Token`.
     TokenConfig(String),
 
+    /// Issue trying to build `Client` without setting the environment.
+    EnvironmentNotSet,
+
     /// An `Account` was not found for a given account id.
     AccountNotFound,
 
@@ -151,6 +154,9 @@ impl std::fmt::Display for Error {
             }
             Self::OrderGroupTypeNotSet => {
                 write!(f, "ERROR: order group type not set when it's required.")
+            }
+            Self::EnvironmentNotSet => {
+                write!(f, "ERROR: `environment` is required for `Client`.")
             }
         }
     }
