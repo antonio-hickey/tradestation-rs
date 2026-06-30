@@ -4,9 +4,16 @@ use serde::{
     Deserialize, Serialize,
 };
 
+/// API response types for the accounting endpoints.
 pub mod account;
+
+/// API response types for the execution endpoints.
 pub mod execution;
+
+/// API response types for the execution endpoints.
 pub mod market_data;
+
+/// API response types for the execution endpoints.
 pub mod stream;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

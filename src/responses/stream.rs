@@ -6,7 +6,15 @@ use serde::{Deserialize, Serialize};
 ///
 /// NOTE: Sent every 5 seconds of inactivity.
 pub struct Heartbeat {
+    /// The heartbeat count, sent to indicate that the stream is alive, although data is not actively being sent.
+    ///
+    /// NOTE: A heartbeat will be sent after 5 seconds on an idle stream.
     pub heartbeat: u64,
+
+    /// Timestamp of the heartbeat.
+    ///
+    /// NOTE: Represented as an RFC3339 formatted date, a profile of ISO8601 date standard.
+    /// E.g. `2030-01-01T23:30:30Z`
     pub timestamp: String,
 }
 
@@ -14,6 +22,7 @@ pub struct Heartbeat {
 #[serde(rename_all = "PascalCase")]
 /// A stream response to tell you state changes
 pub struct StreamStatus {
+    /// The latest status of the stream.
     pub stream_status: String,
 }
 
