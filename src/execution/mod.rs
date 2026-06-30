@@ -4,7 +4,7 @@
 //! within the TradeStation API. The API is mostly exposed via the
 //! [`crate::accounting::orders::Order`] struct, but also accessible
 //! via their native structs like [`crate::execution::ticket::OrderTicket`],
-//! [`crate::execution::confirmation::OrderConfirmation`], or
+//! [`crate::execution::confirm::OrderConfirmation`], or
 //! [`crate::execution::request::OrderRequest`] for example.
 //!
 //! See individual modules for more information on specific components.
