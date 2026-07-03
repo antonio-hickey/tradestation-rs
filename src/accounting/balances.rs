@@ -49,8 +49,8 @@ pub struct Balance {
 impl Balance {
     /// Get the current balance of an `Account`.
     pub(super) async fn get<S: Into<String>>(
-        account_id: S,
         client: &Client,
+        account_id: S,
     ) -> Result<Balance, Error> {
         let endpoint = format!("brokerage/accounts/{}/balances", account_id.into());
 
@@ -73,8 +73,8 @@ impl Balance {
 
     /// Get the current balance of all `Account`(s) by account ids.
     pub(super) async fn get_multiple(
-        account_ids: Vec<&str>,
         client: &Client,
+        account_ids: Vec<&str>,
     ) -> Result<Vec<Balance>, Error> {
         let endpoint = format!("brokerage/accounts/{}/balances", account_ids.join(","));
 
@@ -231,8 +231,8 @@ pub struct BODBalance {
 impl BODBalance {
     /// Get the beginning of day balance of an `Account`.
     pub(super) async fn get<S: Into<String>>(
-        account_id: S,
         client: &Client,
+        account_id: S,
     ) -> Result<BODBalance, Error> {
         let endpoint = format!("brokerage/accounts/{}/bodbalances", account_id.into());
 
@@ -258,8 +258,8 @@ impl BODBalance {
     /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_bod_balances()`
     /// this method should only be used if you ONLY have account id's.
     pub(super) async fn get_multiple(
-        account_ids: Vec<&str>,
         client: &Client,
+        account_ids: Vec<&str>,
     ) -> Result<Vec<BODBalance>, Error> {
         let endpoint = format!("brokerage/accounts/{}/bodbalances", account_ids.join(","));
 

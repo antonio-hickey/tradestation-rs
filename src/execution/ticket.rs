@@ -88,7 +88,7 @@ impl OrderTicket {
     /// #     .await?;
     ///
     /// let ticket = OrderTicket::from_id("11111111");
-    /// match ticket.find_order("ACCOUNT_ID", &client).await {
+    /// match ticket.find_order(&client, "ACCOUNT_ID").await {
     ///     Ok(order) => println!("Found order: {order:?}"),
     ///     Err(e) => eprintln!("Error: {e}"),
     /// }
@@ -97,10 +97,10 @@ impl OrderTicket {
     /// ```
     pub async fn find_order<S: Into<String>>(
         &self,
-        account_id: S,
         client: &Client,
+        account_id: S,
     ) -> Result<Order, Error> {
-        let orders = Order::find(vec![&self.order_id], account_id.into(), client).await?;
+        let orders = Order::find(client, vec![&self.order_id], account_id.into()).await?;
 
         orders
             .into_iter()
@@ -130,7 +130,7 @@ impl OrderTicket {
     ///     })
     ///     .build()?;
     ///
-    /// let order = Order::place(&order_req, &client)
+    /// let order = Order::place(&client, &order_req)
     ///     .await?
     ///     .into_iter()
     ///     .next();
@@ -139,16 +139,16 @@ impl OrderTicket {
     ///     order
     ///         .clone()
     ///         .replace(
-    ///             OrderUpdate::new().limit_price("42.50").quantity("25"),
     ///             &client,
+    ///             OrderUpdate::new().limit_price("42.50").quantity("25"),
     ///         )
     ///         .await?;
     /// }
     /// ```
     pub async fn replace(
         self,
-        order_update: OrderUpdate,
         client: &Client,
+        order_update: OrderUpdate,
     ) -> Result<OrderTicket, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
@@ -187,7 +187,7 @@ impl OrderTicket {
     ///     })
     ///     .build()?;
     ///
-    /// let order = Order::place(&order_req, &client)
+    /// let order = Order::place(&client, &order_req)
     ///     .await?
     ///     .into_iter()
     ///     .next();

@@ -323,7 +323,7 @@ fn test_place_order_mocked() {
             .unwrap();
 
         // Place the order request built above
-        match Order::place(&order_req, &client).await {
+        match Order::place(&client, &order_req).await {
             Ok(orders) => {
                 assert!(
                     orders.len() == 1,
@@ -369,7 +369,7 @@ fn test_replace_order_mocked() {
         let order_update = OrderUpdate::new().quantity("25");
 
         // Replace the order with the order update
-        match order.replace(order_update, &client).await {
+        match order.replace(&client, order_update).await {
             Ok(order) => {
                 assert!(
                     order.order_id == "5555555555",

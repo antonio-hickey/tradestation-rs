@@ -48,7 +48,7 @@ async fn main() -> Result<(), Error> {
     //---
     // Example: Get all historic orders (not including open orders) for your `Accounts`
     // since some date. NOTE: limited to 90 days prior to current date
-    let order_history = accounts.get_historic_orders("2024-07-25", &client).await?;
+    let order_history = accounts.get_historic_orders(&client, "2024-07-25").await?;
     println!("Your Order History Per Account: {order_history:?}");
     //---
 

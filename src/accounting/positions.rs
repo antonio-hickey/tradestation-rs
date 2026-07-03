@@ -116,8 +116,8 @@ pub struct Position {
 impl Position {
     /// Fetches positions for the given `Account`.
     pub(super) async fn get_by_account<S: Into<String>>(
-        account_id: S,
         client: &Client,
+        account_id: S,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!("brokerage/accounts/{}/positions", account_id.into());
 
@@ -134,9 +134,9 @@ impl Position {
 
     /// Fetches specific `Position`(s) by their id for the `Account`.
     pub(super) async fn find<S: Into<String>>(
+        client: &Client,
         position_ids: Vec<S>,
         account_id: String,
-        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!("brokerage/accounts/{account_id}/positions");
 
@@ -163,9 +163,9 @@ impl Position {
 
     /// Fetches specific `Position`(s) by their id for the `Account`(s).
     pub(super) async fn find_in_accounts<S: Into<String>>(
+        client: &Client,
         position_ids: Vec<S>,
         account_ids: Vec<S>,
-        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/positions",
@@ -199,9 +199,9 @@ impl Position {
 
     /// Fetches positions for the given `Account`.
     pub(super) async fn get_by_symbols<S: Into<String>>(
+        client: &Client,
         symbols: S,
         account_id: S,
-        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/positions?symbol={}",
@@ -222,9 +222,9 @@ impl Position {
 
     /// Fetches positions for the given `Account`(s).
     pub(super) async fn get_by_symbols_and_accounts(
+        client: &Client,
         symbols: &str,
         account_ids: Vec<&str>,
-        client: &Client,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/positions?symbol={}",
@@ -245,8 +245,8 @@ impl Position {
 
     /// Fetches positions for the given `Account`(s).
     pub(super) async fn get_by_accounts<S: Into<String>>(
-        account_ids: Vec<S>,
         client: &Client,
+        account_ids: Vec<S>,
     ) -> Result<Vec<Position>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/positions",
@@ -270,8 +270,8 @@ impl Position {
 
     /// Central facade for streaming [`Position`]'s into a callback.
     async fn _stream_into(
-        endpoint: String,
         client: &Client,
+        endpoint: String,
         mut callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
         client
@@ -288,8 +288,8 @@ impl Position {
 
     /// Stream `Position`s for the given `Account`.
     pub(super) fn stream<S: Into<String>>(
-        account_id: S,
         client: &Client,
+        account_id: S,
     ) -> impl Stream<Item = Result<StreamPositionsResp, Error>> + '_ {
         let endpoint = format!("brokerage/stream/accounts/{}/positions", account_id.into());
 
@@ -306,19 +306,19 @@ impl Position {
 
     /// Stream [`Position`]'s for a given [`crate::accounting::Account`] into a provided callback function.
     pub(super) async fn stream_into(
-        account_id: impl Into<String>,
         client: &Client,
+        account_id: impl Into<String>,
         callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
         let endpoint = format!("brokerage/stream/accounts/{}/positions", account_id.into());
 
-        Position::_stream_into(endpoint, client, callback).await
+        Position::_stream_into(client, endpoint, callback).await
     }
 
     /// Stream `Position`s for the given `Account`(s).
     pub(super) fn stream_for_accounts<S: Into<String>>(
-        account_ids: Vec<S>,
         client: &Client,
+        account_ids: Vec<S>,
     ) -> impl Stream<Item = Result<StreamPositionsResp, Error>> + '_ {
         let endpoint = format!(
             "brokerage/stream/accounts/{}/positions",
@@ -342,8 +342,8 @@ impl Position {
 
     /// Stream [`Position`]'s for specific [`crate::accounting::Account`]'s into a provided callback function.
     pub(super) async fn stream_for_accounts_into(
-        account_ids: Vec<&str>,
         client: &Client,
+        account_ids: Vec<&str>,
         callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
         let endpoint = format!(
@@ -355,7 +355,7 @@ impl Position {
                 .join(",")
         );
 
-        Position::_stream_into(endpoint, client, callback).await
+        Position::_stream_into(client, endpoint, callback).await
     }
 }
 
@@ -388,7 +388,7 @@ impl Client {
         position_id: S,
         account_id: S,
     ) -> Result<Position, Error> {
-        let positions = Position::find(vec![position_id], account_id.into(), self).await?;
+        let positions = Position::find(self, vec![position_id], account_id.into()).await?;
 
         Ok(positions[0].clone())
     }
@@ -416,7 +416,7 @@ impl Client {
         position_id: S,
         account_ids: Vec<S>,
     ) -> Result<Position, Error> {
-        let positions = Position::find_in_accounts(vec![position_id], account_ids, self).await?;
+        let positions = Position::find_in_accounts(self, vec![position_id], account_ids).await?;
 
         Ok(positions[0].clone())
     }
@@ -438,7 +438,7 @@ impl Client {
         &self,
         account_id: S,
     ) -> Result<Vec<Position>, Error> {
-        Position::get_by_account(account_id, self).await
+        Position::get_by_account(self, account_id).await
     }
 
     /// Fetches all `Position`(s) for the given `Account` id's.
@@ -458,7 +458,7 @@ impl Client {
         &self,
         account_ids: Vec<S>,
     ) -> Result<Vec<Position>, Error> {
-        Position::get_by_accounts(account_ids, self).await
+        Position::get_by_accounts(self, account_ids).await
     }
 
     /// Fetches specific `Position`(s) by their id for the given `Account` id.
@@ -484,7 +484,7 @@ impl Client {
         position_ids: Vec<S>,
         account_id: S,
     ) -> Result<Vec<Position>, Error> {
-        Position::find(position_ids, account_id.into(), self).await
+        Position::find(self, position_ids, account_id.into()).await
     }
 
     /// Fetches specific `Position`(s) by their id for the given `Account` id's.
@@ -509,6 +509,6 @@ impl Client {
         account_ids: Vec<S>,
         position_ids: Vec<S>,
     ) -> Result<Vec<Position>, Error> {
-        Position::find_in_accounts(position_ids, account_ids, self).await
+        Position::find_in_accounts(self, position_ids, account_ids).await
     }
 }

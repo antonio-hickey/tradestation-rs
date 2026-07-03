@@ -39,14 +39,14 @@ impl Order {
     ///     })
     ///     .build()?;
     ///
-    /// match Order::place(order_req, &client,).await {
+    /// match Order::place(&client, &order_req).await {
     ///     Ok(resp) => println!("Order Response: {resp:?}"),
     ///     Err(e) => println!("Order Response: {e:?}"),
     /// }
     /// ```
     pub async fn place(
-        order_request: &OrderRequest,
         client: &Client,
+        order_request: &OrderRequest,
     ) -> Result<Vec<OrderTicket>, Error> {
         let endpoint = String::from("orderexecution/orders");
 
@@ -262,13 +262,13 @@ impl Order {
     ///         .group_type(OrderRelationship::BRK)
     ///         .build()?;
     ///
-    ///     let orders = Order::place_group(&order_group, &client).await?;
+    ///     let orders = Order::place_group(&client, &order_group).await?;
     ///     println!("Place Orders Result: {orders:?}");
     /// }
     /// ```
     pub async fn place_group(
-        order_req_group: &OrderRequestGroup,
         client: &Client,
+        order_req_group: &OrderRequestGroup,
     ) -> Result<Vec<OrderTicket>, Error> {
         let endpoint = String::from("orderexecution/ordergroups");
         let order_request_count = order_req_group.order_requests.len();
@@ -381,7 +381,7 @@ impl Order {
     ///     })
     ///     .build()?;
     ///
-    /// let order = Order::place(&order_req, &client)
+    /// let order = Order::place(&client, &order_req)
     ///     .await?
     ///     .into_iter()
     ///     .next();
@@ -390,16 +390,16 @@ impl Order {
     ///     order
     ///         .clone()
     ///         .replace(
-    ///             OrderUpdate::new().limit_price("42.50").quantity("25"),
     ///             &client,
+    ///             OrderUpdate::new().limit_price("42.50").quantity("25"),
     ///         )
     ///         .await?;
     /// }
     /// ```
     pub async fn replace(
         self,
-        order_update: OrderUpdate,
         client: &Client,
+        order_update: OrderUpdate,
     ) -> Result<OrderTicket, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
 
@@ -508,7 +508,7 @@ impl Order {
     ///     })
     ///     .build()?;
     ///
-    /// let order = Order::place(&order_req, &client)
+    /// let order = Order::place(&client, &order_req)
     ///     .await?
     ///     .into_iter()
     ///     .next();
