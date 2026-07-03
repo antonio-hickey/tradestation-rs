@@ -342,7 +342,7 @@ impl OrderRequestGroup {
     /// }
     /// ```
     pub async fn place(&self, client: &Client) -> Result<Vec<OrderTicket>, Error> {
-        Order::place_group(self, client).await
+        Order::place_group(client, self).await
     }
 }
 

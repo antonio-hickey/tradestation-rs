@@ -121,8 +121,8 @@ pub struct Order {
 impl Order {
     /// Fetches orders for the given `Account`.
     pub(super) async fn get_all_by_account<S: Into<String>>(
-        account_id: S,
         client: &Client,
+        account_id: S,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!("brokerage/accounts/{}/orders", account_id.into());
 
@@ -139,9 +139,9 @@ impl Order {
 
     /// Fetches orders by order id for the given `Account`.
     pub async fn find<S: Into<String>>(
+        client: &Client,
         order_ids: Vec<S>,
         account_id: String,
-        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         let order_ids: Vec<String> = order_ids.into_iter().map(|id| id.into()).collect();
 
@@ -164,9 +164,9 @@ impl Order {
 
     /// Fetches Historical `Order`(s) since a specific date for the given `Account`.
     pub(super) async fn get_historic<S: Into<String>>(
+        client: &Client,
         account_id: S,
         since_date: &str,
-        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/historicalorders?since={}",
@@ -187,9 +187,9 @@ impl Order {
 
     /// Fetches Historical `Order`(s) for the given `Account`(s) by id.
     pub(super) async fn get_historic_by_accounts(
+        client: &Client,
         account_ids: Vec<&str>,
         since_date: &str,
-        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         let endpoint = format!(
             "brokerage/accounts/{}/historicalorders?since={}",
@@ -210,8 +210,8 @@ impl Order {
 
     /// Central facade around [`Order`] 'stream_*_into' methods.
     async fn _stream_into(
-        endpoint: String,
         client: &Client,
+        endpoint: String,
         mut callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
         client
@@ -230,8 +230,8 @@ impl Order {
 
     /// Stream `Order`(s) for the given `Account`.
     pub(super) fn stream<S: Into<String>>(
-        account_id: S,
         client: &Client,
+        account_id: S,
     ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + '_ {
         let endpoint = format!("brokerage/stream/accounts/{}/orders", account_id.into());
 
@@ -248,20 +248,20 @@ impl Order {
 
     /// Stream [`Order`]'s into a provided callback function.
     pub(super) async fn stream_into(
-        account_id: impl Into<String>,
         client: &Client,
+        account_id: impl Into<String>,
         callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
         let endpoint = format!("brokerage/stream/accounts/{}/orders", account_id.into());
 
-        Order::_stream_into(endpoint, client, callback).await
+        Order::_stream_into(client, endpoint, callback).await
     }
 
     /// Stream `Order`(s) by order id's for the given `Account`.
     pub(super) fn stream_by_ids<'a>(
+        client: &'a Client,
         order_ids: Vec<&'a str>,
         account_id: &'a str,
-        client: &'a Client,
     ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
         let endpoint = format!(
             "brokerage/stream/accounts/{}/orders/{}",
@@ -282,9 +282,9 @@ impl Order {
 
     /// Stream specific [`Order`]'s into a provided callback function.
     pub(super) async fn stream_by_ids_into(
+        client: &Client,
         order_ids: Vec<&str>,
         account_id: impl Into<String>,
-        client: &Client,
         callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
         let endpoint = format!(
@@ -293,13 +293,13 @@ impl Order {
             order_ids.join(",")
         );
 
-        Order::_stream_into(endpoint, client, callback).await
+        Order::_stream_into(client, endpoint, callback).await
     }
 
     /// Stream `Order`(s) for the given `Account`.
     pub(super) fn stream_by_accounts<'a>(
-        account_ids: Vec<&'a str>,
         client: &'a Client,
+        account_ids: Vec<&'a str>,
     ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
         let endpoint = format!("brokerage/stream/accounts/{}/orders", account_ids.join(","));
 
@@ -316,13 +316,13 @@ impl Order {
 
     /// Stream [`Order`]'s from specific accounts into a provided callback function.
     pub(super) async fn stream_by_accounts_into(
-        account_ids: Vec<&str>,
         client: &Client,
+        account_ids: Vec<&str>,
         callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
         let endpoint = format!("brokerage/stream/accounts/{}/orders", account_ids.join(","),);
 
-        Order::_stream_into(endpoint, client, callback).await
+        Order::_stream_into(client, endpoint, callback).await
     }
 
     /// Stream `Order`s by order id's for the given `Account`(s).
@@ -349,9 +349,9 @@ impl Order {
     }
 
     pub(super) async fn stream_by_ids_and_accounts_into(
+        client: &Client,
         order_ids: Vec<&str>,
         account_ids: Vec<&str>,
-        client: &Client,
         callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
         let endpoint = format!(
@@ -360,7 +360,7 @@ impl Order {
             order_ids.join(","),
         );
 
-        Order::_stream_into(endpoint, client, callback).await
+        Order::_stream_into(client, endpoint, callback).await
     }
 }
 

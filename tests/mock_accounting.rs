@@ -358,7 +358,7 @@ fn test_get_historic_orders_futures_mocked() {
             .unwrap();
 
         // Make sure we can parse the mocked response into `Vec<Order>`
-        match account.get_historic_orders("2025-01-23", &client).await {
+        match account.get_historic_orders(&client, "2025-01-23").await {
             Ok(orders) => {
                 // Should be 3 orders
                 assert_eq!(orders.len(), 3);
@@ -410,7 +410,7 @@ fn test_get_historic_orders_stocks_mocked() {
             .unwrap();
 
         // Make sure we can parse the mocked response into `Vec<Order>`
-        match account.get_historic_orders("2025-01-23", &client).await {
+        match account.get_historic_orders(&client, "2025-01-23").await {
             Ok(orders) => {
                 // Should be 4 orders
                 assert_eq!(orders.len(), 4);

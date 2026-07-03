@@ -223,7 +223,7 @@ impl Order {
     ///         })
     ///         .build()?;
     ///
-    ///     match Order::confirm(&order_req, &client).await {
+    ///     match Order::confirm(&client, &order_req).await {
     ///         Ok(confirmation) => println!("Confirmed Order: {confirmation:?}"),
     ///         Err(e) => println!("Issue Confirming Order: {e:?}"),
     ///     };
@@ -232,8 +232,8 @@ impl Order {
     /// }
     ///```
     pub async fn confirm(
-        order_request: &OrderRequest,
         client: &Client,
+        order_request: &OrderRequest,
     ) -> Result<Vec<OrderConfirmation>, Error> {
         let endpoint = String::from("orderexecution/orderconfirm");
 
@@ -375,15 +375,15 @@ impl Order {
     ///         .group_type(OrderRelationship::BRK)
     ///         .build()?;
     ///
-    ///     let order_confirmations = Order::confirm_group(&order_group, &client).await?;
+    ///     let order_confirmations = Order::confirm_group(&client, &order_group).await?;
     ///     println!("Confirm Orders Result: {order_confirmations:?}");
     ///
     ///     Ok(())
     /// }
     /// ```
     pub async fn confirm_group(
-        order_req_group: &OrderRequestGroup,
         client: &Client,
+        order_req_group: &OrderRequestGroup,
     ) -> Result<Vec<OrderConfirmation>, Error> {
         let endpoint = String::from("orderexecution/ordergroupconfirm");
 
@@ -472,7 +472,7 @@ impl OrderRequest {
     /// }
     ///```
     pub async fn confirm(self, client: &Client) -> Result<Vec<OrderConfirmation>, Error> {
-        Order::confirm(&self, client).await
+        Order::confirm(client, &self).await
     }
 }
 
@@ -601,6 +601,6 @@ impl OrderRequestGroup {
     /// }
     /// ```
     pub async fn confirm(self, client: &Client) -> Result<Vec<OrderConfirmation>, Error> {
-        Order::confirm_group(&self, client).await
+        Order::confirm_group(client, &self).await
     }
 }

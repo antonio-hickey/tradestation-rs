@@ -62,7 +62,7 @@ async fn main() -> Result<(), Error> {
         })
         .build()?;
 
-    let order = Order::place(&order_req, &client).await?.into_iter().next();
+    let order = Order::place(&client, &order_req).await?.into_iter().next();
     //--
 
     //--
@@ -71,8 +71,8 @@ async fn main() -> Result<(), Error> {
     if let Some(order) = order {
         let updated_order = order
             .replace(
-                OrderUpdate::new().limit_price("222.75").quantity("25"),
                 &client,
+                OrderUpdate::new().limit_price("222.75").quantity("25"),
             )
             .await?;
 

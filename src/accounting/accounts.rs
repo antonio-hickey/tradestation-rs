@@ -32,7 +32,7 @@ pub struct Account {
 }
 impl Account {
     /// Get a specific TradeStation `Account` by it's account id.
-    pub async fn get(account_id: &str, client: &Client) -> Result<Account, Error> {
+    pub async fn get(client: &Client, account_id: &str) -> Result<Account, Error> {
         if let Some(account) = Account::get_all(client)
             .await?
             .iter()
@@ -61,7 +61,7 @@ impl Account {
 
     /// Get the current balance of an `Account`.
     pub async fn get_balance(&self, client: &Client) -> Result<Balance, Error> {
-        Balance::get(&self.account_id, client).await
+        Balance::get(client, &self.account_id).await
     }
 
     /// Get the current balance of all `Account`(s) by account ids.
@@ -69,15 +69,15 @@ impl Account {
     /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_balances()`
     /// this method should only be used in cases where you ONLY have account id's.
     pub async fn get_balances_by_accounts(
-        account_ids: Vec<&str>,
         client: &Client,
+        account_ids: Vec<&str>,
     ) -> Result<Vec<Balance>, Error> {
-        Balance::get_multiple(account_ids, client).await
+        Balance::get_multiple(client, account_ids).await
     }
 
     /// Get the beginning of day balance of an `Account`.
     pub async fn get_bod_balance(&self, client: &Client) -> Result<BODBalance, Error> {
-        BODBalance::get(&self.account_id, client).await
+        BODBalance::get(client, &self.account_id).await
     }
 
     /// Get the beginning of day balances for multiple `Account`(s) by account id.
@@ -85,10 +85,10 @@ impl Account {
     /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_bod_balances()`
     /// this method should only be used if you ONLY have account id's.
     pub async fn get_bod_balances_by_accounts(
-        account_ids: Vec<&str>,
         client: &Client,
+        account_ids: Vec<&str>,
     ) -> Result<Vec<BODBalance>, Error> {
-        BODBalance::get_multiple(account_ids, client).await
+        BODBalance::get_multiple(client, account_ids).await
     }
 
     /// Fetches Historical `Order`(s) since a specific date for the given `Account`.
@@ -99,10 +99,10 @@ impl Account {
     /// NOTE: Excludes open `Order`(s) and is sorted in descending order of time closed.
     pub async fn get_historic_orders(
         &self,
-        since_date: &str,
         client: &Client,
+        since_date: &str,
     ) -> Result<Vec<Order>, Error> {
-        Order::get_historic(&self.account_id, since_date, client).await
+        Order::get_historic(client, &self.account_id, since_date).await
     }
 
     /// Fetches Historical `Order`(s) for the given `Account`(s) by id.
@@ -112,11 +112,11 @@ impl Account {
     ///
     /// NOTE: Excludes open `Order`(s) and is sorted in descending order of time closed.
     pub async fn get_historic_orders_by_accounts(
+        client: &Client,
         account_ids: Vec<&str>,
         since_date: &str,
-        client: &Client,
     ) -> Result<Vec<Order>, Error> {
-        Order::get_historic_by_accounts(account_ids, since_date, client).await
+        Order::get_historic_by_accounts(client, account_ids, since_date).await
     }
 
     /// Fetches orders for the given `Account`.
@@ -162,15 +162,15 @@ impl Account {
     /// }
     /// ```
     pub async fn get_orders(&self, client: &Client) -> Result<Vec<Order>, Error> {
-        Order::get_all_by_account(&self.account_id, client).await
+        Order::get_all_by_account(client, &self.account_id).await
     }
 
     /// NOTE: Same as `get_orders` but for multiple accounts
     /// NOTE: For internal use only. Use `Account::get_orders_by_id()`
     /// to access this functionality.
     async fn get_orders_for_accounts<S: Into<String>>(
-        account_ids: Vec<S>,
         client: &Client,
+        account_ids: Vec<S>,
     ) -> Result<Vec<Order>, Error> {
         let account_ids: Vec<String> = account_ids
             .into_iter()
@@ -218,7 +218,7 @@ impl Account {
     /// if let Some(specific_account) = accounts.find_by_id("YOUR_ACCOUNT_ID") {
     ///     // Get some specific orders by their order id's
     ///     let orders = specific_account.
-    ///         get_orders_by_id(vec!["1115661503", "1115332365"], &client)
+    ///         get_orders_by_id(&client, vec!["1115661503", "1115332365"])
     ///         .await?;
     ///
     ///     // Log the status of the order's
@@ -229,19 +229,19 @@ impl Account {
     /// ```
     pub async fn get_orders_by_id<S: Into<String>>(
         &self,
-        order_ids: Vec<S>,
         client: &Client,
+        order_ids: Vec<S>,
     ) -> Result<Vec<Order>, Error> {
-        Order::find(order_ids, self.account_id.clone(), client).await
+        Order::find(client, order_ids, self.account_id.clone()).await
     }
 
     /// NOTE: Same as `get_orders_by_id` but for multiple accounts
     /// NOTE: For internal use only. Use `Account::get_orders_by_id()`
     /// to access this functionality.
     async fn get_orders_by_id_for_accounts<S: Into<String>>(
+        client: &Client,
         account_ids: Vec<S>,
         order_ids: Vec<S>,
-        client: &Client,
     ) -> Result<Vec<Order>, Error> {
         let account_ids: Vec<String> = account_ids
             .into_iter()
@@ -272,18 +272,18 @@ impl Account {
 
     /// Fetches positions for the given `Account`.
     pub async fn get_positions(&self, client: &Client) -> Result<Vec<Position>, Error> {
-        Position::get_by_account(&self.account_id, client).await
+        Position::get_by_account(client, &self.account_id).await
     }
 
     /// NOTE: Same as `Account::get_position` but for multiple accounts
     /// NOTE: For internal use only. Use `MultipleAccounts::get_position()`
     /// instead to access this functionality.
     async fn get_position_for_accounts(
+        client: &Client,
         account_ids: String,
         position_id: String,
-        client: &Client,
     ) -> Result<Position, Error> {
-        let positions = Position::find(vec![position_id], account_ids, client).await?;
+        let positions = Position::find(client, vec![position_id], account_ids).await?;
 
         let position = positions[0].clone();
         Ok(position)
@@ -328,21 +328,21 @@ impl Account {
     /// ```
     pub async fn get_positions_by_id<S: Into<String>>(
         &self,
-        position_ids: Vec<S>,
         client: &Client,
+        position_ids: Vec<S>,
     ) -> Result<Vec<Position>, Error> {
-        Position::find(position_ids, self.account_id.clone(), client).await
+        Position::find(client, position_ids, self.account_id.clone()).await
     }
 
     /// NOTE: Same as `get_positions_by_id` but for multiple accounts
     /// NOTE: For internal use only. Use `Account::get_positions_by_id()`
     /// instead to access this functionality.
     async fn get_positions_by_id_for_accounts<S: Into<String>>(
+        client: &Client,
         account_ids: String,
         position_ids: Vec<S>,
-        client: &Client,
     ) -> Result<Vec<Position>, Error> {
-        Position::find(position_ids, account_ids, client).await
+        Position::find(client, position_ids, account_ids).await
     }
 
     /// Fetches positions for the given `Account`.
@@ -353,10 +353,10 @@ impl Account {
     /// NOTE: You can use an * as wildcard to make more complex filters.
     pub async fn get_positions_in_symbols(
         &self,
-        symbols: &str,
         client: &Client,
+        symbols: &str,
     ) -> Result<Vec<Position>, Error> {
-        Position::get_by_symbols(symbols, &self.account_id, client).await
+        Position::get_by_symbols(client, symbols, &self.account_id).await
     }
 
     /// Fetches positions for the given `Account`(s).
@@ -364,10 +364,10 @@ impl Account {
     /// NOTE: If you have `Vec<Account>` you should instead use `Vec<Account>::get_positions()`
     /// this method should only be used if you ONLY have account id's.
     pub async fn get_positions_by_accounts(
-        account_ids: Vec<&str>,
         client: &Client,
+        account_ids: Vec<&str>,
     ) -> Result<Vec<Position>, Error> {
-        Position::get_by_accounts(account_ids, client).await
+        Position::get_by_accounts(client, account_ids).await
     }
 
     /// Fetches positions for the given `Account`(s).
@@ -380,11 +380,11 @@ impl Account {
     ///
     /// NOTE: You can use an * as wildcard to make more complex filters.
     pub async fn get_positions_in_symbols_by_accounts(
+        client: &Client,
         symbols: &str,
         account_ids: Vec<&str>,
-        client: &Client,
     ) -> Result<Vec<Position>, Error> {
-        Position::get_by_symbols_and_accounts(symbols, account_ids, client).await
+        Position::get_by_symbols_and_accounts(client, symbols, account_ids).await
     }
 
     /// Stream `Order`(s) for the given `Account`.
@@ -450,7 +450,7 @@ impl Account {
         &'a self,
         client: &'a Client,
     ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
-        Order::stream(&self.account_id, client)
+        Order::stream(client, &self.account_id)
     }
 
     /// Stream [`Order`]'s into a provided callback function.
@@ -499,7 +499,7 @@ impl Account {
         client: &Client,
         callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
-        Order::stream_into(&self.account_id, client, callback).await
+        Order::stream_into(client, &self.account_id, callback).await
     }
 
     /// Stream `Order`(s) by order id's for the given `Account`.
@@ -518,7 +518,7 @@ impl Account {
     /// ```ignore
     /// let mut some_trades_order_statuses: HashMap<String, OrderStatus> = HashMap::new();
     ///
-    /// let orders_stream = specific_account.stream_orders_by_id(vec!["SOME_ORDER_ID_1", "SOME_ORDER_ID_2"], &client);
+    /// let orders_stream = specific_account.stream_orders_by_id(&client, vec!["SOME_ORDER_ID_1", "SOME_ORDER_ID_2"]);
     /// tokio::pin!(orders_stream); // NOTE: You must pin the stream
     /// while let Some(chunk) = orders_stream.next().await {
     ///     // The response type is `responses::account::StreamOrdersResp`
@@ -579,7 +579,7 @@ impl Account {
         client: &'a Client,
         order_ids: Vec<&'a str>,
     ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
-        Order::stream_by_ids(order_ids, &self.account_id, client)
+        Order::stream_by_ids(client, order_ids, &self.account_id)
     }
 
     /// Stream [`Order`]'s for specific id's into a provided callback function.
@@ -614,8 +614,8 @@ impl Account {
     /// # use tradestation::{client::Client, accounting::{Account}, responses::account::StreamOrdersResp, Error };
     /// # async fn example(account: &Account, orders: Vec<&str>, client: &Client) -> Result<(), Error> {
     /// account.stream_orders_by_ids_into(
-    ///     orders,
     ///     client,
+    ///     orders,
     ///     |stream_event: StreamOrdersResp| -> Result<(), Error> {
     ///         println!("Order Stream Event: {stream_event:?}");
     ///         Ok(())
@@ -626,11 +626,11 @@ impl Account {
     /// ```
     pub async fn stream_orders_by_ids_into(
         &self,
-        order_ids: Vec<&str>,
         client: &Client,
+        order_ids: Vec<&str>,
         callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
-        Order::stream_by_ids_into(order_ids, &self.account_id, client, callback).await
+        Order::stream_by_ids_into(client, order_ids, &self.account_id, callback).await
     }
 
     /// Stream `Order`s by order IDs across multiple `Account`s.
@@ -692,10 +692,10 @@ impl Account {
     /// println!("Funds Allocated To Open Orders: {funds_allocated_to_open_orders}");
     /// ```
     fn stream_orders_for_accounts<'a>(
-        account_ids: Vec<&'a str>,
         client: &'a Client,
+        account_ids: Vec<&'a str>,
     ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
-        Order::stream_by_accounts(account_ids, client)
+        Order::stream_by_accounts(client, account_ids)
     }
 
     /// Stream [`Order`]'s for specific [`Account`] id's into a provided callback function.
@@ -730,8 +730,8 @@ impl Account {
     /// # use tradestation::{client::Client, accounting::{Account}, responses::account::StreamOrdersResp, Error };
     /// # async fn example(accounts: Vec<&str>, client: &Client) -> Result<(), Error> {
     /// Account::stream_orders_for_accounts_into(
-    ///     accounts,
     ///     client,
+    ///     accounts,
     ///     |stream_event: StreamOrdersResp| -> Result<(), Error> {
     ///         println!("Order Stream Event: {stream_event:?}");
     ///         Ok(())
@@ -741,11 +741,11 @@ impl Account {
     /// #  Ok(()) }
     /// ```
     pub async fn stream_orders_for_accounts_into(
-        account_ids: Vec<&str>,
         client: &Client,
+        account_ids: Vec<&str>,
         callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
-        Order::stream_by_accounts_into(account_ids, client, callback).await
+        Order::stream_by_accounts_into(client, account_ids, callback).await
     }
 
     /// Stream `Order`s by order id's for the given `Account`(s).
@@ -813,9 +813,9 @@ impl Account {
     /// }
     /// ```
     pub fn stream_orders_by_id_for_accounts<'a>(
+        client: &'a Client,
         order_ids: Vec<&'a str>,
         account_ids: Vec<&'a str>,
-        client: &'a Client,
     ) -> impl Stream<Item = Result<StreamOrdersResp, Error>> + 'a {
         Order::stream_by_ids_and_accounts(client, order_ids, account_ids)
     }
@@ -880,21 +880,21 @@ impl Account {
     /// };
     ///
     /// Account::stream_orders_by_ids_for_accounts_into(
+    ///     client,
     ///     orders,
     ///     accounts,
-    ///     client,
     ///     process_orders,
     /// ).await?;
     ///
     /// # Ok(()) }
     /// ```
     pub async fn stream_orders_by_ids_for_accounts_into(
+        client: &Client,
         order_ids: Vec<&str>,
         account_ids: Vec<&str>,
-        client: &Client,
         callback: impl FnMut(StreamOrdersResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
-        Order::stream_by_ids_and_accounts_into(order_ids, account_ids, client, callback).await
+        Order::stream_by_ids_and_accounts_into(client, order_ids, account_ids, callback).await
     }
 
     /// Stream `Position`s for the given `Account`.
@@ -970,7 +970,7 @@ impl Account {
         &'a self,
         client: &'a Client,
     ) -> impl Stream<Item = Result<StreamPositionsResp, Error>> + 'a {
-        Position::stream(&self.account_id, client)
+        Position::stream(client, &self.account_id)
     }
 
     /// Stream [`Position`]'s for an [`Account`] into a provided callback function.
@@ -1018,7 +1018,7 @@ impl Account {
         client: &Client,
         callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
-        Position::stream_into(&self.account_id, client, callback).await
+        Position::stream_into(client, &self.account_id, callback).await
     }
 
     /// Stream `Position`s for the given `Account`(s).
@@ -1094,10 +1094,10 @@ impl Account {
     /// }
     /// ```
     pub fn stream_positions_for_accounts<S: Into<String>>(
-        account_ids: Vec<S>,
         client: &Client,
+        account_ids: Vec<S>,
     ) -> impl Stream<Item = Result<StreamPositionsResp, Error>> + '_ {
-        Position::stream_for_accounts(account_ids, client)
+        Position::stream_for_accounts(client, account_ids)
     }
 
     /// Stream [`Position`]'s for specific [`Account`]'s into a provided callback function.
@@ -1132,8 +1132,8 @@ impl Account {
     /// # use tradestation::{client::Client, accounting::{Account}, responses::account::StreamPositionsResp, Error};
     /// # async fn example(client: &Client) -> Result<(), Error> {
     /// Account::stream_positions_for_accounts_into(
-    ///     vec!["AccountA", "AccountB", "AccountC"],
     ///     client,
+    ///     vec!["AccountA", "AccountB", "AccountC"],
     ///     |stream_event: StreamPositionsResp| -> Result<(), Error> {
     ///         println!("Positions Stream Event: {stream_event:?}");
     ///         Ok(())
@@ -1143,11 +1143,11 @@ impl Account {
     /// #  Ok(()) }
     /// ```
     pub async fn stream_positions_for_accounts_into(
-        account_ids: Vec<&str>,
         client: &Client,
+        account_ids: Vec<&str>,
         callback: impl FnMut(StreamPositionsResp) -> Result<(), Error>,
     ) -> Result<(), Error> {
-        Position::stream_for_accounts_into(account_ids, client, callback).await
+        Position::stream_for_accounts_into(client, account_ids, callback).await
     }
 }
 
@@ -1233,7 +1233,7 @@ pub trait MultipleAccounts {
     /// if let Some(specific_account) = accounts.find_by_id("YOUR_ACCOUNT_ID") {
     ///     // Get some specific orders by their order id's
     ///     let orders = specific_account.
-    ///         get_orders_by_id(vec!["1115661503", "1115332365"], &client)
+    ///         get_orders_by_id(&client, vec!["1115661503", "1115332365"])
     ///         .await?;
     ///
     ///     // Log the status of the order's
@@ -1244,8 +1244,8 @@ pub trait MultipleAccounts {
     /// ```
     fn get_orders_by_id<'a>(
         &'a self,
-        order_ids: &'a [&str],
         client: &'a Client,
+        order_ids: &'a [&str],
     ) -> Self::GetOrdersFuture<'a>;
 
     type GetBalanceFuture<'a>: Future<Output = Result<Vec<Balance>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -1277,8 +1277,8 @@ pub trait MultipleAccounts {
     /// NOTE: Excludes open `Order`(s) and is sorted in descending order of time closed.
     fn get_historic_orders<'a>(
         &'a self,
-        since_date: &'a str,
         client: &'a Client,
+        since_date: &'a str,
     ) -> Self::GetHistoricOrdersFuture<'a>;
 
     type GetPositionFuture<'a>: Future<Output = Result<Position, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -1321,8 +1321,8 @@ pub trait MultipleAccounts {
     /// ```
     fn get_position<'a, S: Into<String>>(
         &'a self,
-        position_id: S,
         client: &'a Client,
+        position_id: S,
     ) -> Self::GetPositionFuture<'a>;
 
     type GetPositionsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -1371,8 +1371,8 @@ pub trait MultipleAccounts {
     /// ```
     fn get_positions_by_ids<'a>(
         &'a self,
-        position_ids: Vec<String>,
         client: &'a Client,
+        position_ids: Vec<String>,
     ) -> Self::GetPositionsFuture<'a>;
 
     type GetPositionsInSymbolsFuture<'a>: Future<Output = Result<Vec<Position>, Box<dyn StdErrorTrait + Send + Sync>>>
@@ -1383,8 +1383,8 @@ pub trait MultipleAccounts {
     /// Get the `Position`(s) in specific symbols for multiple `Account`(s).
     fn get_positions_in_symbols<'a>(
         &'a self,
-        symbols: &'a str,
         client: &'a Client,
+        symbols: &'a str,
     ) -> Self::GetPositionsFuture<'a>;
 
     type StreamOrders<'a>: Stream<Item = Result<StreamOrdersResp, Error>> + Send + 'a
@@ -1533,8 +1533,8 @@ pub trait MultipleAccounts {
     /// ```
     fn stream_orders_by_id<'a>(
         &'a self,
-        order_ids: Vec<&'a str>,
         client: &'a Client,
+        order_ids: Vec<&'a str>,
     ) -> Self::StreamOrders<'a>;
 
     type StreamPositions<'a>: Stream<Item = Result<StreamPositionsResp, Error>> + Send + 'a
@@ -1633,15 +1633,15 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(async move {
-            let orders = Account::get_orders_for_accounts(account_ids, client).await?;
+            let orders = Account::get_orders_for_accounts(client, account_ids).await?;
             Ok(orders)
         })
     }
 
     fn get_orders_by_id<'a>(
         &'a self,
-        order_ids: &'a [&str],
         client: &'a Client,
+        order_ids: &'a [&str],
     ) -> Self::GetOrdersFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
@@ -1650,7 +1650,7 @@ impl MultipleAccounts for Vec<Account> {
 
         Box::pin(async move {
             let orders =
-                Account::get_orders_by_id_for_accounts(account_ids, order_ids.to_vec(), client)
+                Account::get_orders_by_id_for_accounts(client, account_ids, order_ids.to_vec())
                     .await?;
 
             Ok(orders)
@@ -1672,7 +1672,7 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(async move {
-            let balances = Account::get_balances_by_accounts(account_ids, client).await?;
+            let balances = Account::get_balances_by_accounts(client, account_ids).await?;
             Ok(balances)
         })
     }
@@ -1692,7 +1692,7 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(async move {
-            let balances = Account::get_bod_balances_by_accounts(account_ids, client).await?;
+            let balances = Account::get_bod_balances_by_accounts(client, account_ids).await?;
             Ok(balances)
         })
     }
@@ -1707,8 +1707,8 @@ impl MultipleAccounts for Vec<Account> {
     /// Get the historical `Order`(s) for multiple `Account`(s).
     fn get_historic_orders<'a>(
         &'a self,
-        since_date: &'a str,
         client: &'a Client,
+        since_date: &'a str,
     ) -> Self::GetHistoricOrdersFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
@@ -1717,7 +1717,7 @@ impl MultipleAccounts for Vec<Account> {
 
         Box::pin(async move {
             let balances =
-                Account::get_historic_orders_by_accounts(account_ids, since_date, client).await?;
+                Account::get_historic_orders_by_accounts(client, account_ids, since_date).await?;
             Ok(balances)
         })
     }
@@ -1743,8 +1743,8 @@ impl MultipleAccounts for Vec<Account> {
     /// ```
     fn get_position<'a, S: Into<String>>(
         &'a self,
-        position_id: S,
         client: &'a Client,
+        position_id: S,
     ) -> Self::GetPositionFuture<'a> {
         let account_ids = self
             .iter()
@@ -1756,7 +1756,7 @@ impl MultipleAccounts for Vec<Account> {
 
         Box::pin(async move {
             let positions =
-                Account::get_position_for_accounts(account_ids, position_id, client).await?;
+                Account::get_position_for_accounts(client, account_ids, position_id).await?;
             Ok(positions)
         })
     }
@@ -1776,7 +1776,7 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(async move {
-            let positions = Account::get_positions_by_accounts(account_ids, client).await?;
+            let positions = Account::get_positions_by_accounts(client, account_ids).await?;
             Ok(positions)
         })
     }
@@ -1808,8 +1808,8 @@ impl MultipleAccounts for Vec<Account> {
     /// ```
     fn get_positions_by_ids<'a>(
         &'a self,
-        position_ids: Vec<String>,
         client: &'a Client,
+        position_ids: Vec<String>,
     ) -> Self::GetPositionsFuture<'a> {
         let account_ids = self
             .iter()
@@ -1819,7 +1819,7 @@ impl MultipleAccounts for Vec<Account> {
 
         Box::pin(async move {
             let positions =
-                Account::get_positions_by_id_for_accounts(account_ids, position_ids, client)
+                Account::get_positions_by_id_for_accounts(client, account_ids, position_ids)
                     .await?;
             Ok(positions)
         })
@@ -1835,8 +1835,8 @@ impl MultipleAccounts for Vec<Account> {
     /// Get the `Position`(s) in specific symbols for multiple `Account`(s).
     fn get_positions_in_symbols<'a>(
         &'a self,
-        symbols: &'a str,
         client: &'a Client,
+        symbols: &'a str,
     ) -> Self::GetPositionsFuture<'a> {
         let account_ids: Vec<&str> = self
             .iter()
@@ -1845,7 +1845,7 @@ impl MultipleAccounts for Vec<Account> {
 
         Box::pin(async move {
             let positions =
-                Account::get_positions_in_symbols_by_accounts(symbols, account_ids, client).await?;
+                Account::get_positions_in_symbols_by_accounts(client, symbols, account_ids).await?;
             Ok(positions)
         })
     }
@@ -1924,7 +1924,7 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(try_stream! {
-            let orders_stream = Account::stream_orders_for_accounts(account_ids, client);
+            let orders_stream = Account::stream_orders_for_accounts(client, account_ids);
             pin_mut!(orders_stream);
 
             while let Some(order) = orders_stream.next().await {
@@ -2008,8 +2008,8 @@ impl MultipleAccounts for Vec<Account> {
     /// ```
     fn stream_orders_by_id<'a>(
         &'a self,
-        order_ids: Vec<&'a str>,
         client: &'a Client,
+        order_ids: Vec<&'a str>,
     ) -> Self::StreamOrders<'a> {
         let account_ids: Vec<&str> = self
             .iter()
@@ -2017,7 +2017,7 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(try_stream! {
-            let orders_stream = Account::stream_orders_by_id_for_accounts(order_ids, account_ids, client);
+            let orders_stream = Account::stream_orders_by_id_for_accounts(client, order_ids, account_ids);
             pin_mut!(orders_stream);
 
             while let Some(order) = orders_stream.next().await {
@@ -2101,7 +2101,7 @@ impl MultipleAccounts for Vec<Account> {
             .collect();
 
         Box::pin(try_stream! {
-            let positions_stream = Account::stream_positions_for_accounts(account_ids, client);
+            let positions_stream = Account::stream_positions_for_accounts(client, account_ids);
             pin_mut!(positions_stream);
 
             while let Some(position) = positions_stream.next().await {
@@ -2260,6 +2260,6 @@ impl Client {
 
     /// Get a specific TradeStation `Account` by it's account id
     pub async fn get_account(&self, account_id: &str) -> Result<Account, Error> {
-        Account::get(account_id, self).await
+        Account::get(self, account_id).await
     }
 }
