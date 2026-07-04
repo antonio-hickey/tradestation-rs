@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// The open trades (positons).
+/// An open position held in an `Account`.
 pub struct Position {
     #[serde(rename = "AccountID")]
     /// The `Account` id the `Position` belongs to.
@@ -360,12 +360,12 @@ impl Position {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
-/// A position type can either be short or long
+/// The different types of [`Position`]'s.
 pub enum PositionType {
-    /// Long a share, or futures/options contract
+    /// Long a share, or futures/options contract.
     Long,
 
-    /// Short a share, or futures/options contract
+    /// Short a share, or futures/options contract.
     Short,
 }
 

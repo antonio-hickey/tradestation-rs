@@ -16,8 +16,8 @@ use tracing::{debug, error, info, warn};
 impl Order {
     /// Place an [`OrderRequest`] to the market.
     ///
-    /// The result of placing an [`Order`]'s is a [`OrderTicket`]
-    /// which represents the result of placing the order.
+    /// The result of placing a [`Order`] is an [`OrderTicket`]
+    /// which represents the result of placing that order.
     ///
     /// # Example
     /// ---

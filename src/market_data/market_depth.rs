@@ -594,7 +594,7 @@ impl Client {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-/// Aggregated quotes, ordered from high to low price.
+/// Aggregated market depth quotes, ordered from high to low price.
 pub struct MarketDepthAggregate {
     /// The earliest participant timestamp for this quote, represented as an
     /// RFC3339 formatted date, a profile of the ISO 8601 date standard.
