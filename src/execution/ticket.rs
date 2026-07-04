@@ -116,7 +116,13 @@ impl OrderTicket {
     /// at the limit price of $`"40.00"` to instead be 25 shares
     /// at the limit price of $`"42.50"`.
     ///
-    /// ```ignore
+    /// ```rust,no_run
+    /// # use tradestation::{Client, Error};
+    /// # use tradestation::orders::{
+    /// #     Duration, Order, OrderRequestBuilder, OrderTimeInForce, OrderType, OrderUpdate,
+    /// #     TradeAction,
+    /// # };
+    /// # async fn replace_order_example(client: &Client) -> Result<(), Error> {
     /// let order_req = OrderRequestBuilder::new()
     ///     .account_id("YOUR_EQUITIES_ACCOUNT_ID")
     ///     .symbol("PLTR")
@@ -144,6 +150,7 @@ impl OrderTicket {
     ///         )
     ///         .await?;
     /// }
+    /// # Ok(()) }
     /// ```
     pub async fn replace(
         self,
@@ -173,7 +180,12 @@ impl OrderTicket {
     /// # Example
     /// ---
     ///
-    /// ```ignore
+    /// ```rust,no_run
+    /// # use tradestation::{Client, Error};
+    /// # use tradestation::orders::{
+    /// #     Duration, Order, OrderRequestBuilder, OrderTimeInForce, OrderType, TradeAction,
+    /// # };
+    /// # async fn cancel_order_example(client: &Client) -> Result<(), Error> {
     /// let order_req = OrderRequestBuilder::new()
     ///     .account_id("YOUR_EQUITIES_ACCOUNT_ID")
     ///     .symbol("JPM")
@@ -195,6 +207,7 @@ impl OrderTicket {
     /// if let Some(order) = order {
     ///     order.cancel(&client).await?;
     /// }
+    /// # Ok(()) }
     /// ```
     pub async fn cancel(self, client: &Client) -> Result<OrderTicket, Error> {
         let endpoint = format!("orderexecution/orders/{}", self.order_id);
