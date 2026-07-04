@@ -168,9 +168,8 @@ pub struct OrderConfirmation {
 }
 
 impl Order {
-    /// Confirm an [`Order`] getting back an estimated cost
-    /// and commission information for the order without
-    /// actually placing the order.
+    /// Confirm an [`Order`], returning the estimated cost
+    /// and commissions without actually placing the order.
     ///
     /// NOTE: Only valid for `Market Limit`, `Stop Market`,
     /// `Options`, and `Order Sends Order (OSO)` order types.

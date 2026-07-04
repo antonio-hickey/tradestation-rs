@@ -571,18 +571,18 @@ impl FromStr for SessionTemplate {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-/// The types of unit of measurement for time in each bar interval.
+/// The different unit of measurement types for time intervals of a [`Bar`].
 pub enum BarUnit {
-    /// Minute Bars
+    /// [`Bar`]'s in minute intervals.
     Minute,
 
-    /// Daily Bars
+    /// [`Bar`]'s in daily intervals.
     Daily,
 
-    /// Weekly Bars
+    /// [`Bar`]'s in weekly intervals.
     Weekly,
 
-    /// Monthly Bars
+    /// [`Bar`]'s in monthly intervals.
     Monthly,
 }
 impl FromStr for BarUnit {
@@ -601,7 +601,7 @@ impl FromStr for BarUnit {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-/// The 2 types of state a `Bar` can be in, open or closed.
+/// The different states a [`Bar`] can be in.
 pub enum BarStatus {
     /// Indicates the `Bar` is still trading.
     Open,
