@@ -43,7 +43,7 @@
 //!
 //! For more thorough information, read the [docs](https://docs.rs/tradestation/latest/tradestation/).
 //!
-//! NOTE: See initial auth example on how to get your token (if not already done): https://github.com/antonio-hickey/tradestation-rs/blob/master/examples/initial_auth.rs
+//! NOTE: See initial auth example on how to get your token (if not already done): <https://github.com/antonio-hickey/tradestation-rs/blob/master/examples/initial_auth.rs>
 //!
 //! Simple example for streaming bars of trading activity:
 //! ```rust,no_run
