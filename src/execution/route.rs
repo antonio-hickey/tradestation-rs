@@ -29,9 +29,12 @@ impl Route {
     /// # Example
     /// ---
     /// Example: Fetch a list of routes to send orders for execution.
-    /// ```ignore
+    /// ```rust,no_run
+    /// # use tradestation::{Client, Error};
+    /// # async fn get_routes_example(client: &Client) -> Result<(), Error> {
     /// let routes = client.get_execution_routes().await?;
     /// println!("Valid routes for order execution: {routes:?}");
+    /// # Ok(()) }
     /// ```
     pub async fn fetch(client: &Client) -> Result<Vec<Route>, Error> {
         let endpoint = String::from("orderexecution/routes");
@@ -63,15 +66,26 @@ impl Client {
     /// # Example
     /// ---
     /// Example: Fetch a list of routes to send orders for execution.
-    /// ```ignore
-    /// use tradestation::{ClientBuilder, Error, Token};
+    /// ```rust,no_run
+    /// use tradestation::{ClientBuilder, ClientEnvironment, Error, Scope, Token};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Create client
-    ///     let client = ClientBuilder::new()?
-    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .token(Token { /* YOUR BEARER AUTH TOKEN */ })?
+    ///     let client = ClientBuilder::new()
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+    ///         .environment(ClientEnvironment::Simulation)
+    ///         .with_token(Token {
+    ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
+    ///             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
+    ///             id_token: String::from("YOUR_ID_TOKEN"),
+    ///             token_type: String::from("Bearer"),
+    ///             scope: vec![
+    ///                 Scope::Trade,
+    ///                 /* ... Your Other Desired Scopes */
+    ///             ],
+    ///             expires_in: 1200,
+    ///         })
     ///         .build()
     ///         .await?;
     ///

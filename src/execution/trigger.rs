@@ -32,9 +32,12 @@ impl ActivationTrigger {
     /// ---
     /// Fetch valid activation triggers to utilize with your orders.
     ///
-    /// ```ignore
+    /// ```rust,no_run
+    /// # use tradestation::{Client, Error};
+    /// # async fn get_activation_triggers_example(client: &Client) -> Result<(), Error> {
     /// let triggers = client.get_activation_triggers().await?;
     /// println!("Valid activation triggers for order execution: {triggers:?}");
+    /// # Ok(()) }
     /// ```
     pub async fn fetch(client: &Client) -> Result<Vec<ActivationTrigger>, Error> {
         let endpoint = String::from("orderexecution/activationtriggers");
@@ -70,22 +73,26 @@ impl Client {
     /// ---
     /// Fetch valid activation triggers to utilize with your orders.
     ///
-    /// ```ignore
-    /// use tradestation::{ClientBuilder, Error, Token};
+    /// ```rust,no_run
+    /// use tradestation::{ClientBuilder, ClientEnvironment, Error, Scope, Token};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Error> {
     ///     // Initialize client
-    ///     let client = ClientBuilder::new()?
-    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")?
-    ///         .token(Token {
+    ///     let client = ClientBuilder::new()
+    ///         .credentials("YOUR_CLIENT_ID", "YOUR_CLIENT_SECRET")
+    ///         .environment(ClientEnvironment::Simulation)
+    ///         .with_token(Token {
     ///             access_token: String::from("YOUR_ACCESS_TOKEN"),
     ///             refresh_token: String::from("YOUR_REFRESH_TOKEN"),
     ///             id_token: String::from("YOUR_ID_TOKEN"),
     ///             token_type: String::from("Bearer"),
-    ///             scope: String::from("YOUR_SCOPES SPACE_SEPERATED FOR_EACH_SCOPE"),
+    ///             scope: vec![
+    ///                 Scope::Trade,
+    ///                 /* ... Your Other Desired Scopes */
+    ///             ],
     ///             expires_in: 1200,
-    ///         })?
+    ///         })
     ///         .build()
     ///         .await?;
     ///
