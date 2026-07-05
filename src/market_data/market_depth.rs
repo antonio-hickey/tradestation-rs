@@ -140,6 +140,7 @@ impl MarketDepthQuotes {
     ///     Ok(())
     /// }).await?;
     /// # Ok(()) }
+    /// ```
     pub async fn stream_into(
         client: &Client,
         symbol: impl Into<String>,
@@ -447,6 +448,7 @@ impl MarketDepthAggregates {
     ///     Ok(())
     /// }).await?;
     /// # Ok(()) }
+    /// ```
     pub async fn stream_into(
         client: &Client,
         symbol: impl Into<String>,
