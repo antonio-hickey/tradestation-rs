@@ -16,7 +16,7 @@
 //! * [Crates.io Homepage](https://crates.io/crates/tradestation)
 //! * [Documentation](https://docs.rs/tradestation/latest/tradestation)
 //! * [GitHub Repository](https://github.com/antonio-hickey/tradestation-rs)
-//! * [Examples](https://github.com/antonio-hickey/tradestation-rs/tree/v1.0.0/examples)
+//! * [Examples](https://github.com/antonio-hickey/tradestation-rs/tree/v1.0.1/examples)
 //!
 //! Features
 //! ---
@@ -35,7 +35,7 @@
 //! Or manually add it into your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! tradestation = "1.0.0"
+//! tradestation = "1.0.1"
 //! ```
 //!
 //! Usage

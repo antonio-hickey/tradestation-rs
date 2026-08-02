@@ -1,6 +1,6 @@
 [package]
 name = "tradestation"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Antonio Hickey <contact@antoniohickey.com>"]
 description = "An ergonomic Rust client for the TradeStation API."
 documentation = "https://docs.rs/tradestation/latest/tradestation/index.html"
