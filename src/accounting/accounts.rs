@@ -258,7 +258,7 @@ impl Account {
         let endpoint = format!(
             "brokerage/accounts/{}/orders/{}",
             account_ids.join(","),
-            &order_ids.join(",")
+            order_ids.join(",")
         );
 
         match client
