@@ -648,6 +648,7 @@ pub struct OrderLeg {
     pub open_or_close: Option<OrderStage>,
 
     /// The type of option of the `OrderLeg`.
+    #[serde(default, deserialize_with = "deserialize_option_type")]
     pub option_type: Option<OptionType>,
 
     /// Number of shares or contracts being purchased or sold.
@@ -682,6 +683,29 @@ pub enum OptionType {
     #[serde(rename = "PUT")]
     /// Put Option
     Put,
+}
+
+/// Custom deserializer for [`OptionType`].
+///
+/// There's a 3rd [`OptionType`] variant which is `NA`, this seems to be
+/// a non option leg which is a part of an option trade (underlying, etc).
+///
+/// This makes sure we parse that 3rd variant into [`None`].
+fn deserialize_option_type<'de, D>(deserializer: D) -> Result<Option<OptionType>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+
+    match value.as_deref() {
+        None | Some("NA") => Ok(None),
+        Some("CALL") => Ok(Some(OptionType::Call)),
+        Some("PUT") => Ok(Some(OptionType::Put)),
+        Some(value) => Err(serde::de::Error::unknown_variant(
+            value,
+            &["CALL", "PUT", "NA"],
+        )),
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
