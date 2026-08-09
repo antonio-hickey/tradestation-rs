@@ -51,7 +51,7 @@ use tradestation::{
     responses::market_data::StreamBarsResp,
     market_data::{BarUnit, StreamBarsQueryBuilder},
     token::{Token, Scope},
-    ClientBuilder, Error,
+    ClientBuilder, ClientEnvironment, Error,
 };
 
 #[tokio::main]
