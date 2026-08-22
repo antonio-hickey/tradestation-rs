@@ -324,7 +324,7 @@ pub mod orders;
 /// Types and functionality for working with account positions.
 pub mod positions;
 
-pub use accounts::{Account, MultipleAccounts};
+pub use accounts::{Account, AccountDetail, AccountType, MultipleAccounts, OptionApprovalLevel};
 pub use balances::{
     BODBalance, BODBalanceDetail, BODCurrencyDetails, Balance, BalanceDetail, CurrencyDetails,
 };
