@@ -782,6 +782,25 @@ pub enum AssetType {
     IndexOption,
 }
 
+impl std::fmt::Display for AssetType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            AssetType::Unknown => "UNKNOWN",
+            AssetType::Equity => "EQUITY",
+            AssetType::Option => "OPTION",
+            AssetType::Stock => "STOCK",
+            AssetType::StockOption => "STOCKOPTION",
+            AssetType::Future => "FUTURE",
+            AssetType::FutureOption => "FUTUREOPTION",
+            AssetType::Forex => "FOREX",
+            AssetType::CurrencyOption => "CURRENCYOPTION",
+            AssetType::Index => "INDEX",
+            AssetType::IndexOption => "INDEXOPTION",
+        };
+        write!(f, "{s}")
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 /// Describes the relationship between linked
@@ -821,4 +840,24 @@ pub enum OrderRelationship {
 
     /// All other types of [`Order`] relationships.
     NORMAL,
+}
+
+#[cfg(test)]
+mod asset_type_display_tests {
+    use super::*;
+
+    #[test]
+    fn display_matches_serde_renames() {
+        assert_eq!(AssetType::Unknown.to_string(), "UNKNOWN");
+        assert_eq!(AssetType::Equity.to_string(), "EQUITY");
+        assert_eq!(AssetType::Option.to_string(), "OPTION");
+        assert_eq!(AssetType::Stock.to_string(), "STOCK");
+        assert_eq!(AssetType::StockOption.to_string(), "STOCKOPTION");
+        assert_eq!(AssetType::Future.to_string(), "FUTURE");
+        assert_eq!(AssetType::FutureOption.to_string(), "FUTUREOPTION");
+        assert_eq!(AssetType::Forex.to_string(), "FOREX");
+        assert_eq!(AssetType::CurrencyOption.to_string(), "CURRENCYOPTION");
+        assert_eq!(AssetType::Index.to_string(), "INDEX");
+        assert_eq!(AssetType::IndexOption.to_string(), "INDEXOPTION");
+    }
 }
