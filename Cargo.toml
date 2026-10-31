@@ -18,14 +18,14 @@ name = "tradestation"
 path = "src/lib.rs"
 
 [dependencies]
-reqwest = { version = "0.13.4", features = ["json", "stream", "form"] }
+reqwest = { version = "0.13", features = ["json", "stream", "form"] }
 tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7"
 tracing = { version = "0.1", features = ["log"] }
 async-stream = "0.3"
 futures = "0.3"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.150"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 url = "2.5.8"
 
 [dev-dependencies]
