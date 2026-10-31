@@ -576,6 +576,18 @@ impl ClientBuilder {
 }
 impl ClientBuilderStep<Configure> {
     #[must_use]
+    /// Set the HTTP client used for all requests.
+    ///
+    /// This can be used to configure transport behavior such as proxies,
+    /// timeouts, TLS settings, default headers, and connection pooling.
+    ///
+    /// NOTE: If it is not set, the builder uses a default [`reqwest::Client`].
+    pub fn http_client(mut self, http_client: reqwest::Client) -> Self {
+        self.http_client = http_client;
+        self
+    }
+
+    #[must_use]
     /// Set the API key and secret.
     pub fn credentials<S: Into<String>>(mut self, client_id: S, client_secret: S) -> Self {
         self.client_id = Some(client_id.into());

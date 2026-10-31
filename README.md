@@ -93,6 +93,32 @@ async fn main() -> Result<(), Error> {
 }
 ```
 
+Custom HTTP Transport
+---
+
+`ClientBuilder` accepts an optional custom `reqwest::Client` through `ClientBuilder::http_client`.
+Use this when you need to configure transport behavior such as timeouts, proxies,
+TLS settings, connection pooling, or default headers.
+
+```rust,no_run
+use std::time::Duration;
+use tradestation::{ClientBuilder, ClientEnvironment, Token};
+
+let http_client = reqwest::Client::builder()
+    .timeout(Duration::from_secs(30))
+    .build()?;
+
+let client = ClientBuilder::new()
+    .http_client(http_client)
+    .environment(ClientEnvironment::Simulation)
+    .with_token(Token::dummy())
+    .build()
+    .await?;
+```
+
+The custom configured HTTP client is then used for all requests made by the `Client`.
+If `http_client` is omitted, the builder creates a default `reqwest::Client` for you.
+
 Contributing
 ---
 
